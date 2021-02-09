@@ -498,7 +498,7 @@ class HildaClient(metaclass=CommandsMeta):
             self.thread.StepInto()
 
     @command()
-    def finish(self):
+    def step_over(self):
         """ Step over current instruction. """
         with self.sync_mode():
             self.thread.StepOver()

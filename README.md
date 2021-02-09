@@ -31,6 +31,9 @@ In order to install please run:
 xcrun python3 -m pip install --user -U -e .
 ```
 
+*⚠️ Please note that Hilda is installed on top of XCode's python so LLDB will
+be able to use its features.*
+
 ## How to use
 
 ### Commands

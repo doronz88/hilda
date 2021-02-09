@@ -1,5 +1,4 @@
 from collections import namedtuple
-from collections import namedtuple
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
@@ -9,7 +8,6 @@ import inspect
 import logging
 import pickle
 import json
-import sys
 import ast
 import os
 
@@ -23,7 +21,6 @@ from traitlets.config import Config
 from tqdm import tqdm
 
 import docstring_parser
-import humanfriendly
 import IPython
 import hexdump
 import lldb

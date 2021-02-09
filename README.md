@@ -32,8 +32,7 @@ In order to install please run:
 xcrun python3 -m pip install --user -U -e .
 ```
 
-*⚠️ Please note that Hilda is installed on top of XCode's python so LLDB will
-be able to use its features.*
+*⚠️ Please note that Hilda is installed on top of XCode's python so LLDB will be able to use its features.*
 
 ## How to use
 
@@ -134,4 +133,25 @@ d = NSDictionary.new().objc_symbol
 d.show()  # print object layout
 ```
 
+### Using snippets
 
+Snippets are extensions for normal functionality used as quick cookbooks for day-to-day tasks of a debugger.
+
+They all use the following concept to use:
+
+```python
+from hilda.snippets import snippet_name
+
+# They all receive an instance of `HildaClient` which is self
+snippet_name.do_domething(self)  
+```
+
+For example, XPC sniffing can be done using:
+
+```python
+from hilda.snippets import xpc_sniff
+
+xpc_sniff.xpc_sniff_all(self)
+```
+
+This will monitor all XPC related traffic in the given process.

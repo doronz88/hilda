@@ -442,7 +442,6 @@ class HildaClient(metaclass=CommandsMeta):
                 else:
                     return f'{value:x} (unsupported format)'
 
-            thread = frame.GetThread()
             bp = bp_loc.GetBreakpoint()
             symbol = frame.GetSymbol()
             symbol_address = symbol.addr.GetLoadAddress(hilda.target)

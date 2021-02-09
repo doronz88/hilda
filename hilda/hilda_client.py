@@ -44,7 +44,12 @@ ISA_MAGICS = [
 # Mask for tagged pointer, from objc-internal.h
 OBJC_TAG_MASK = (1 << 63)
 
-GREETING = """
+with open(os.path.join(Path(__file__).resolve().parent, 'hilda_ascii_art.html'), 'r') as f:
+    hilda_art = f.read()
+
+GREETING = f"""
+{hilda_art}
+
 <b>Hilda has been successfully loaded! 😎
 Also, please review the show_commands() function.
 Have a nice flight ✈️! Starting an IPython shell...

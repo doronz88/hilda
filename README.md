@@ -2,8 +2,14 @@
 
 ## Description
 
-Hilda is a debugger which combines both the power of LLDB and iPython for easier work. Currently, the project is
-intended for iOS debugging, but in the future we will possibly add support for the following platforms as well:
+Hilda is a debugger which combines both the power of LLDB and iPython for easier work. 
+
+The name originates from  the TV show "Hilda", which is the best friend of 
+[Frida](https://frida.re/). Both Frida and Hilda are meant for pretty much
+the same purpose, except Hilda takes the more "debugger-y" approach (based on LLDB). 
+
+Currently, the project is intended for iOS debugging, but in the future we 
+will possibly add support for the following platforms as well:
 
 * OSX
 * Linux

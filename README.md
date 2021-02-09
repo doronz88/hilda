@@ -24,6 +24,7 @@ Requirements:
 
 * `iproxy` in PATH (`brew install libimobiledevice`)
 * `debugserver` in device's PATH
+    * [You can view the following guide as for how to obtain the binary](http://iphonedevwiki.net/index.php/Debugserver)
 
 In order to install please run:
 

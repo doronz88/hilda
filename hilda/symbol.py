@@ -136,6 +136,7 @@ class Symbol(int):
         """ Construct compliance. """
         val = (self + self._offset).peek(count)
         self._offset += count
+        return val
 
     def write(self, buf):
         """ Construct compliance. """

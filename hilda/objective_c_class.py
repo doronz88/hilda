@@ -166,13 +166,13 @@ class Class(object):
             kwargs['name'] = f'[{self.name} {method.name}]'
             method.address.monitor(**kwargs)
 
-    def bp(self, **kwargs):
+    def bp(self, callback=None, **kwargs):
         """
         Proxy for bp command.
         """
         for method in self.methods:
             kwargs['name'] = f'[{self.name} {method.name}]'
-            method.address.bp(**kwargs)
+            method.address.bp(callback, **kwargs)
 
     def iter_supers(self):
         """

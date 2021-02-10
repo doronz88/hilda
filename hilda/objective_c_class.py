@@ -10,7 +10,7 @@ from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import ObjectiveCLexer
 
-from hilda.exceptions import GettingObjectivCClassError
+from hilda.exceptions import GettingObjectiveCClassError
 from hilda.objective_c_type_decoder import decode_type, decode_type_with_tail
 
 Ivar = namedtuple('Ivar', 'name type_ offset')
@@ -80,7 +80,7 @@ class Class(object):
         obj_c_code = obj_c_code.format(address=0, class_name=class_name)
         class_symbol = Class(client, class_data=json.loads(client.po(obj_c_code)))
         if class_symbol.name != class_name:
-            raise GettingObjectivCClassError()
+            raise GettingObjectiveCClassError()
         return class_symbol
 
     @staticmethod

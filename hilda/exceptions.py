@@ -28,7 +28,7 @@ class DisableJetsamMemoryChecksError(HildaException):
     pass
 
 
-class GettingObjectivCClassError(HildaException):
+class GettingObjectiveCClassError(HildaException):
     """ Raise when failing to get an ObjectiveC class. """
     pass
 

@@ -1,6 +1,6 @@
 import pytest
 
-from hilda.exceptions import GettingObjectivCClassError
+from hilda.exceptions import GettingObjectiveCClassError
 from hilda.objective_c_symbol import ObjectiveCSymbol
 from hilda.symbol import Symbol
 
@@ -18,7 +18,7 @@ def test_get_objc_class_error(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    with pytest.raises(GettingObjectivCClassError):
+    with pytest.raises(GettingObjectiveCClassError):
         hilda_client.objc_get_class('classthatdoesntexist')
 
 

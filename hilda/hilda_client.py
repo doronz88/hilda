@@ -1,5 +1,5 @@
 from collections import namedtuple
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from functools import partial
 from pathlib import Path
 import textwrap
@@ -14,12 +14,10 @@ import os
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import XmlLexer
 from pygments import highlight
-
 from humanfriendly.terminal.html import html_to_ansi
 from humanfriendly import prompts
 from traitlets.config import Config
 from tqdm import tqdm
-
 import docstring_parser
 import IPython
 import hexdump
@@ -207,7 +205,8 @@ class HildaClient(metaclass=CommandsMeta):
                 continue
 
             for symbol in module:
-                self.add_lldb_symbol(symbol)
+                with suppress(AddingLldbSymbolError):
+                    self.add_lldb_symbol(symbol)
 
         globals()['symbols'] = self.symbols
         self._symbols_loaded = True
@@ -879,11 +878,12 @@ class HildaClient(metaclass=CommandsMeta):
         Convert an LLDB symbol into Hilda's symbol object and insert into `symbols` global
         :param symbol: LLDB symbol
         :return: converted symbol
+        :raise AddingLldbSymbolError: Hilda failed to convert the LLDB symbol.
         """
         load_addr = symbol.addr.GetLoadAddress(self.target)
         if load_addr == 0xffffffffffffffff:
             # skip those not having a real address
-            return
+            raise AddingLldbSymbolError()
 
         name = symbol.name
         type_ = symbol.GetType()
@@ -893,7 +893,7 @@ class HildaClient(metaclass=CommandsMeta):
                                                      lldb.eSymbolTypeData,
                                                      lldb.eSymbolTypeObjCMetaClass)):
             # ignore unnamed symbols and those which are not in a really used type
-            return
+            raise AddingLldbSymbolError()
 
         value = self.symbol(load_addr)
 

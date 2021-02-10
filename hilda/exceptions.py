@@ -46,3 +46,8 @@ class AccessingMemoryError(HildaException):
 class BrokenLocalSymbolsJarError(HildaException):
     """ Raise when attempt to load an invalid symbols jar pickle """
     pass
+
+
+class AddingLldbSymbolError(HildaException):
+    """ Raise when failing to convert a LLDB symbol to Hilda's symbol. """
+    pass

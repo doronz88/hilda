@@ -1,6 +1,8 @@
+from contextlib import suppress
+
 import lldb
 
-from hilda.exceptions import SymbolAbsentError
+from hilda.exceptions import SymbolAbsentError, AddingLldbSymbolError
 
 
 class SymbolsJar(dict):
@@ -13,9 +15,8 @@ class SymbolsJar(dict):
                 # remove module name from symbol
                 name = name.split('{', 1)[0]
             for s in self._client.target.FindSymbols(name):
-                s = self._client.add_lldb_symbol(s.symbol)
-                if s:
-                    return s
+                with suppress(AddingLldbSymbolError):
+                    return self._client.add_lldb_symbol(s.symbol)
         return None
 
     def __getitem__(self, item):
@@ -29,9 +30,8 @@ class SymbolsJar(dict):
         if name not in self:
             if hasattr(self, '_client'):
                 for s in self._client.target.FindSymbols(name):
-                    s = self._client.add_lldb_symbol(s.symbol)
-                    if s:
-                        return s
+                    with suppress(AddingLldbSymbolError):
+                        return self._client.add_lldb_symbol(s.symbol)
             raise SymbolAbsentError(f'no such symbol: {name}')
 
         return self.get(name)

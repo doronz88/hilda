@@ -28,6 +28,7 @@ Pull requests are more than welcome 😊.
 
 Requirements:
 
+* Jailbroken iOS device
 * `iproxy` in PATH (`brew install libimobiledevice`)
 * `debugserver` in device's PATH
     * [You can view the following guide as for how to obtain the binary](http://iphonedevwiki.net/index.php/Debugserver)
@@ -41,6 +42,21 @@ xcrun python3 -m pip install --user -U -e .
 *⚠️ Please note that Hilda is installed on top of XCode's python so LLDB will be able to use its features.*
 
 ## How to use
+
+### Starting shell
+
+Simply run:
+```shell
+hilda PROCESS_NAME SSH_PORT
+```
+
+Please note the script assumes the target device is running an ssh server. It will try running the following for you:
+```shell
+ssh -p SSH_PORT root@localhost "debugserver localhost:1234 --attach=1234 &"&
+```
+
+For this to work, make sure the connected device doesn't require password for the connection (you can use
+`ssh-copy-id` to achieve this).
 
 ### Commands
 

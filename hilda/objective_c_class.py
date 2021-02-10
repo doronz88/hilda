@@ -71,7 +71,9 @@ class Class(object):
     @staticmethod
     def from_class_name(client, class_name: str):
         """
-        :param hilda.hilda_client.HildaClient client:
+        Create ObjectiveC Class from given class name.
+        :param hilda.hilda_client.HildaClient client: Hilda client.
+        :param class_name: Class name.
         """
         with open(os.path.join(Path(__file__).resolve().parent, 'get_objectivec_class_description.fm'), 'r') as f:
             obj_c_code = f.read()

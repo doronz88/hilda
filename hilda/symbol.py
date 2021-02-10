@@ -12,12 +12,13 @@ class Symbol(int):
                      'disass', 'po', 'objc_call']
 
     @classmethod
-    def create(cls, value, client):
+    def create(cls, value: int, client):
         """
-        Create a Symbol object
-        :param value: address
-        :param hilda.hilda_client.HildaClient: hilda client
-        :return: Symbol object
+        Create a Symbol object.
+        :param value: Symbol address.
+        :param hilda.hilda_client.HildaClient client: Hilda client.
+        :return: Symbol object.
+        :rtype: Symbol
         """
         if not isinstance(value, int):
             raise TypeError()

@@ -1,4 +1,5 @@
-from hilda.launch_lldb import main
+from hilda.launch_lldb import main as lldb_main
 
-if __name__ == '__main__':
-    main()
+
+def main():
+    lldb_main()

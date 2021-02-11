@@ -1010,7 +1010,8 @@ class HildaClient(metaclass=CommandsMeta):
                 arg = ''.join([f'\\x{b:02x}' for b in arg])
                 args_conv.append(f'(intptr_t)"{arg}"')
             elif isinstance(arg, int) or isinstance(arg, Symbol):
-                args_conv.append(f'0x{int(arg):x}')
+                arg = int(arg) & 0xffffffffffffffff
+                args_conv.append(f'0x{arg:x}')
             else:
                 raise NotImplementedError('cannot serialize argument')
         return args_conv

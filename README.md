@@ -53,7 +53,7 @@ hilda PROCESS_NAME SSH_PORT
 
 Please note the script assumes the target device is running an ssh server. It will try running the following for you:
 ```shell
-ssh -p SSH_PORT root@localhost "debugserver localhost:1234 --attach=1234 &"&
+ssh -p SSH_PORT root@localhost "debugserver localhost:1234 --attach=PROCESS_NAME &"&
 ```
 
 For this to work, make sure the connected device doesn't require password for the connection (you can use

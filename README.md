@@ -168,16 +168,15 @@ They all use the following concept to use:
 ```python
 from hilda.snippets import snippet_name
 
-# They all receive an instance of `HildaClient` which is self
-snippet_name.do_domething(self)  
+snippet_name.do_domething()  
 ```
 
 For example, XPC sniffing can be done using:
 
 ```python
-from hilda.snippets import xpc_sniff
+from hilda.snippets import xpc
 
-xpc_sniff.xpc_sniff_all(self)
+xpc.xpc_sniff_all()
 ```
 
 This will monitor all XPC related traffic in the given process.

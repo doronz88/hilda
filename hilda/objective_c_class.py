@@ -141,7 +141,7 @@ class Class(object):
             hilda.log_info(f'removing breakpoints')
             for bp_id, bp in list(hilda.breakpoints.items()):
                 if 'group_uuid' in bp.options and bp.options.get('group_uuid', '') == options['group_uuid']:
-                    hilda.remove_hilda_breakpoints(bp_id)
+                    hilda.remove_hilda_breakpoint(bp_id)
             captured = hilda.registers.x0
             if hilda.is_objc_type(captured):
                 captured = captured.objc_symbol

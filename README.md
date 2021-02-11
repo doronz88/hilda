@@ -31,7 +31,7 @@ Requirements:
 * Jailbroken iOS device
 * `iproxy` in PATH (`brew install libimobiledevice`)
 * `debugserver` in device's PATH
-    * [You can view the following guide as for how to obtain the binary](http://iphonedevwiki.net/index.php/Debugserver)
+    * [You can use this tool in order to obtain the binary](https://github.com/doronz88/debugserver-deploy)
 
 In order to install please run:
 

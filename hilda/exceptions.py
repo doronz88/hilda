@@ -23,6 +23,11 @@ class ConvertingToCfObjectError(HildaException):
     pass
 
 
+class ConvertingFromCfObjectError(HildaException):
+    """ Raise when failing to convert CF object to python object. """
+    pass
+
+
 class DisableJetsamMemoryChecksError(HildaException):
     """ Raise when failing to disable jetsam memory checks. """
     pass

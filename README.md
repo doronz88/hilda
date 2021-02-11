@@ -126,6 +126,9 @@ NSDictionary = objc_get_class('NSDictionary')
 d = NSDictionary.new()
 ```
 
+This is possible only since `NSDictionary` is exported. In case it is not, you
+must call `objc_get_class()` explicitly.
+
 As you can see, you can directly access all the class' methods. In order to monitor each time a single one is called,
 you can:
 

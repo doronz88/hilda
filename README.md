@@ -2,14 +2,14 @@
 
 ## Description
 
-Hilda is a debugger which combines both the power of LLDB and iPython for easier work. 
+Hilda is a debugger which combines both the power of LLDB and iPython for easier work.
 
-The name originates from  the TV show "Hilda", which is the best friend of 
-[Frida](https://frida.re/). Both Frida and Hilda are meant for pretty much
-the same purpose, except Hilda takes the more "debugger-y" approach (based on LLDB). 
+The name originates from the TV show "Hilda", which is the best friend of
+[Frida](https://frida.re/). Both Frida and Hilda are meant for pretty much the same purpose, except Hilda takes the
+more "debugger-y" approach (based on LLDB).
 
-Currently, the project is intended for iOS debugging, but in the future we 
-will possibly add support for the following platforms as well:
+Currently, the project is intended for iOS debugging, but in the future we will possibly add support for the following
+platforms as well:
 
 * OSX
 * Linux
@@ -22,7 +22,9 @@ Pull requests are more than welcome 😊.
 
 ## Example
 
-![](example.gif)
+![](gifs/example.gif)
+
+More examples can be found under the [gifs folder](gifs/).
 
 ## Installation
 
@@ -47,11 +49,13 @@ xcrun python3 -m pip install --user -U -e .
 ### Starting shell
 
 Simply run:
+
 ```shell
 hilda PROCESS_NAME SSH_PORT
 ```
 
 Please note the script assumes the target device is running an ssh server. It will try running the following for you:
+
 ```shell
 ssh -p SSH_PORT root@localhost "debugserver localhost:1234 --attach=PROCESS_NAME &"&
 ```
@@ -127,8 +131,7 @@ NSDictionary = objc_get_class('NSDictionary')
 d = NSDictionary.new()
 ```
 
-This is possible only since `NSDictionary` is exported. In case it is not, you
-must call `objc_get_class()` explicitly.
+This is possible only since `NSDictionary` is exported. In case it is not, you must call `objc_get_class()` explicitly.
 
 As you can see, you can directly access all the class' methods. In order to monitor each time a single one is called,
 you can:

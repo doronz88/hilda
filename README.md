@@ -32,6 +32,7 @@ Requirements:
 * `iproxy` in PATH (`brew install libimobiledevice`)
 * `debugserver` in device's PATH
     * [You can use this tool in order to obtain the binary](https://github.com/doronz88/debugserver-deploy)
+    * After re-signing with new entitlements, you can put the binary in the following path: `/usr/bin/debugserver`
 
 In order to install please run:
 

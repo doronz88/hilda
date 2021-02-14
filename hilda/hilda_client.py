@@ -28,7 +28,14 @@ import lldb
 
 from hilda import objective_c_class
 from hilda.command import command, CommandsMeta
-from hilda.exceptions import *
+from hilda.exceptions import (HildaException, DisableJetsamMemoryChecksError,
+                              CreatingObjectiveCSymbolError,
+                              AddingLldbSymbolError,
+                              AccessingMemoryError, AccessingRegisterError,
+                              BrokenLocalSymbolsJarError,
+                              ConvertingToCfObjectError,
+                              EvaluatingExpressionError, SymbolAbsentError,
+                              ConvertingFromCfObjectError)
 from hilda.objective_c_symbol import ObjectiveCSymbol
 from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
@@ -45,7 +52,9 @@ ISA_MAGICS = [
 # Mask for tagged pointer, from objc-internal.h
 OBJC_TAG_MASK = (1 << 63)
 
-with open(os.path.join(Path(__file__).resolve().parent, 'hilda_ascii_art.html'), 'r') as f:
+with open(
+        os.path.join(Path(__file__).resolve().parent, 'hilda_ascii_art.html'),
+        'r') as f:
     hilda_art = f.read()
 
 GREETING = f"""
@@ -102,7 +111,8 @@ class HildaClient(metaclass=CommandsMeta):
         Get dictionary of all open FDs
         :return: Mapping between open FDs and their paths
         """
-        with open(os.path.join(Path(__file__).resolve().parent, 'lsof.m'), 'r') as f:
+        with open(os.path.join(Path(__file__).resolve().parent, 'lsof.m'),
+                  'r') as f:
             result = json.loads(self.po(f.read()))
         # convert FDs into int
         return {int(k): v for k, v in result.items()}
@@ -112,7 +122,9 @@ class HildaClient(metaclass=CommandsMeta):
         """ Print an improved backtrace. """
         for i, frame in enumerate(self.thread.frames):
             row = ''
-            row += html_to_ansi(f'<span style="color: cyan">0x{frame.addr.GetFileAddress():x}</span> ')
+            row += html_to_ansi(
+                f'<span style="color: cyan">0x'
+                f'{frame.addr.GetFileAddress():x}</span> ')
             row += str(frame)
             if i == 0:
                 # first line
@@ -123,11 +135,14 @@ class HildaClient(metaclass=CommandsMeta):
     def disable_jetsam_memory_checks(self):
         """
         Disable jetsam memory checks, prevent raising:
-        `error: Execution was interrupted, reason: EXC_RESOURCE RESOURCE_TYPE_MEMORY (limit=15 MB, unused=0x0).`
+        `error: Execution was interrupted, reason: EXC_RESOURCE
+        RESOURCE_TYPE_MEMORY (limit=15 MB, unused=0x0).`
         when evaluating expression.
         """
         # 6 is for MEMORYSTATUS_CMD_SET_JETSAM_TASK_LIMIT
-        result = self.symbols.memorystatus_control(6, self.process.GetProcessID(), 0, 0, 0)
+        result = self.symbols.memorystatus_control(6,
+                                                   self.process.GetProcessID(),
+                                                   0, 0, 0)
         if result:
             raise DisableJetsamMemoryChecksError()
 
@@ -159,7 +174,8 @@ class HildaClient(metaclass=CommandsMeta):
         :param filename:
         :return: module object
         """
-        module = self.target.FindModule(lldb.SBFileSpec(os.path.basename(filename), False))
+        module = self.target.FindModule(
+            lldb.SBFileSpec(os.path.basename(filename), False))
         if module.file.basename is not None:
             self.log_warning(f'file {filename} has already been loaded')
 
@@ -169,7 +185,8 @@ class HildaClient(metaclass=CommandsMeta):
         if handle == 0:
             self.log_critical(f'failed to inject: {filename}')
 
-        module = self.target.FindModule(lldb.SBFileSpec(os.path.basename(filename), False))
+        module = self.target.FindModule(
+            lldb.SBFileSpec(os.path.basename(filename), False))
         for symbol in module.symbols:
             load_addr = symbol.addr.GetLoadAddress(self.target)
             if load_addr == 0xffffffffffffffff:
@@ -182,7 +199,8 @@ class HildaClient(metaclass=CommandsMeta):
             if name in ('<redacted>',) or (type_ not in (lldb.eSymbolTypeCode,
                                                          lldb.eSymbolTypeData,
                                                          lldb.eSymbolTypeObjCMetaClass)):
-                # ignore unnamed symbols and those which are not: data, code or objc classes
+                # ignore unnamed symbols and those which are not: data,
+                # code or objc classes
                 continue
 
             injected[name] = self.symbol(load_addr)
@@ -192,7 +210,8 @@ class HildaClient(metaclass=CommandsMeta):
     def rebind_symbols(self, image_range=None, filename_expr=''):
         """
         Reparse all loaded images symbols
-        :param image_range: index range for images to load in the form of [start, end]
+        :param image_range: index range for images to load in the form of [
+        start, end]
         :param filename_expr: filter only images containing given expression
         """
         self.log_debug('mapping symbols')
@@ -204,7 +223,8 @@ class HildaClient(metaclass=CommandsMeta):
             if filename_expr not in filename:
                 continue
 
-            if image_range is not None and (i < image_range[0] or i > image_range[1]):
+            if image_range is not None and (
+                    i < image_range[0] or i > image_range[1]):
                 continue
 
             for symbol in module:
@@ -316,7 +336,8 @@ class HildaClient(metaclass=CommandsMeta):
             self.log_critical('failed to detach')
 
     @command()
-    def disass(self, address, buf, should_print=True) -> lldb.SBInstructionList:
+    def disass(self, address, buf,
+               should_print=True) -> lldb.SBInstructionList:
         """
         Print disassembly from a given address
         :param address:
@@ -324,7 +345,8 @@ class HildaClient(metaclass=CommandsMeta):
         :param should_print:
         :return:
         """
-        inst = self.target.GetInstructions(lldb.SBAddress(address, self.target), buf)
+        inst = self.target.GetInstructions(
+            lldb.SBAddress(address, self.target), buf)
         if should_print:
             print(inst)
         return inst
@@ -335,7 +357,9 @@ class HildaClient(metaclass=CommandsMeta):
         Calculate symbol address without ASLR
         :param address: address as can be seen originally in Mach-O
         """
-        return self.symbol(self.target.ResolveFileAddress(address).GetLoadAddress(self.target))
+        return self.symbol(
+            self.target.ResolveFileAddress(address).GetLoadAddress(
+                self.target))
 
     @command()
     def get_register(self, name) -> Symbol:
@@ -374,10 +398,13 @@ class HildaClient(metaclass=CommandsMeta):
         # On object `obj`
         args = self._serialize_call_params([obj])
         # Call selector (by its uid)
-        args.append(self._generate_call_expression(self.symbols.sel_getUid, self._serialize_call_params([selector])))
+        args.append(self._generate_call_expression(self.symbols.sel_getUid,
+                                                   self._serialize_call_params(
+                                                       [selector])))
         # With params
         args.extend(self._serialize_call_params(params))
-        call_expression = self._generate_call_expression(self.symbols.objc_msgSend, args)
+        call_expression = self._generate_call_expression(
+            self.symbols.objc_msgSend, args)
         with self.stopped():
             return self.evaluate_expression(call_expression)
 
@@ -391,7 +418,9 @@ class HildaClient(metaclass=CommandsMeta):
         """
         if argv is None:
             argv = []
-        call_expression = self._generate_call_expression(address, self._serialize_call_params(argv))
+        call_expression = self._generate_call_expression(address,
+                                                         self._serialize_call_params(
+                                                             argv))
         with self.stopped():
             return self.evaluate_expression(call_expression)
 
@@ -407,14 +436,17 @@ class HildaClient(metaclass=CommandsMeta):
                 Available formats:
                     x: hex
                     s: string
-                    cf: use CFCopyDescription() to get more informative description of the object
+                    cf: use CFCopyDescription() to get more informative
+                    description of the object
                     po: use LLDB po command
-                    User defined function, will be called like `format_function(hilda_client, value)`.
+                    User defined function, will be called like
+                    `format_function(hilda_client, value)`.
 
                 For example:
                     regs={'x0': 'x'} -> x0 will be printed in HEX format
             retval=format
-                Print function's return value. The format is the same as regs format.
+                Print function's return value. The format is the same as
+                regs format.
             stop=True
                 force a stop at every hit
             bt=True
@@ -424,7 +456,8 @@ class HildaClient(metaclass=CommandsMeta):
             force_return=value
                 force a return from function with the specified value
             name=some_value
-                use `some_name` instead of the symbol name automatically extracted from the calling frame
+                use `some_name` instead of the symbol name automatically
+                extracted from the calling frame
 
 
         :param address:
@@ -436,7 +469,8 @@ class HildaClient(metaclass=CommandsMeta):
             """
             :param HildaClient hilda: Hilda client.
             :param lldb.SBFrame frame: LLDB Frame object.
-            :param lldb.SBBreakpointLocation bp_loc: LLDB Breakpoint location object.
+            :param lldb.SBBreakpointLocation bp_loc: LLDB Breakpoint
+            location object.
             :param dict options: User defined options.
             """
             bp = bp_loc.GetBreakpoint()
@@ -454,7 +488,9 @@ class HildaClient(metaclass=CommandsMeta):
                 log_message += '\nregs:'
                 for name, format in options['regs'].items():
                     value = hilda.symbol(frame.FindRegister(name).unsigned)
-                    log_message += f'\n\t{name} = {hilda._monitor_format_value(format, value)}'
+                    formatted_value = hilda._monitor_format_value(format,
+                                                                  value)
+                    log_message += f'\n\t{name} = {formatted_value}'
 
             if options.get('force_return', False):
                 hilda.force_return(options['force_return'])
@@ -469,7 +505,9 @@ class HildaClient(metaclass=CommandsMeta):
                 # return from function
                 hilda.finish()
                 value = hilda.get_register('x0')
-                log_message += f'\nreturned: {hilda._monitor_format_value(options["retval"], value)}'
+                formatted_value = hilda._monitor_format_value(
+                    options["retval"], value)
+                log_message += f'\nreturned: {formatted_value}'
 
             hilda.log_info(log_message)
 
@@ -524,7 +562,8 @@ class HildaClient(metaclass=CommandsMeta):
     @command()
     def force_return(self, value=0):
         """
-        Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
+        Prematurely return from a stack frame, short-circuiting exection of
+        newer frames and optionally
         yielding a specified value.
         :param value:
         :return:
@@ -541,26 +580,35 @@ class HildaClient(metaclass=CommandsMeta):
     def print_proc_entitlements(self):
         """ Get the plist embedded inside the process' __LINKEDIT section. """
         linkedit_section = self.target.modules[0].FindSection('__LINKEDIT')
-        linkedit_data = self.symbol(linkedit_section.GetLoadAddress(self.target)).peek(linkedit_section.size)
+        linkedit_data = self.symbol(
+            linkedit_section.GetLoadAddress(self.target)).peek(
+            linkedit_section.size)
 
-        # just look for the xml start inside the __LINKEDIT section. should be good enough since wer'e not
+        # just look for the xml start inside the __LINKEDIT section. should
+        # be good enough since wer'e not
         # expecting any other XML there
-        entitlements = str(linkedit_data[linkedit_data.find(b'<?xml'):].split(b'\xfa', 1)[0], 'utf8')
-        print(highlight(entitlements, XmlLexer(), TerminalTrueColorFormatter()))
+        entitlements = str(
+            linkedit_data[linkedit_data.find(b'<?xml'):].split(b'\xfa', 1)[0],
+            'utf8')
+        print(
+            highlight(entitlements, XmlLexer(), TerminalTrueColorFormatter()))
 
     @command()
-    def bp(self, address, callback=None, forced=False, **options) -> lldb.SBBreakpoint:
+    def bp(self, address, callback=None, forced=False,
+           **options) -> lldb.SBBreakpoint:
         """
         Add a breakpoint
         :param address:
         :param callback: callback(hilda, *args) to be called
-        :param forced: whether the breakpoint should be protected frm usual removal.
+        :param forced: whether the breakpoint should be protected frm usual
+        removal.
         :param options:
         :return:
         """
         if address in [bp.address for bp in self.breakpoints.values()]:
-            if prompts.prompt_for_confirmation('A breakpoint already exist in given location. '
-                                               'Would you like to delete the previous one?', True):
+            if prompts.prompt_for_confirmation(
+                    'A breakpoint already exist in given location. '
+                    'Would you like to delete the previous one?', True):
                 breakpoints = list(self.breakpoints.items())
                 for bp_id, bp in breakpoints:
                     if address == bp.address:
@@ -570,7 +618,9 @@ class HildaClient(metaclass=CommandsMeta):
         setattr(bp, 'hilda', self)
 
         # add into Hilda's internal list of breakpoints
-        self.breakpoints[bp.id] = HildaClient.Breakpoint(address=address, options=options, forced=forced)
+        self.breakpoints[bp.id] = HildaClient.Breakpoint(address=address,
+                                                         options=options,
+                                                         forced=forced)
 
         if callback is not None:
             callback_source = ''
@@ -583,12 +633,14 @@ class HildaClient(metaclass=CommandsMeta):
             callback_source += f'\n'
             callback_source += f'lldb.hilda_client._bp_frame = frame\n'
             bp_options = f'lldb.hilda_client.breakpoints[{bp.id}].options'
-            callback_source += f'{callback.__name__}(lldb.hilda_client, frame, bp_loc, {bp_options})\n'
+            callback_source += f'{callback.__name__}(lldb.hilda_client, ' \
+                               f'frame, bp_loc, {bp_options})\n'
             callback_source += f'lldb.hilda_client._bp_frame = None\n'
 
             err = bp.SetScriptCallbackBody(callback_source)
             if not err.Success():
-                self.log_critical(f'failed to set breakpoint script body: {err}')
+                self.log_critical(
+                    f'failed to set breakpoint script body: {err}')
 
         self.log_info(f'Breakpoint #{bp.id} has been set')
         return bp
@@ -647,7 +699,8 @@ class HildaClient(metaclass=CommandsMeta):
 
             # perform sanity test for symbol rand
             if self.symbols.rand() == 0 and self.symbols.rand() == 0:
-                # rand returning 0 twice means the loaded file is probably outdated
+                # rand returning 0 twice means the loaded file is probably
+                # outdated
                 raise BrokenLocalSymbolsJarError()
 
             # assuming the first main image will always change
@@ -662,20 +715,25 @@ class HildaClient(metaclass=CommandsMeta):
 
         Can also run big chunks of native code:
 
-        po('NSMutableString *s = [NSMutableString string]; [s appendString:@"abc"]; [s description]')
+        po('NSMutableString *s = [NSMutableString string]; [s
+        appendString:@"abc"]; [s description]')
 
         :param expression: either a symbol or string the execute
         :param cast: object type
-        :raise EvaluatingExpressionError: LLDB failed to evaluate the expression
+        :raise EvaluatingExpressionError: LLDB failed to evaluate the
+        expression
         :return: LLDB's po output
         """
         casted_expression = ''
         if cast is not None:
             casted_expression += '(%s)' % cast
-        casted_expression += f'0x{expression:x}' if isinstance(expression, int) else str(expression)
+        casted_expression += f'0x{expression:x}' if isinstance(expression,
+                                                               int) else str(
+            expression)
 
         res = lldb.SBCommandReturnObject()
-        self.debugger.GetCommandInterpreter().HandleCommand(f'expression -i 0 -lobjc -O -- {casted_expression}', res)
+        self.debugger.GetCommandInterpreter().HandleCommand(
+            f'expression -i 0 -lobjc -O -- {casted_expression}', res)
         if not res.Succeeded():
             raise EvaluatingExpressionError(res.GetError())
         return res.GetOutput().strip()
@@ -752,7 +810,8 @@ class HildaClient(metaclass=CommandsMeta):
         :param address: CF object.
         :return: Python object.
         """
-        with open(os.path.join(Path(__file__).resolve().parent, 'from_cf_to_json.m'), 'r') as f:
+        with open(os.path.join(Path(__file__).resolve().parent,
+                               'from_cf_to_json.m'), 'r') as f:
             obj_c_code = f.read()
         address = f'0x{address:x}' if isinstance(address, int) else address
         expression = obj_c_code.replace('__cf_object_address__', address)
@@ -760,7 +819,8 @@ class HildaClient(metaclass=CommandsMeta):
             json_dump = self.po(expression)
         except EvaluatingExpressionError as e:
             raise ConvertingFromCfObjectError from e
-        return json.loads(json_dump, object_hook=self._from_cf_json_object_hook)['root']
+        return json.loads(json_dump,
+                          object_hook=self._from_cf_json_object_hook)['root']
 
     @command()
     def evaluate_expression(self, expression) -> Symbol:
@@ -768,10 +828,12 @@ class HildaClient(metaclass=CommandsMeta):
         Wrapper for LLDB's EvaluateExpression.
         Used for quick code snippets.
 
-        Feel free to use local variables inside the expression using format string.
+        Feel free to use local variables inside the expression using format
+        string.
         For example:
             currentDevice = objc_get_class('UIDevice').currentDevice
-            evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
+            evaluate_expression(f'[[{currentDevice} systemName]
+            hasPrefix:@"2"]')
 
         :param expression:
         :return: returned symbol
@@ -824,7 +886,8 @@ class HildaClient(metaclass=CommandsMeta):
     @contextmanager
     def safe_malloc(self, size):
         """
-        Context-Manager for allocating a block of memory which is freed afterwards
+        Context-Manager for allocating a block of memory which is freed
+        afterwards
         :param size:
         :return:
         """
@@ -891,7 +954,8 @@ class HildaClient(metaclass=CommandsMeta):
 
     def add_lldb_symbol(self, symbol: lldb.SBSymbol) -> Symbol:
         """
-        Convert an LLDB symbol into Hilda's symbol object and insert into `symbols` global
+        Convert an LLDB symbol into Hilda's symbol object and insert into
+        `symbols` global
         :param symbol: LLDB symbol
         :return: converted symbol
         :raise AddingLldbSymbolError: Hilda failed to convert the LLDB symbol.
@@ -908,7 +972,8 @@ class HildaClient(metaclass=CommandsMeta):
                                                      lldb.eSymbolTypeRuntime,
                                                      lldb.eSymbolTypeData,
                                                      lldb.eSymbolTypeObjCMetaClass)):
-            # ignore unnamed symbols and those which are not in a really used type
+            # ignore unnamed symbols and those which are not in a really
+            # used type
             raise AddingLldbSymbolError()
 
         value = self.symbol(load_addr)
@@ -930,7 +995,8 @@ class HildaClient(metaclass=CommandsMeta):
         c = Config()
         c.IPCompleter.use_jedi = False
         c.InteractiveShellApp.exec_lines = [
-            '''IPython.get_ipython().events.register('pre_run_cell', self._ipython_run_cell_hook)'''
+            'IPython.get_ipython().events.register("pre_run_cell", '
+            'self._ipython_run_cell_hook)'
         ]
         namespace = globals()
         namespace.update(locals())
@@ -979,22 +1045,26 @@ class HildaClient(metaclass=CommandsMeta):
     def _from_cf_json_object_hook(obj: dict):
         parsed_object = {}
         for key, value in obj.items():
-            parsed_object[HildaClient._from_cf_parse_function(key)] = HildaClient._from_cf_parse_function(value)
+            parsed_object[HildaClient._from_cf_parse_function(
+                key)] = HildaClient._from_cf_parse_function(value)
         return parsed_object
 
     @staticmethod
     def _from_cf_parse_function(obj):
         if isinstance(obj, list):
             return list(map(HildaClient._from_cf_parse_function, obj))
-        if not isinstance(obj, str) or not obj.startswith('__hilda_magic_key__'):
+        if not isinstance(obj, str) or not obj.startswith(
+                '__hilda_magic_key__'):
             return obj
         _, type_, data = obj.split('|')
         if type_ == 'NSData':
             return base64.b64decode(data)
         if type_ == 'NSDictionary':
-            return tuple(json.loads(data, object_hook=HildaClient._from_cf_json_object_hook).items())
+            return tuple(json.loads(data,
+                                    object_hook=HildaClient._from_cf_json_object_hook).items())
         if type_ == 'NSArray':
-            return tuple(json.loads(data, object_hook=HildaClient._from_cf_json_object_hook))
+            return tuple(json.loads(data,
+                                    object_hook=HildaClient._from_cf_json_object_hook))
         if type_ == 'NSNumber':
             return eval(data)
         if type_ == 'NSNull':
@@ -1043,7 +1113,8 @@ class HildaClient(metaclass=CommandsMeta):
                 # we are only intereseted in names
                 continue
 
-            if node.id in locals() or node.id in globals() or node.id in dir(builtins):
+            if node.id in locals() or node.id in globals() or node.id in dir(
+                    builtins):
                 # That are undefined
                 continue
 
@@ -1053,7 +1124,10 @@ class HildaClient(metaclass=CommandsMeta):
                 pass
             else:
                 self._add_global(
-                    node.id, symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.objc_get_class(node.id)
+                    node.id,
+                    symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass
+                    else self.objc_get_class(
+                        node.id)
                 )
 
     def _monitor_format_value(self, fmt, value):

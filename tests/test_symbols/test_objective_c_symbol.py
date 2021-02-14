@@ -1,6 +1,6 @@
 import pytest
 
-from hilda.exceptions import *
+from hilda.exceptions import CreatingObjectiveCSymbolError
 from hilda.objective_c_symbol import ObjectiveCSymbol
 
 
@@ -29,7 +29,8 @@ def test_access_missing_attribute(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    single_key_dictionary = hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
+    single_key_dictionary = \
+        hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
     with pytest.raises(AttributeError):
         assert single_key_dictionary.attribute_that_doesnt_exist
 
@@ -38,7 +39,8 @@ def test_get_objective_c_ivar(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    single_key_dictionary = hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
+    single_key_dictionary = \
+        hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
     assert single_key_dictionary._key.po() == 'one'
 
 
@@ -46,7 +48,8 @@ def test_change_objective_c_ivar(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    single_key_dictionary = hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
+    single_key_dictionary = \
+        hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
     single_key_dictionary._key = hilda_client.cf('two')
     assert single_key_dictionary.description.po() == '{\n    two = 1;\n}'
     assert single_key_dictionary._key.po() == 'two'
@@ -56,7 +59,8 @@ def test_call_objective_c_property(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    single_key_dictionary = hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
+    single_key_dictionary = \
+        hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
     assert single_key_dictionary.description.po() == '{\n    one = 1;\n}'
 
 
@@ -93,7 +97,8 @@ def test_call_objective_c_method_returns_objc_object(hilda_client):
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
     dictionary1 = hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
-    assert isinstance(dictionary1.objectForKey_(hilda_client.cf('one')), ObjectiveCSymbol)
+    assert isinstance(dictionary1.objectForKey_(hilda_client.cf('one')),
+                      ObjectiveCSymbol)
 
 
 def test_call_objective_c_method_returns_native_symbol(hilda_client):

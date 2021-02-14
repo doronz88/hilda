@@ -138,7 +138,8 @@ class ObjectiveCSymbol(Symbol):
         result += list(super(ObjectiveCSymbol, self).__dir__())
         return result
 
-    def __getitem__(self, item):
+    def __getitem__(self, item):  # noqa: C901
+
         if isinstance(item, int):
             return super(ObjectiveCSymbol, self).__getitem__(item)
 

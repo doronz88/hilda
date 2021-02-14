@@ -91,6 +91,8 @@ def test_ns_date(hilda_client, day: int, month: int, year: int):
     ('@[]', []),
     ('@["asdasds",324234]', ['asdasds', 324234]),
     ('@[1,@[2,@[3,"a"]]]', [1, [2, [3, 'a']]]),
+    # Sets
+    ('[NSSet setWithArray: @[@"1", @42]]', ['1', 42])
 ])
 def test_cf_nested_objects(hilda_client, source: str, result):
     """

@@ -19,6 +19,9 @@ NSDictionary *(^make_json_serializable_dictionary)(NSDictionary *) = ^(NSDiction
 };
 
 make_json_serializable = ^(NSObject *obj, BOOL isKey) {
+    if ([obj isKindOfClass:[NSSet class]]) {
+        obj = [(NSSet *)obj allObjects];
+    }
     if ([obj isKindOfClass:[NSDictionary class]]) {
         obj = (NSObject *)(make_json_serializable_dictionary((NSDictionary *)obj));
     }

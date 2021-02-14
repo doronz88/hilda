@@ -30,6 +30,12 @@ make_json_serializable = ^(NSObject *obj, BOOL isKey) {
             stringWithFormat:@"__hilda_magic_key__|NSData|%@", [(NSData *)obj base64EncodedStringWithOptions:0]
         ];
     }
+    if ([obj isKindOfClass:[NSDate class]]) {
+        obj = (NSObject *)[NSString
+            stringWithFormat:@"__hilda_magic_key__|NSDate|%@",
+            [NSNumber numberWithDouble: [(NSDate *)obj timeIntervalSince1970]]
+        ];
+    }
     if (!isKey || [obj isKindOfClass:[NSString class]]) {
         return obj;
     }

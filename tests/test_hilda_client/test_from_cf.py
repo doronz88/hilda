@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 
 from hilda.exceptions import ConvertingFromCfObjectError
@@ -55,6 +57,24 @@ def test_cf_data_in_array(hilda_client):
             f'@[[NSData dataWithBytes:(char *)0x{buffer:x} length:{len(data)}]]'
         )
         assert hilda_client.from_cf(cf_dict) == [data]
+
+
+@pytest.mark.parametrize('day, month, year', [(1, 1, 1970), (11, 10, 2021)])
+def test_ns_date(hilda_client, day: int, month: int, year: int):
+    """
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    :param day: Date day.
+    :param month: Date month.
+    :param year: Date year.
+    """
+    date = hilda_client.evaluate_expression(f'''
+        NSDateComponents *comps = [NSDateComponents new];
+        [comps setDay:{day}];
+        [comps setMonth:{month}];
+        [comps setYear:{year}];
+        [[NSCalendar currentCalendar] dateFromComponents:comps];
+    ''')
+    assert hilda_client.from_cf(date) == datetime(day=day, month=month, year=year)
 
 
 @pytest.mark.parametrize('source, result', [

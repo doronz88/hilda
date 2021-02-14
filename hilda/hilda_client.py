@@ -1,5 +1,6 @@
 from collections import namedtuple
 from contextlib import contextmanager, suppress
+from datetime import datetime
 from functools import partial
 from pathlib import Path
 import base64
@@ -996,6 +997,8 @@ class HildaClient(metaclass=CommandsMeta):
             return eval(data)
         if type_ == 'NSNull':
             return None
+        if type_ == 'NSDate':
+            return datetime.fromtimestamp(eval(data))
 
     def _serialize_call_params(self, argv):
         args_conv = []

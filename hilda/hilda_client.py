@@ -745,15 +745,16 @@ class HildaClient(metaclass=CommandsMeta):
         '''.format(json_data.replace('"', r'\"')))
 
     @command()
-    def from_cf(self, address: int):
+    def from_cf(self, address):
         """
         Create python object from CF object.
-        :param address: CF object.
+        :param typing.Union[int, str] address: CF object.
         :return: Python object.
         """
         with open(os.path.join(Path(__file__).resolve().parent, 'from_cf_to_json.m'), 'r') as f:
             obj_c_code = f.read()
-        expression = obj_c_code.replace('__cf_object_address__', f'0x{address:x}')
+        address = f'0x{address:x}' if isinstance(address, int) else address
+        expression = obj_c_code.replace('__cf_object_address__', address)
         try:
             json_dump = self.po(expression)
         except EvaluatingExpressionError as e:

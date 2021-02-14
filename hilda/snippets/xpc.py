@@ -30,5 +30,4 @@ def from_xpc_object(address: int):
     Convert XPC object to python object.
     :param address: Address of XPC object.
     """
-    cf_object = lldb.hilda_client.symbols._CFXPCCreateCFObjectFromXPCObject(address)
-    return lldb.hilda_client.from_cf(cf_object)
+    return lldb.hilda_client.from_cf(f'_CFXPCCreateCFObjectFromXPCObject({address})')

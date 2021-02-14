@@ -3,6 +3,7 @@ from contextlib import contextmanager, suppress
 from datetime import datetime
 from functools import partial
 from pathlib import Path
+from typing import Union
 import base64
 import textwrap
 import builtins
@@ -745,10 +746,10 @@ class HildaClient(metaclass=CommandsMeta):
         '''.format(json_data.replace('"', r'\"')))
 
     @command()
-    def from_cf(self, address):
+    def from_cf(self, address: Union[int, str]):
         """
         Create python object from CF object.
-        :param typing.Union[int, str] address: CF object.
+        :param address: CF object.
         :return: Python object.
         """
         with open(os.path.join(Path(__file__).resolve().parent, 'from_cf_to_json.m'), 'r') as f:

@@ -413,8 +413,8 @@ class HildaClient(metaclass=CommandsMeta):
 
                 For example:
                     regs={'x0': 'x'} -> x0 will be printed in HEX format
-            retval=True
-                print function's return value
+            retval=format
+                Print function's return value. The format is the same as regs format.
             stop=True
                 force a stop at every hit
             bt=True

@@ -407,6 +407,7 @@ class HildaClient(metaclass=CommandsMeta):
                     s: string
                     cf: use CFCopyDescription() to get more informative description of the object
                     po: use LLDB po command
+                    User defined function, will be called like `format_function(hilda_client, value)`.
 
                 For example:
                     regs={'x0': 'x'} -> x0 will be printed in HEX format
@@ -430,18 +431,12 @@ class HildaClient(metaclass=CommandsMeta):
         """
 
         def callback(hilda, frame, bp_loc, options):
-            def format_value(format, value):
-                formatters = {
-                    'x': lambda value: f'0x{int(value):x}',
-                    's': lambda value: value.peek_str(),
-                    'cf': lambda value: value.cf_description,
-                    'po': lambda value: value.po(),
-                }
-                if format in formatters:
-                    return formatters[format](value)
-                else:
-                    return f'{value:x} (unsupported format)'
-
+            """
+            :param HildaClient hilda: Hilda client.
+            :param lldb.SBFrame frame: LLDB Frame object.
+            :param lldb.SBBreakpointLocation bp_loc: LLDB Breakpoint location object.
+            :param dict options: User defined options.
+            """
             bp = bp_loc.GetBreakpoint()
             symbol = frame.GetSymbol()
             symbol_address = symbol.addr.GetLoadAddress(hilda.target)
@@ -457,7 +452,7 @@ class HildaClient(metaclass=CommandsMeta):
                 log_message += '\nregs:'
                 for name, format in options['regs'].items():
                     value = hilda.symbol(frame.FindRegister(name).unsigned)
-                    log_message += f'\n\t{name} = {format_value(format, value)}'
+                    log_message += f'\n\t{name} = {hilda._monitor_format_value(format, value)}'
 
             if options.get('force_return', False):
                 hilda.force_return(options['force_return'])
@@ -472,7 +467,7 @@ class HildaClient(metaclass=CommandsMeta):
                 # return from function
                 hilda.finish()
                 value = hilda.get_register('x0')
-                log_message += f'\nreturned: {format_value(options["retval"], value)}'
+                log_message += f'\nreturned: {hilda._monitor_format_value(options["retval"], value)}'
 
             hilda.log_info(log_message)
 
@@ -585,7 +580,8 @@ class HildaClient(metaclass=CommandsMeta):
                 callback_source += line[def_offset:] + '\n'
             callback_source += f'\n'
             callback_source += f'lldb.hilda_client._bp_frame = frame\n'
-            callback_source += f'{callback.__name__}(lldb.hilda_client, frame, bp_loc, {repr(options)})\n'
+            bp_options = f'lldb.hilda_client.breakpoints[{bp.id}].options'
+            callback_source += f'{callback.__name__}(lldb.hilda_client, frame, bp_loc, {bp_options})\n'
             callback_source += f'lldb.hilda_client._bp_frame = None\n'
 
             err = bp.SetScriptCallbackBody(callback_source)
@@ -1054,3 +1050,17 @@ class HildaClient(metaclass=CommandsMeta):
                 self._add_global(
                     node.id, symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.objc_get_class(node.id)
                 )
+
+    def _monitor_format_value(self, fmt, value):
+        if callable(fmt):
+            return fmt(self, value)
+        formatters = {
+            'x': lambda val: f'0x{int(val):x}',
+            's': lambda val: val.peek_str(),
+            'cf': lambda val: val.cf_description,
+            'po': lambda val: val.po(),
+        }
+        if fmt in formatters:
+            return formatters[fmt](value)
+        else:
+            return f'{value:x} (unsupported format)'

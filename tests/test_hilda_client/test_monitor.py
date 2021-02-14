@@ -7,6 +7,7 @@ import pytest
     ('po', 'x2 = com.apple.powerlog.state_changed'),
     ('cf', 'x2 = <CFString'),
     ('x', 'x2 = 0x'),
+    (lambda client, value: 'Just return this string', 'x2 = Just return this string')
 ])
 def test_monitor_register_formats(hilda_client, fmt: str, representation: str):
     """

@@ -1,4 +1,11 @@
+from pprint import pformat
+
 import lldb
+from pygments.formatters import TerminalTrueColorFormatter
+from pygments import highlight
+from pygments.lexers import PythonLexer
+
+from hilda.exceptions import ConvertingFromCfObjectError
 
 
 def xpc_sniff_send():
@@ -31,3 +38,17 @@ def from_xpc_object(address: int):
     :param address: Address of XPC object.
     """
     return lldb.hilda_client.from_cf(f'_CFXPCCreateCFObjectFromXPCObject({address})')
+
+
+def xpc_to_python_monitor_format(hilda_client, address):
+    """
+    Format an XPC object as a python object, intended to use as a callback to monitor command.
+    It depends on the object compatibility with CF object.
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    :param hilda.symbol.Symbol address: Symbol to format.
+    """
+    try:
+        formatted = pformat(from_xpc_object(address))
+        return highlight(formatted, PythonLexer(), TerminalTrueColorFormatter(style='native'))
+    except ConvertingFromCfObjectError:
+        return address.po()

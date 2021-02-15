@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import pytest
 
 from hilda.exceptions import ConvertingToCfObjectError
@@ -32,12 +34,25 @@ def test_cf_data(hilda_client):
     assert cf_data.bytes.read(len(data)) == data
 
 
+@pytest.mark.parametrize('day, month, year', [(1, 1, 1970), (11, 10, 2021)])
+def test_ns_date(hilda_client, day: int, month: int, year: int):
+    """
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    :param day: Date day.
+    :param month: Date month.
+    :param year: Date year.
+    """
+    date_po = f'{year:04d}-{month:02d}-{day:02d} 00:00:00 +0000'
+    assert hilda_client.cf(datetime(day=day, month=month, year=year, tzinfo=timezone.utc)).po() == date_po
+
+
 @pytest.mark.parametrize('source, result', [
     ({'asdasd': 234234, 234234: 'asdasd', 1: True, 'a': [False, False]}, '{1=1;234234=asdasd;a=(0,0);asdasd=234234;}'),
     ({}, '{}'),
     ({'asdasds': 324234}, '{asdasds=324234;}'),
     ({1: {2: {3: 'a'}}}, '{1={2={3=a;};};}'),
     ({1: b'\x00\x01'}, '{1={length=2,bytes=0x0001};}'),
+    ({1: datetime(1970, 1, 1, tzinfo=timezone.utc)}, '{1="1970-01-0100:00:00+0000";}'),
 ])
 def test_cf_dict(hilda_client, source: dict, result: str):
     """
@@ -65,6 +80,7 @@ def test_cf_none(hilda_client):
     (['asdasds', 324234], '(asdasds,324234)'),
     ([1, [2, [3, 'a']]], '(1,(2,(3,a)))'),
     (['asdasds', b'324234'], '(asdasds,{length=6,bytes=0x333234323334})'),
+    (['asdasds', datetime(2014, 4, 1, tzinfo=timezone.utc)], '(asdasds,"2014-04-0100:00:00+0000")'),
 ])
 def test_cf_array(hilda_client, source, result: str):
     """

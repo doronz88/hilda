@@ -976,6 +976,8 @@ class HildaClient(metaclass=CommandsMeta):
     def _to_cf_json_default(obj):
         if isinstance(obj, bytes):
             return f'__hilda_magic_key__|NSData|{base64.b64encode(obj).decode()}'
+        elif isinstance(obj, datetime):
+            return f'__hilda_magic_key__|NSDate|{obj.timestamp()}'
         raise TypeError
 
     @staticmethod

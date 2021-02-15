@@ -25,6 +25,9 @@ convertHildaMagics = ^(NSObject *src) {
     if ([(NSString *)srcItems[1] isEqualToString:@"NSData"]){
         return (NSObject *)[[NSData alloc] initWithBase64EncodedString:(NSString *)srcItems[2] options:0];
     }
+    if ([(NSString *)srcItems[1] isEqualToString:@"NSDate"]){
+        return (NSObject *)[NSDate dateWithTimeIntervalSince1970:[(NSString *)srcItems[2] doubleValue]];
+    }
     return src;
 };
 

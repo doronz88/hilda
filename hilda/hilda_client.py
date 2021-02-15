@@ -224,10 +224,7 @@ class HildaClient(metaclass=CommandsMeta):
         retval = self.process.WriteMemory(address, buf, err)
 
         if not err.Success():
-            try:
-                self.log_critical(str(err))
-            except HildaException as e:
-                raise AccessingMemoryError from e
+            raise AccessingMemoryError()
 
         return retval
 
@@ -243,10 +240,7 @@ class HildaClient(metaclass=CommandsMeta):
         retval = self.process.ReadMemory(address, int(size), err)
 
         if not err.Success():
-            try:
-                self.log_critical(str(err))
-            except HildaException as e:
-                raise AccessingMemoryError from e
+            raise AccessingMemoryError()
 
         return retval
 

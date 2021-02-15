@@ -7,7 +7,6 @@ from typing import Union
 import base64
 import textwrap
 import builtins
-import inspect
 import logging
 import pickle
 import json
@@ -60,7 +59,7 @@ SerializableSymbol = namedtuple('SerializableSymbol', 'address type_ filename')
 
 
 class HildaClient(metaclass=CommandsMeta):
-    Breakpoint = namedtuple('Breakpoint', 'address options forced')
+    Breakpoint = namedtuple('Breakpoint', 'address options forced callback')
 
     RETVAL_BIT_COUNT = 64
 
@@ -567,31 +566,30 @@ class HildaClient(metaclass=CommandsMeta):
                         self.remove_hilda_breakpoint(bp_id)
 
         bp = self.target.BreakpointCreateByAddress(address)
-        setattr(bp, 'hilda', self)
 
         # add into Hilda's internal list of breakpoints
-        self.breakpoints[bp.id] = HildaClient.Breakpoint(address=address, options=options, forced=forced)
+        self.breakpoints[bp.id] = HildaClient.Breakpoint(
+            address=address, options=options, forced=forced, callback=callback
+        )
 
         if callback is not None:
-            callback_source = ''
-            callback_source_lines = inspect.getsource(callback).split('\n')
-
-            def_offset = callback_source_lines[0].index('def ')
-            for line in callback_source_lines:
-                line = line.replace('\t', '    ')
-                callback_source += line[def_offset:] + '\n'
-            callback_source += f'\n'
-            callback_source += f'lldb.hilda_client._bp_frame = frame\n'
-            bp_options = f'lldb.hilda_client.breakpoints[{bp.id}].options'
-            callback_source += f'{callback.__name__}(lldb.hilda_client, frame, bp_loc, {bp_options})\n'
-            callback_source += f'lldb.hilda_client._bp_frame = None\n'
-
-            err = bp.SetScriptCallbackBody(callback_source)
-            if not err.Success():
-                self.log_critical(f'failed to set breakpoint script body: {err}')
+            bp.SetScriptCallbackFunction('lldb.hilda_client.bp_callback_router')
 
         self.log_info(f'Breakpoint #{bp.id} has been set')
         return bp
+
+    def bp_callback_router(self, frame, bp_loc, *_):
+        """
+        Route the breakpoint callback the the specific breakpoint callback.
+        :param lldb.SBFrame frame: LLDB Frame object.
+        :param lldb.SBBreakpointLocation bp_loc: LLDB Breakpoint location object.
+        """
+        bp_id = bp_loc.GetBreakpoint().GetID()
+        self._bp_frame = frame
+        try:
+            self.breakpoints[bp_id].callback(self, frame, bp_loc, self.breakpoints[bp_id].options)
+        finally:
+            self._bp_frame = None
 
     @command()
     def show_hilda_breakpoints(self):

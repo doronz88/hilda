@@ -730,18 +730,17 @@ class HildaClient(metaclass=CommandsMeta):
         :return: Pointer to a CFObject
         """
         try:
-            json_data = json.dumps(data)
+            json_data = json.dumps({'root': data}, default=self._to_cf_json_default)
         except TypeError as e:
             raise ConvertingToCfObjectError from e
 
-        return self.evaluate_expression('''
-        @import Foundation;
-        NSString *s = @"{{\\"root\\": {} }}";
-        NSData *jsonData = [s dataUsingEncoding:NSUTF8StringEncoding];
-        NSError *error;
-        NSDictionary *jsonObject = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error: &error];
-        [jsonObject objectForKey:@"root"];
-        '''.format(json_data.replace('"', r'\"')))
+        with open(os.path.join(Path(__file__).resolve().parent, 'to_cf_from_json.m'), 'r') as code_f:
+            obj_c_code = code_f.read()
+        expression = obj_c_code.replace('__json_object_dump__', json_data.replace('"', r'\"'))
+        try:
+            return self.evaluate_expression(expression)
+        except EvaluatingExpressionError as e:
+            raise ConvertingToCfObjectError from e
 
     @command()
     def from_cf(self, address: Union[int, str]):
@@ -972,6 +971,12 @@ class HildaClient(metaclass=CommandsMeta):
     @staticmethod
     def _get_saved_state_filename():
         return '/tmp/cache.hilda'
+
+    @staticmethod
+    def _to_cf_json_default(obj):
+        if isinstance(obj, bytes):
+            return f'__hilda_magic_key__|NSData|{base64.b64encode(obj).decode()}'
+        raise TypeError
 
     @staticmethod
     def _from_cf_json_object_hook(obj: dict):

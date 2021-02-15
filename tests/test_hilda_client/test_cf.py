@@ -23,11 +23,21 @@ def test_cfstr(hilda_client, source: str):
     assert 'NSString' in list(map(lambda sup: sup.name, cfstr.objc_class.iter_supers()))
 
 
+def test_cf_data(hilda_client):
+    """
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    """
+    data = b'\x01\x00asdasd\xff\xfe58'
+    cf_data = hilda_client.cf(data).objc_symbol
+    assert cf_data.bytes.read(len(data)) == data
+
+
 @pytest.mark.parametrize('source, result', [
     ({'asdasd': 234234, 234234: 'asdasd', 1: True, 'a': [False, False]}, '{1=1;234234=asdasd;a=(0,0);asdasd=234234;}'),
     ({}, '{}'),
     ({'asdasds': 324234}, '{asdasds=324234;}'),
     ({1: {2: {3: 'a'}}}, '{1={2={3=a;};};}'),
+    ({1: b'\x00\x01'}, '{1={length=2,bytes=0x0001};}'),
 ])
 def test_cf_dict(hilda_client, source: dict, result: str):
     """
@@ -54,6 +64,7 @@ def test_cf_none(hilda_client):
     ([], '()'),
     (['asdasds', 324234], '(asdasds,324234)'),
     ([1, [2, [3, 'a']]], '(1,(2,(3,a)))'),
+    (['asdasds', b'324234'], '(asdasds,{length=6,bytes=0x333234323334})'),
 ])
 def test_cf_array(hilda_client, source, result: str):
     """

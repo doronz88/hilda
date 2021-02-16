@@ -447,9 +447,9 @@ class HildaClient(metaclass=CommandsMeta):
 
             if 'regs' in options:
                 log_message += '\nregs:'
-                for name, format in options['regs'].items():
+                for name, fmt in options['regs'].items():
                     value = hilda.symbol(frame.FindRegister(name).unsigned)
-                    log_message += f'\n\t{name} = {hilda._monitor_format_value(format, value)}'
+                    log_message += f'\n\t{name} = {hilda._monitor_format_value(fmt, value)}'
 
             if options.get('force_return', False):
                 hilda.force_return(options['force_return'])

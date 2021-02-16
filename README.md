@@ -54,13 +54,13 @@ Simply run:
 hilda PROCESS_NAME SSH_PORT
 ```
 
-Please note the script assumes the target device is running an ssh server. It will try running the following for you:
+Please note the script assumes the target device is running a ssh server. It will try running the following for you:
 
 ```shell
 ssh -p SSH_PORT root@localhost "debugserver localhost:1234 --attach=PROCESS_NAME &"&
 ```
 
-For this to work, make sure the connected device doesn't require password for the connection (you can use
+For this to work, make sure the connected device doesn't require a password for the connection (you can use
 `ssh-copy-id` to achieve this).
 
 ### Commands
@@ -140,7 +140,7 @@ you can:
 objc_class.get_method('methodName:').address.monitor()
 ```
 
-Viewing the the class layout can be achieved using:
+Viewing the class layout can be achieved using:
 
 ```python
 objc_class.show()

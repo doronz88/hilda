@@ -50,10 +50,16 @@ def test_getting_super_class_method(hilda_client):
 
 @pytest.mark.parametrize('encoded, result', [
     (
-    'T{basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >={__compressed_pair<std::__1::basic_sting<char, std::__1::char_traits<char>, std::__1::allocator<char> >::__rep, std::__1:allocator<char> >={__rep=(?={__long=*QQ}{__short=[23c]{?=C}}{__raw=[3Q]})}}},R,N',
-    PropertyAttributes(
-        type_='struct basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > { struct __compressed_pair<std::__1::basic_sting<char, std::__1::char_traits<char>, std::__1::allocator<char> >::__rep, std::__1:allocator<char> > { struct __rep { (?={__long=*QQ}{__short=[23c]{?=C}}{__raw=[3Q]}) x0; } x0; } x0; }',
-        synthesize=None, list=['readonly', 'nonatomic'])),
+            ('T{basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >='
+             '{__compressed_pair<std::__1::basic_sting<char, std::__1::char_traits<char>, '
+             'std::__1::allocator<char> >::__rep, std::__1:allocator<char> >='
+             '{__rep=(?={__long=*QQ}{__short=[23c]{?=C}}{__raw=[3Q]})}}},R,N'),
+            PropertyAttributes(
+                type_=('struct basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > '
+                       '{ struct __compressed_pair<std::__1::basic_sting<char, std::__1::char_traits<char>, '
+                       'std::__1::allocator<char> >::__rep, std::__1:allocator<char> > '
+                       '{ struct __rep { (?={__long=*QQ}{__short=[23c]{?=C}}{__raw=[3Q]}) x0; } x0; } x0; }'),
+                synthesize=None, list=['readonly', 'nonatomic'])),
     ('Tc,VcharDefault', PropertyAttributes(synthesize='charDefault', type_='char', list=[])),
     ('T{YorkshireTeaStruct=ic},VstructDefault',
      PropertyAttributes(synthesize='structDefault', type_='struct YorkshireTeaStruct { int x0; char x1; }', list=[])),

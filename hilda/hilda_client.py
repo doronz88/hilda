@@ -1,6 +1,6 @@
 from collections import namedtuple
 from contextlib import contextmanager, suppress
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
 from typing import Union
@@ -999,7 +999,7 @@ class HildaClient(metaclass=CommandsMeta):
         if type_ == 'NSNull':
             return None
         if type_ == 'NSDate':
-            return datetime.fromtimestamp(eval(data))
+            return datetime.fromtimestamp(eval(data), timezone.utc)
 
     def _serialize_call_params(self, argv):
         args_conv = []

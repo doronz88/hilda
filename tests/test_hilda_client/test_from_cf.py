@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -72,9 +72,10 @@ def test_ns_date(hilda_client, day: int, month: int, year: int):
         [comps setDay:{day}];
         [comps setMonth:{month}];
         [comps setYear:{year}];
+        [comps setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
         [[NSCalendar currentCalendar] dateFromComponents:comps];
     ''')
-    assert hilda_client.from_cf(date) == datetime(day=day, month=month, year=year)
+    assert hilda_client.from_cf(date) == datetime(day=day, month=month, year=year, tzinfo=timezone.utc)
 
 
 @pytest.mark.parametrize('source, result', [

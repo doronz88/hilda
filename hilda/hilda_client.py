@@ -5,6 +5,8 @@ from functools import partial
 from pathlib import Path
 from typing import Union
 import base64
+import importlib.util
+import importlib
 import textwrap
 import builtins
 import logging
@@ -783,6 +785,21 @@ class HildaClient(metaclass=CommandsMeta):
             raise EvaluatingExpressionError(str(e.error))
 
         return self.symbol(e.unsigned)
+
+    @command()
+    def import_module(self, filename, name=None):
+        """
+        Import & reload given python module (intended mainly for external snippets)
+        :param filename: Python filename to import
+        :param name: Optional module name, or otherwise use the filename
+        :return: Python module
+        """
+        if name is None:
+            name = os.path.splitext(os.path.basename(filename))[0]
+        spec = importlib.util.spec_from_file_location(name, filename)
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        return m
 
     @property
     def thread(self):

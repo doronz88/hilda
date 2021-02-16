@@ -1039,7 +1039,7 @@ class HildaClient(metaclass=CommandsMeta):
         """
         for node in ast.walk(ast.parse(info.raw_cell)):
             if not isinstance(node, ast.Name):
-                # we are only intereseted in names
+                # we are only interested in names
                 continue
 
             if node.id in locals() or node.id in globals() or node.id in dir(builtins):

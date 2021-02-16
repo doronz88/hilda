@@ -1,6 +1,5 @@
 import json
 import os
-from collections import namedtuple
 from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
@@ -14,8 +13,6 @@ from hilda.exceptions import HildaException
 from hilda.objective_c_class import Class, convert_encoded_property_attributes, Method, Property
 from hilda.objective_c_type_decoder import decode_type
 from hilda.symbol import Symbol
-
-Ivar = namedtuple('Ivar', 'name value type_ offset')
 
 
 class SettingIvarError(HildaException):

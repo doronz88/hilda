@@ -118,3 +118,17 @@ def test_symbol_dir(hilda_client, selector: str):
     """
     dict_dir = dir(hilda_client.cf({1: 2}).objc_symbol)
     assert dict_dir.count(selector) == 1
+
+
+@pytest.mark.parametrize('sub_str', [
+    '@interface NSObject',
+    '+ alloc;',
+    'Class isa = 0x',
+    '@property (readonly,copy) NSString * description;',
+])
+def test_symbol_without_super_str(hilda_client, sub_str: str):
+    """
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    :param sub_str: Substring that should appear in the str.
+    """
+    assert str(hilda_client.objc_get_class('NSObject').new().objc_symbol).count(sub_str) == 1

@@ -206,7 +206,10 @@ class ObjectiveCSymbol(Symbol):
     def __str__(self):
         protocols_buf = f'<{",".join(self.class_.protocols)}>' if self.class_.protocols else ''
 
-        buf = f'@interface {self.class_.name}: {self.class_.super.name} {protocols_buf}\n'
+        if self.class_.super is not None:
+            buf = f'@interface {self.class_.name}: {self.class_.super.name} {protocols_buf}\n'
+        else:
+            buf = f'@interface {self.class_.name} {protocols_buf}\n'
 
         # Add ivars
         buf += '{\n'

@@ -12,6 +12,7 @@ from pygments.lexers import ObjectiveCLexer
 from hilda.exceptions import HildaException
 from hilda.objective_c_class import Class, convert_encoded_property_attributes, Method, Property
 from hilda.objective_c_type_decoder import decode_type
+from hilda.symbols_jar import SymbolsJar
 from hilda.symbol import Symbol
 
 
@@ -166,6 +167,17 @@ class ObjectiveCSymbol(Symbol):
 
         buf += '@end'
         return buf
+
+    @property
+    def symbols_jar(self) -> SymbolsJar:
+        """ Get a SymbolsJar object for quick operations on all methods """
+        jar = SymbolsJar()
+        jar.set_hilda_client(self._client)
+
+        for m in self.methods:
+            jar[m.name] = m.address
+
+        return jar
 
     def __dir__(self):
         result = set()

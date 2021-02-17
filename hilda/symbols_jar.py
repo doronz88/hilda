@@ -131,8 +131,11 @@ class SymbolsJar(dict):
         See monitor command for more details.
         :param args: given arguments for monitor command
         """
-        for k, v in self.items():
-            v.monitor(**args)
+        for name, address in self.items():
+            if name == '_client':
+                continue
+            args['name'] = args.get('name', name)
+            address.monitor(**args)
 
     def startswith(self, exp, case_sensitive=True):
         """

@@ -11,6 +11,7 @@ from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import ObjectiveCLexer
 
+from hilda.symbols_jar import SymbolsJar
 from hilda.exceptions import GettingObjectiveCClassError
 from hilda.objective_c_type_decoder import decode_type, decode_type_with_tail
 
@@ -199,9 +200,7 @@ class Class(object):
         """
         Proxy for monitor command.
         """
-        for method in self.methods:
-            kwargs['name'] = f'[{self.name} {method.name}]'
-            method.address.monitor(**kwargs)
+        self.symbols_jar.monitor(**kwargs)
 
     def bp(self, callback=None, **kwargs):
         """
@@ -234,6 +233,17 @@ class Class(object):
             for prop in data['properties']
         ]
         self.methods = [Method.from_data(method, self._client) for method in data['methods']]
+
+    @property
+    def symbols_jar(self) -> SymbolsJar:
+        """ Get a SymbolsJar object for quick operations on all methods """
+        jar = SymbolsJar()
+        jar.set_hilda_client(self._client)
+
+        for m in self.methods:
+            jar[f'[{self.name} {m.name}]'] = m.address
+
+        return jar
 
     def __dir__(self):
         result = set()

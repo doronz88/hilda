@@ -1,3 +1,17 @@
+- [Hilda](#hilda)
+  * [Description](#description)
+  * [Example](#example)
+  * [Installation](#installation)
+  * [How to use](#how-to-use)
+    + [Starting shell](#starting-shell)
+    + [Commands](#commands)
+    + [Symbol objects](#symbol-objects)
+    + [Globalized symbols](#globalized-symbols)
+      - [Searching for the right symbol](#searching-for-the-right-symbol)
+    + [Objective-C Classes](#objective-c-classes)
+    + [Objective-C Objects](#objective-c-objects)
+    + [Using snippets](#using-snippets)
+
 # Hilda
 
 ## Description

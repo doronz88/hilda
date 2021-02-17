@@ -226,7 +226,10 @@ class Class(object):
     def __str__(self):
         protocol_buf = f'<{",".join(self.protocols)}>' if self.protocols else ''
 
-        buf = f'@interface {self.name}: {self.super.name} {protocol_buf}\n'
+        if self.super is not None:
+            buf = f'@interface {self.name}: {self.super.name} {protocol_buf}\n'
+        else:
+            buf = f'@interface {self.name} {protocol_buf}\n'
 
         # Add ivars
         buf += '{\n'

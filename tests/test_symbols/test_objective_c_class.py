@@ -73,3 +73,15 @@ def test_convert_encoded_property_attributes(encoded: str, result: PropertyAttri
     :param result: Parsed property data.
     """
     assert convert_encoded_property_attributes(encoded) == result
+
+
+@pytest.mark.parametrize('sub_str', [
+    '@interface NSObject',
+    '+ alloc;'
+])
+def test_class_without_super_str(hilda_client, sub_str: str):
+    """
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    :param sub_str: Substring that should appear in the str.
+    """
+    assert str(hilda_client.objc_get_class('NSObject')).count(sub_str) == 1

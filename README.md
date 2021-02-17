@@ -3,7 +3,7 @@
   * [Example](#example)
   * [Installation](#installation)
   * [How to use](#how-to-use)
-    + [Starting shell](#starting-hilda-shell)
+    + [Starting Hilda shell](#starting-hilda-shell)
     + [Commands](#commands)
     + [Symbol objects](#symbol-objects)
     + [Globalized symbols](#globalized-symbols)

@@ -119,6 +119,24 @@ class ObjectiveCSymbol(Symbol):
             for method in methods_data
         ]
 
+    def _set_ivar(self, name, value):
+        try:
+            ivars = self.__getattribute__('ivars')
+            class_name = self.__getattribute__('class_').name
+        except AttributeError as e:
+            raise SettingIvarError from e
+
+        for i, ivar in enumerate(ivars):
+            if ivar.name == name:
+                size = self.item_size
+                if i < len(self.ivars) - 1:
+                    size = ivars[i + 1].offset - ivar.offset
+                with self.change_item_size(size):
+                    self[ivar.offset // size] = value
+                    ivar.value = value
+                return
+        raise SettingIvarError(f'Ivar "{name}" does not exist in "{class_name}"')
+
     def __dir__(self):
         result = set()
 
@@ -165,24 +183,6 @@ class ObjectiveCSymbol(Symbol):
 
     def __getattr__(self, item: str):
         return self[self.class_.sanitize_name(item)]
-
-    def _set_ivar(self, name, value):
-        try:
-            ivars = self.__getattribute__('ivars')
-            class_name = self.__getattribute__('class_').name
-        except AttributeError as e:
-            raise SettingIvarError from e
-
-        for i, ivar in enumerate(ivars):
-            if ivar.name == name:
-                size = self.item_size
-                if i < len(self.ivars) - 1:
-                    size = ivars[i + 1].offset - ivar.offset
-                with self.change_item_size(size):
-                    self[ivar.offset // size] = value
-                    ivar.value = value
-                return
-        raise SettingIvarError(f'Ivar "{name}" does not exist in "{class_name}"')
 
     def __setitem__(self, key, value):
         if isinstance(key, int):

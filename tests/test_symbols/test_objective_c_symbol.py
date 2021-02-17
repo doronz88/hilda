@@ -132,3 +132,33 @@ def test_symbol_without_super_str(hilda_client, sub_str: str):
     :param sub_str: Substring that should appear in the str.
     """
     assert str(hilda_client.objc_get_class('NSObject').new().objc_symbol).count(sub_str) == 1
+
+
+@pytest.mark.parametrize('sub_str', [
+    '@interface',  # Class declaration.
+    'NSMutableDictionary',  # Class type.
+    'Class isa = 0x',  # Ivar.
+    '@property (readonly,copy) NSString * description;',  # Property.
+    '+ automaticallyNotifiesObserversForKey:(id);',  # Class method.
+    '- removeAllObjects;',  # Instance method.
+])
+def test_symbol_str(hilda_client, sub_str: str):
+    """
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    :param sub_str: Substring that should appear in the str.
+    """
+    assert hilda_client.cf({1: 2, 3: 4}).objc_symbol._to_str().count(sub_str) == 1
+
+
+def test_symbol_str_not_recursive(hilda_client):
+    """
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    """
+    assert '+ alloc;' not in hilda_client.cf({1: 2, 3: 4}).objc_symbol._to_str(False)
+
+
+def test_symbol_str_recursive(hilda_client):
+    """
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    """
+    assert '+ alloc;' in hilda_client.cf({1: 2, 3: 4}).objc_symbol._to_str(True)

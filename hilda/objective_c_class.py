@@ -2,6 +2,7 @@ import json
 import os
 import time
 from collections import namedtuple
+from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 from uuid import uuid4
@@ -14,7 +15,6 @@ from hilda.exceptions import GettingObjectiveCClassError
 from hilda.objective_c_type_decoder import decode_type, decode_type_with_tail
 
 Ivar = namedtuple('Ivar', 'name type_ offset')
-Method = namedtuple('Method', 'name address type_ return_type is_class args_types')
 Property = namedtuple('Property', 'name attributes')
 PropertyAttributes = namedtuple('PropertyAttributes', 'synthesize type_ list')
 
@@ -43,6 +43,41 @@ def convert_encoded_property_attributes(encoded):
             synthesize = attr[1:]
 
     return PropertyAttributes(type_=type_, synthesize=synthesize, list=attributes)
+
+
+@dataclass
+class Method:
+    name: str
+    address: int = field(compare=False)
+    type_: str = field(compare=False)
+    return_type: str = field(compare=False)
+    is_class: bool = field(compare=False)
+    args_types: list = field(compare=False)
+
+    @staticmethod
+    def from_data(data: dict, client):
+        """
+        Create Method object from raw data.
+        :param data: Data as loaded from get_objectivec_symbol_data.fm.
+        :param hilda.hilda_client.HildaClient client: Hilda client.
+        """
+        return Method(
+            name=data['name'],
+            address=client.symbol(data['address']),
+            type_=data['type'],
+            return_type=decode_type(data['return_type']),
+            is_class=data['is_class'],
+            args_types=list(map(decode_type, data['args_types']))
+        )
+
+    def __str__(self):
+        if ':' in self.name:
+            args_names = self.name.split(':')
+            name = ' '.join(['{}:({})'.format(*arg) for arg in zip(args_names, self.args_types[2:])])
+        else:
+            name = self.name
+        prefix = '+' if self.is_class else '-'
+        return f'{prefix} {name}; // 0x{self.address:x} (returns: {self.return_type})\n'
 
 
 class Class(object):
@@ -198,15 +233,7 @@ class Class(object):
             Property(name=prop['name'], attributes=convert_encoded_property_attributes(prop['attributes']))
             for prop in data['properties']
         ]
-        self.methods = [
-            Method(name=method['name'],
-                   address=self._client.symbol(method['address']),
-                   type_=method['type'],
-                   return_type=decode_type(method['return_type']),
-                   is_class=method['is_class'],
-                   args_types=list(map(decode_type, method['args_types'])))
-            for method in data['methods']
-        ]
+        self.methods = [Method.from_data(method, self._client) for method in data['methods']]
 
     def __dir__(self):
         result = set()
@@ -246,13 +273,7 @@ class Class(object):
 
         # Add methods
         for method in self.methods:
-            if ':' in method.name:
-                args_names = method.name.split(':')
-                name = ' '.join(['{}:({})'.format(*arg) for arg in zip(args_names, method.args_types[2:])])
-            else:
-                name = method.name
-            prefix = '+' if method.is_class else '-'
-            buf += f'{prefix} {name}; // 0x{int(method.address):x} (returns: {method.return_type})\n'
+            buf += str(method)
 
         buf += '@end'
         return buf

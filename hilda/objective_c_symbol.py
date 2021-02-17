@@ -68,18 +68,19 @@ class ObjectiveCSymbol(Symbol):
 
         self._reload_ivars(data['ivars'])
         self._reload_properties(data['properties'])
-        self._reload_methods(data['methods'])
+        self.methods = [Method.from_data(method, self._client) for method in data['methods']]
 
         data['name'] = data['class_name']
         data['address'] = data['class_address']
         data['super'] = data['class_super']
         self.class_ = Class(self._client, self._client.symbol(data['class_address']), data)
 
-    def show(self):
+    def show(self, recursive: bool = False):
         """
         Print to terminal the highlighted class description.
+        :param recursive: Show methods of super classes.
         """
-        print(highlight(str(self), ObjectiveCLexer(), TerminalTrueColorFormatter(style='native')))
+        print(highlight(self._to_str(recursive), ObjectiveCLexer(), TerminalTrueColorFormatter(style='native')))
 
     def objc_call(self, selector: str, *params):
         """
@@ -108,17 +109,6 @@ class ObjectiveCSymbol(Symbol):
             prop_attributes = convert_encoded_property_attributes(prop['attributes'])
             self.properties.append(Property(name=prop['name'], attributes=prop_attributes))
 
-    def _reload_methods(self, methods_data):
-        self.methods = [
-            Method(name=method['name'],
-                   address=self._client.symbol(method['address']),
-                   type_=method['type'],
-                   return_type=decode_type(method['return_type']),
-                   is_class=method['is_class'],
-                   args_types=list(map(decode_type, method['args_types'])))
-            for method in methods_data
-        ]
-
     def _set_ivar(self, name, value):
         try:
             ivars = self.__getattribute__('ivars')
@@ -136,6 +126,46 @@ class ObjectiveCSymbol(Symbol):
                     ivar.value = value
                 return
         raise SettingIvarError(f'Ivar "{name}" does not exist in "{class_name}"')
+
+    def _to_str(self, recursive=False):
+        protocols_buf = f'<{",".join(self.class_.protocols)}>' if self.class_.protocols else ''
+
+        if self.class_.super is not None:
+            buf = f'@interface {self.class_.name}: {self.class_.super.name} {protocols_buf}\n'
+        else:
+            buf = f'@interface {self.class_.name} {protocols_buf}\n'
+
+        # Add ivars
+        buf += '{\n'
+        for ivar in self.ivars:
+            buf += f'\t{ivar.type_} {ivar.name} = 0x{int(ivar.value):x}; // 0x{ivar.offset:x}\n'
+        buf += '}\n'
+
+        # Add properties
+        for prop in self.properties:
+            attrs = prop.attributes
+            buf += f'@property ({",".join(attrs.list)}) {prop.attributes.type_} {prop.name};\n'
+
+            if attrs.synthesize is not None:
+                buf += f'@synthesize {prop.name} = {attrs.synthesize};\n'
+
+        # Add methods
+        methods = self.methods.copy()
+
+        # Add super methods.
+        if recursive:
+            for sup in self.class_.iter_supers():
+                for method in filter(lambda m: m not in methods, sup.methods):
+                    methods.append(method)
+
+        # Print class methods first.
+        methods.sort(key=lambda m: not m.is_class)
+
+        for method in methods:
+            buf += str(method)
+
+        buf += '@end'
+        return buf
 
     def __dir__(self):
         result = set()
@@ -204,36 +234,4 @@ class ObjectiveCSymbol(Symbol):
             super(ObjectiveCSymbol, self).__setattr__(key, value)
 
     def __str__(self):
-        protocols_buf = f'<{",".join(self.class_.protocols)}>' if self.class_.protocols else ''
-
-        if self.class_.super is not None:
-            buf = f'@interface {self.class_.name}: {self.class_.super.name} {protocols_buf}\n'
-        else:
-            buf = f'@interface {self.class_.name} {protocols_buf}\n'
-
-        # Add ivars
-        buf += '{\n'
-        for ivar in self.ivars:
-            buf += f'\t{ivar.type_} {ivar.name} = 0x{int(ivar.value):x}; // 0x{ivar.offset:x}\n'
-        buf += '}\n'
-
-        # Add properties
-        for prop in self.properties:
-            attrs = prop.attributes
-            buf += f'@property ({",".join(attrs.list)}) {prop.attributes.type_} {prop.name};\n'
-
-            if attrs.synthesize is not None:
-                buf += f'@synthesize {prop.name} = {attrs.synthesize};\n'
-
-        # Add methods
-        for method in self.methods:
-            if ':' in method.name:
-                args_names = method.name.split(':')
-                name = ' '.join(['{}:({})'.format(*arg) for arg in zip(args_names, method.args_types[2:])])
-            else:
-                name = method.name
-            prefix = '+' if method.is_class else '-'
-            buf += f'{prefix} {name}; // 0x{int(method.address):x} (returns: {method.return_type})\n'
-
-        buf += '@end'
-        return buf
+        return self._to_str(False)

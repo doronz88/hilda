@@ -107,8 +107,11 @@ def test_call_objective_c_method_returns_native_symbol(hilda_client):
 @pytest.mark.parametrize('selector', [
     'alloc',  # Test super class methods.
     'init',  # Test super instance methods.
+    'dictionaryWithObjects_forKeys_',  # Test class methods.
+    'objectForKey_',  # Test instance methods.
+    'allKeys',  # Test instance properties.
 ])
-def test_super_method_in_symbol_dir(hilda_client, selector: str):
+def test_symbol_dir(hilda_client, selector: str):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     :param selector: Superclass selector to test.

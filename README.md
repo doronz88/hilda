@@ -3,7 +3,7 @@
   * [Example](#example)
   * [Installation](#installation)
   * [How to use](#how-to-use)
-    + [Starting shell](#starting-shell)
+    + [Starting shell](#starting-hilda-shell)
     + [Commands](#commands)
     + [Symbol objects](#symbol-objects)
     + [Globalized symbols](#globalized-symbols)
@@ -60,7 +60,7 @@ xcrun python3 -m pip install --user -U -e .
 
 ## How to use
 
-### Starting shell
+### Starting Hilda shell
 
 Simply run:
 

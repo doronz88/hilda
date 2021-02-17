@@ -38,10 +38,19 @@ if (ivars) {{
     free(ivars);
 }}
 
+NSMutableArray *fetchedProperties = [NSMutableArray new];
+NSString *propertyName;
 objc_property_t *properties = class_copyPropertyList(objcClass, &outCount);
 for (i = 0; i < outCount; ++i) {{
+    propertyName = [NSString stringWithCString:property_getName(properties[i]) encoding:NSUTF8StringEncoding];
+    if ([fetchedProperties containsObject:propertyName]) {{
+        continue;
+    }}
+    else {{
+        [fetchedProperties addObject:propertyName];
+    }}
     [classDescription[@"properties"] addObject:@{{
-        @"name": [NSString stringWithCString:property_getName(properties[i]) encoding:NSUTF8StringEncoding],
+        @"name": propertyName,
         @"attributes": [NSString stringWithCString:property_getAttributes(properties[i]) encoding:NSUTF8StringEncoding],
     }}];
 }}

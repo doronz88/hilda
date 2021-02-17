@@ -77,7 +77,8 @@ def test_convert_encoded_property_attributes(encoded: str, result: PropertyAttri
 
 @pytest.mark.parametrize('sub_str', [
     '@interface NSObject',
-    '+ alloc;'
+    '+ alloc;',
+    '@property (readonly,copy) NSString * description;',
 ])
 def test_class_without_super_str(hilda_client, sub_str: str):
     """

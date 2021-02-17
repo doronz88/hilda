@@ -120,20 +120,20 @@ class ObjectiveCSymbol(Symbol):
         ]
 
     def __dir__(self):
-        result = []
+        result = set()
 
         for ivar in self.ivars:
-            result.append(ivar.name)
+            result.add(ivar.name)
 
         for method in self.methods:
-            result.append(method.name.replace(':', '_'))
+            result.add(method.name.replace(':', '_'))
 
         for sup in self.class_.iter_supers():
             for method in sup.methods:
-                result.append(method.name.replace(':', '_'))
+                result.add(method.name.replace(':', '_'))
 
-        result += list(super(ObjectiveCSymbol, self).__dir__())
-        return result
+        result.update(list(super(ObjectiveCSymbol, self).__dir__()))
+        return list(result)
 
     def __getitem__(self, item):
         if isinstance(item, int):

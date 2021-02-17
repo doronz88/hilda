@@ -114,4 +114,4 @@ def test_super_method_in_symbol_dir(hilda_client, selector: str):
     :param selector: Superclass selector to test.
     """
     dict_dir = dir(hilda_client.cf({1: 2}).objc_symbol)
-    assert selector in dict_dir
+    assert dict_dir.count(selector) == 1

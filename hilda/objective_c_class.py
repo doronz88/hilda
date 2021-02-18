@@ -237,8 +237,7 @@ class Class(object):
     @property
     def symbols_jar(self) -> SymbolsJar:
         """ Get a SymbolsJar object for quick operations on all methods """
-        jar = SymbolsJar()
-        jar.set_hilda_client(self._client)
+        jar = SymbolsJar.create(self._client)
 
         for m in self.methods:
             jar[f'[{self.name} {m.name}]'] = m.address

@@ -71,8 +71,7 @@ class HildaClient(metaclass=CommandsMeta):
         self.debugger = debugger
         self.target = debugger.GetSelectedTarget()
         self.process = self.target.GetProcess()
-        self.symbols = SymbolsJar()
-        self.symbols.set_hilda_client(self)
+        self.symbols = SymbolsJar.create(self)
         self.breakpoints = {}
         self.captured_objects = {}
         self.registers = Registers(self)
@@ -164,7 +163,7 @@ class HildaClient(metaclass=CommandsMeta):
         if module.file.basename is not None:
             self.log_warning(f'file {filename} has already been loaded')
 
-        injected = SymbolsJar()
+        injected = SymbolsJar.create(self)
         handle = self.symbols.dlopen(filename, 10)  # RTLD_GLOBAL|RTLD_NOW
 
         if handle == 0:

@@ -6,8 +6,16 @@ from hilda.exceptions import SymbolAbsentError, AddingLldbSymbolError
 
 
 class SymbolsJar(dict):
-    def set_hilda_client(self, client):
-        self.__dict__['_client'] = client
+    @staticmethod
+    def create(client):
+        """
+        Factory method for creating symbols jars
+        :param client: Hilda client
+        :rtype: SymbolsJar
+        """
+        jar = SymbolsJar()
+        jar.__dict__['_client'] = client
+        return jar
 
     def get_lazy(self, name):
         client = self.__dict__['_client']
@@ -43,14 +51,14 @@ class SymbolsJar(dict):
         return self.__delitem__(item)
 
     def __sub__(self, other):
-        retval = SymbolsJar()
+        retval = SymbolsJar.create(self.__dict__['_client'])
         for k1, v1 in self.items():
             if k1 not in other:
                 retval[k1] = v1
         return retval
 
     def __add__(self, other):
-        retval = SymbolsJar()
+        retval = SymbolsJar.create(self.__dict__['_client'])
         for k, v in other.items():
             retval[k] = v
         for k, v in self.items():
@@ -72,7 +80,7 @@ class SymbolsJar(dict):
         Filter to only names containing their module names
         :return: reduced symbol jar
         """
-        retval = SymbolsJar()
+        retval = SymbolsJar.create(self.__dict__['_client'])
         for k, v in self.items():
             if '{' not in k or '}' not in k:
                 continue
@@ -86,7 +94,7 @@ class SymbolsJar(dict):
         :param lldb_type: symbol type from LLDB consts
         :return: symbols matching the type filter
         """
-        retval = SymbolsJar()
+        retval = SymbolsJar.create(self.__dict__['_client'])
         for k, v in self.items():
             if v.type_ == lldb_type:
                 retval[k] = v
@@ -118,7 +126,7 @@ class SymbolsJar(dict):
         Filter only symbols without module suffix
         :return: reduced symbol jar
         """
-        retval = SymbolsJar()
+        retval = SymbolsJar.create(self.__dict__['_client'])
         for k, v in self.items():
             if '{' in k:
                 continue
@@ -147,7 +155,7 @@ class SymbolsJar(dict):
         if not case_sensitive:
             exp = exp.lower()
 
-        retval = SymbolsJar()
+        retval = SymbolsJar.create(self.__dict__['_client'])
         for k, v in self.items():
             orig_k = k
             if not case_sensitive:
@@ -166,7 +174,7 @@ class SymbolsJar(dict):
         if not case_sensitive:
             exp = exp.lower()
 
-        retval = SymbolsJar()
+        retval = SymbolsJar.create(self.__dict__['_client'])
         for k, v in self.items():
             orig_k = k
             if not case_sensitive:
@@ -185,7 +193,7 @@ class SymbolsJar(dict):
         if not case_sensitive:
             exp = exp.lower()
 
-        retval = SymbolsJar()
+        retval = SymbolsJar.create(self.__dict__['_client'])
         for k, v in self.items():
             orig_k = k
             if not case_sensitive:

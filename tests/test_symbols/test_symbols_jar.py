@@ -23,3 +23,17 @@ def test_get_absent_symbol(hilda_client):
     """
     with pytest.raises(SymbolAbsentError):
         hilda_client.symbols.symbol_that_doesnt_exist
+
+
+def test_find(hilda_client):
+    """
+    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
+    """
+    assert 'malloc' not in hilda_client.symbols, 'expected malloc to not be present'
+
+    # populate the jar
+    hilda_client.symbols.malloc
+    hilda_client.symbols.rand
+    hilda_client.symbols.strlen
+
+    assert 1 == len(hilda_client.symbols.clean().find('malloc')), 'expected to find only one'

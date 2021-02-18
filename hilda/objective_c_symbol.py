@@ -8,10 +8,10 @@ from pathlib import Path
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import ObjectiveCLexer
+from objc_types_decoder.decode import decode as decode_type
 
 from hilda.exceptions import HildaException
 from hilda.objective_c_class import Class, convert_encoded_property_attributes, Method, Property
-from hilda.objective_c_type_decoder import decode_type
 from hilda.symbols_jar import SymbolsJar
 from hilda.symbol import Symbol
 

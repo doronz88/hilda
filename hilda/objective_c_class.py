@@ -10,10 +10,10 @@ from uuid import uuid4
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import ObjectiveCLexer
+from objc_types_decoder.decode import decode as decode_type, decode_with_tail
 
 from hilda.symbols_jar import SymbolsJar
 from hilda.exceptions import GettingObjectiveCClassError
-from hilda.objective_c_type_decoder import decode_type, decode_type_with_tail
 
 Ivar = namedtuple('Ivar', 'name type_ offset')
 Property = namedtuple('Property', 'name attributes')
@@ -34,7 +34,7 @@ def convert_encoded_property_attributes(encoded):
         't': lambda x: 'encoding=' + x[1:],
     }
 
-    type_, tail = decode_type_with_tail(encoded[1:])
+    type_, tail = decode_with_tail(encoded[1:])
     attributes = []
     synthesize = None
     for attr in filter(None, tail.lstrip(',').split(',')):

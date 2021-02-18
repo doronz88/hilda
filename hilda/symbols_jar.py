@@ -7,16 +7,16 @@ from hilda.exceptions import SymbolAbsentError, AddingLldbSymbolError
 
 class SymbolsJar(dict):
     def set_hilda_client(self, client):
-        self._client = client
+        self.__dict__['_client'] = client
 
     def get_lazy(self, name):
-        if hasattr(self, '_client'):
-            if '{' in name:
-                # remove module name from symbol
-                name = name.split('{', 1)[0]
-            for s in self._client.target.FindSymbols(name):
-                with suppress(AddingLldbSymbolError):
-                    return self._client.add_lldb_symbol(s.symbol)
+        client = self.__dict__['_client']
+        if '{' in name:
+            # remove module name from symbol
+            name = name.split('{', 1)[0]
+        for s in client.target.FindSymbols(name):
+            with suppress(AddingLldbSymbolError):
+                return client.add_lldb_symbol(s.symbol)
         return None
 
     def __getitem__(self, item):
@@ -28,10 +28,10 @@ class SymbolsJar(dict):
 
     def __getattr__(self, name):
         if name not in self:
-            if hasattr(self, '_client'):
-                for s in self._client.target.FindSymbols(name):
-                    with suppress(AddingLldbSymbolError):
-                        return self._client.add_lldb_symbol(s.symbol)
+            client = self.__dict__['_client']
+            for s in client.target.FindSymbols(name):
+                with suppress(AddingLldbSymbolError):
+                    return client.add_lldb_symbol(s.symbol)
             raise SymbolAbsentError(f'no such symbol: {name}')
 
         return self.get(name)

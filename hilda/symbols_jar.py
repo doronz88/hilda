@@ -134,8 +134,8 @@ class SymbolsJar(dict):
         for name, address in self.items():
             if name == '_client':
                 continue
-            args['name'] = args.get('name', name)
-            address.monitor(**args)
+            name = args.get('name', name)
+            address.monitor(name=name, **args)
 
     def startswith(self, exp, case_sensitive=True):
         """

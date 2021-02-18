@@ -156,6 +156,25 @@ class SymbolsJar(dict):
                 retval[orig_k] = v
         return retval
 
+    def endswith(self, exp, case_sensitive=True):
+        """
+        Filter only symbols with given prefix
+        :param exp: prefix
+        :param case_sensitive: is case sensitive
+        :return: reduced symbol jar
+        """
+        if not case_sensitive:
+            exp = exp.lower()
+
+        retval = SymbolsJar()
+        for k, v in self.items():
+            orig_k = k
+            if not case_sensitive:
+                k = k.lower()
+            if k.endswith(exp):
+                retval[orig_k] = v
+        return retval
+
     def find(self, exp, case_sensitive=True):
         """
         Filter symbols containing a given expression

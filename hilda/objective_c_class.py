@@ -172,9 +172,13 @@ class Class(object):
         :param sync: Should wait until captured object is returned?
         :return: Captured object if sync is True, None otherwise
         """
+        class_name = self.name
+
+        if class_name in self._client.captured_objects:
+            del self._client.captured_objects[class_name]
 
         def hook(hilda, frame, bp_loc, options):
-            hilda.log_info(f'self object has been stolen from {options["name"]}')
+            hilda.log_info(f'self object has been captured from {options["name"]}')
             hilda.log_info(f'removing breakpoints')
             for bp_id, bp in list(hilda.breakpoints.items()):
                 if 'group_uuid' in bp.options and bp.options.get('group_uuid', '') == options['group_uuid']:
@@ -186,10 +190,14 @@ class Class(object):
             hilda.cont()
 
         group_uuid = str(uuid4())
-        self.bp(hook, group_uuid=group_uuid)
+
+        for method in self.methods:
+            if not method.is_class:
+                # only instance methods are relevant for capturing self
+                method.address.bp(hook, group_uuid=group_uuid,
+                                  name=f'-[{class_name} {method.name}]')
 
         if sync:
-            class_name = self.name
             self._client.cont()
             self._client.log_debug('Waiting for desired object to be captured...')
             while class_name not in self._client.captured_objects:

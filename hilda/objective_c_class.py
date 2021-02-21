@@ -59,7 +59,7 @@ class Method:
     def from_data(data: dict, client):
         """
         Create Method object from raw data.
-        :param data: Data as loaded from get_objectivec_symbol_data.fm.
+        :param data: Data as loaded from get_objectivec_symbol_data.m.
         :param hilda.hilda_client.HildaClient client: Hilda client.
         """
         return Method(

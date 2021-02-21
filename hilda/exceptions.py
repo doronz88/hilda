@@ -18,8 +18,8 @@ class CreatingObjectiveCSymbolError(HildaException):
     pass
 
 
-class ConvertingToCfObjectError(HildaException):
-    """ Raise when failing to convert python object to CF object. """
+class ConvertingToNsObjectError(HildaException):
+    """ Raise when failing to convert python object to NS object. """
     pass
 
 

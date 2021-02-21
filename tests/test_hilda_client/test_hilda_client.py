@@ -37,7 +37,7 @@ def test_lsof(hilda_client):
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
     temp_dir_url = hilda_client.objc_get_class('NSFileManager').defaultManager().objc_symbol.temporaryDirectory
-    temp_url = temp_dir_url.URLByAppendingPathComponent_(hilda_client.cf('temp.txt')).objc_symbol
+    temp_url = temp_dir_url.URLByAppendingPathComponent_(hilda_client.ns('temp.txt')).objc_symbol
     c_file_path = temp_url.path.cString()
     file_path = c_file_path.peek_str().decode()
     file_handle = hilda_client.symbols.mkstemp(c_file_path)

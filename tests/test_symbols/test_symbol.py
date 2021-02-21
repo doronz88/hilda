@@ -107,7 +107,7 @@ def test_po_cfstr(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    assert hilda_client.cf('ABC').po() == 'ABC'
+    assert hilda_client.ns('ABC').po() == 'ABC'
 
 
 def test_po_nsobject(hilda_client):

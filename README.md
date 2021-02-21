@@ -323,26 +323,26 @@ newDict = dict.dictionary()
 print(arr.po())
 ```
 
-Also, working with Objective-C objects like this can be somewhat exhausting, so we created the `cf` and `from_cf` commands so
+Also, working with Objective-C objects like this can be somewhat exhausting, so we created the `ns` and `from_cf` commands so
 you are able to use complicated types when parsing values and passing as arguments:
 
 ```python
 import datetime
 
-# using the `cf` command we can just pass a python-native dictionary
-function_requiring_a_specfic_dictionary(cf({
-    'key1': 'string',  # will convert to CFString
-    'key2': True,  # will convert to CFBoolean
-    'key3': b'1234',  # will convert to CFData
-    'key4': datetime.datetime(2021, 1, 1)  # will convert to CFDate
+# using the `ns` command we can just pass a python-native dictionary
+function_requiring_a_specfic_dictionary(ns({
+    'key1': 'string',  # will convert to NSString
+    'key2': True,  # will convert to NSNumber
+    'key3': b'1234',  # will convert to NSData
+    'key4': datetime.datetime(2021, 1, 1)  # will convert to NSDate
 }))
 
 # and also parse one
-normal_python_dict = from_cf(cf({
-    'key1': 'string',  # will convert to CFString
-    'key2': True,  # will convert to CFBoolean
-    'key3': b'1234',  # will convert to CFData
-    'key4': datetime.datetime(2021, 1, 1)  # will convert to CFDate
+normal_python_dict = from_cf(ns({
+    'key1': 'string',  # will convert to NSString
+    'key2': True,  # will convert to NSNumber
+    'key3': b'1234',  # will convert to NSData
+    'key4': datetime.datetime(2021, 1, 1)  # will convert to NSDate
 }))
 ```
 

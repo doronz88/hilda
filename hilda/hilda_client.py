@@ -715,27 +715,27 @@ class HildaClient(metaclass=CommandsMeta):
         :param s: given string
         :return:
         """
-        return self.cf(s)
+        return self.ns(s)
 
     @command()
-    def cf(self, data) -> Symbol:
+    def ns(self, data) -> Symbol:
         """
-        Create CFObject from given data
-        :param data: Data representing the CFObject, must by JSON serializable
-        :return: Pointer to a CFObject
+        Create NSObject from given data
+        :param data: Data representing the NSObject, must by JSON serializable
+        :return: Pointer to a NSObject
         """
         try:
-            json_data = json.dumps({'root': data}, default=self._to_cf_json_default)
+            json_data = json.dumps({'root': data}, default=self._to_ns_json_default)
         except TypeError as e:
-            raise ConvertingToCfObjectError from e
+            raise ConvertingToNsObjectError from e
 
-        with open(os.path.join(Path(__file__).resolve().parent, 'to_cf_from_json.m'), 'r') as code_f:
+        with open(os.path.join(Path(__file__).resolve().parent, 'to_ns_from_json.m'), 'r') as code_f:
             obj_c_code = code_f.read()
         expression = obj_c_code.replace('__json_object_dump__', json_data.replace('"', r'\"'))
         try:
             return self.evaluate_expression(expression)
         except EvaluatingExpressionError as e:
-            raise ConvertingToCfObjectError from e
+            raise ConvertingToNsObjectError from e
 
     @command()
     def from_cf(self, address: Union[int, str]):
@@ -983,7 +983,7 @@ class HildaClient(metaclass=CommandsMeta):
         return '/tmp/cache.hilda'
 
     @staticmethod
-    def _to_cf_json_default(obj):
+    def _to_ns_json_default(obj):
         if isinstance(obj, bytes):
             return f'__hilda_magic_key__|NSData|{base64.b64encode(obj).decode()}'
         elif isinstance(obj, datetime):

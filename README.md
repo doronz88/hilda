@@ -19,7 +19,8 @@
 Hilda is a debugger which combines both the power of LLDB and iPython for easier debugging on a jailbroken iDevice.
 
 The name originates from the TV show "Hilda", which is the best friend of
-[Frida](https://frida.re/). Both Frida and Hilda are meant for pretty much the same purpose, except Hilda takes the more "
+[Frida](https://frida.re/). Both Frida and Hilda are meant for pretty much the same purpose, except Hilda takes the
+more "
 debugger-y" approach (based on LLDB).
 
 Currently, the project is intended for iOS debugging, but in the future we will possibly add support for the following
@@ -29,8 +30,8 @@ platforms as well:
 * Linux
 * Android
 
-Since LLDB allows abstraction for both platform and architecture, it should be possible to make the necessary changes without
-too many modifications.
+Since LLDB allows abstraction for both platform and architecture, it should be possible to make the necessary changes
+without too many modifications.
 
 Pull requests are more than welcome 😊.
 
@@ -82,16 +83,106 @@ For this to work, make sure the connected device doesn't require a password for 
 
 ### Commands
 
-In order to view the list of available commands with their documentation, please run the following from within Hilda shell:
+Commands are just global python functions you can access any time. It's really advised to first get a good overview over
+them before start using, so you take full advantage of everything Hilda has to offer. 
+
+Given below is a list of them:
+
+```
+👾 hd - Print an hexdump of given buffer
+👾 lsof - Get dictionary of all open FDs
+👾 bt - Print an improved backtrace.
+👾 disable_jetsam_memory_checks - Disable jetsam memory checks, prevent raising:
+    `error: Execution was interrupted, reason: EXC_RESOURCE RESOURCE_TYPE_MEMORY (limit=15 MB, unused=0x0).`
+    when evaluating expression.
+👾 symbol - Get symbol object for a given address
+👾 objc_symbol - Get objc symbol wrapper for given address
+👾 inject - Inject a single library into currently running process
+👾 rebind_symbols - Reparse all loaded images symbols
+👾 poke - Write data at given address
+👾 peek - Read data at given address
+👾 peek_str - Peek a buffer till null termination
+👾 stop - Stop process.
+👾 cont - Continue process.
+👾 detach - Detach from process.
+    Useful in order to exit gracefully so process doesn't get killed
+    while you exit
+👾 disass - Print disassembly from a given address
+👾 file_symbol - Calculate symbol address without ASLR
+👾 get_register - Get value for register by its name
+👾 set_register - Set value for register by its name
+👾 objc_call - Simulate a call to an objc selector
+👾 call - Call function at given address with given parameters
+👾 monitor - Monitor every time a given address is called
+    The following options are available:
+        regs={reg1: format}
+            will print register values
+
+            Available formats:
+                x: hex
+                s: string
+                cf: use CFCopyDescription() to get more informative description of the object
+                po: use LLDB po command
+                User defined function, will be called like `format_function(hilda_client, value)`.
+
+            For example:
+                regs={'x0': 'x'} -> x0 will be printed in HEX format
+        retval=format
+            Print function's return value. The format is the same as regs format.
+        stop=True
+            force a stop at every hit
+        bt=True
+            print backtrace
+        cmd=[cmd1, cmd2]
+            run several LLDB commands, one by another
+        force_return=value
+            force a return from function with the specified value
+        name=some_value
+            use `some_name` instead of the symbol name automatically extracted from the calling frame
+👾 finish - Run current frame till its end.
+👾 step_into - Step into current instruction.
+👾 step_over - Step over current instruction.
+👾 remove_all_hilda_breakpoints - Remove all breakpoints created by Hilda
+👾 remove_hilda_breakpoint - Remove a single breakpoint placed by Hilda
+👾 force_return - Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
+    yielding a specified value.
+👾 proc_info - Print information about currently running mapped process.
+👾 print_proc_entitlements - Get the plist embedded inside the process' __LINKEDIT section.
+👾 bp - Add a breakpoint
+👾 show_hilda_breakpoints - Show existing breakpoints created by Hilda.
+👾 show_commands - Show available commands.
+👾 save - Save loaded symbols map (for loading later using the load() command)
+👾 load - Load an existing symbols map (previously saved by the save() command)
+👾 po - Print given object using LLDB's po command
+    Can also run big chunks of native code:
+
+    po('NSMutableString *s = [NSMutableString string]; [s appendString:@"abc"]; [s description]')
+👾 globalize_symbols - Make all symbols in python's global scope
+👾 lldb_handle_command - Execute an LLDB command
+    For example:
+        lldb_handle_command('register read')
+👾 objc_get_class - Get ObjC class object
+👾 CFSTR - Create CFStringRef object from given string
+👾 ns - Create NSObject from given data
+👾 from_ns - Create python object from NS object.
+👾 evaluate_expression - Wrapper for LLDB's EvaluateExpression.
+    Used for quick code snippets.
+
+    Feel free to use local variables inside the expression using format string.
+    For example:
+        currentDevice = objc_get_class('UIDevice').currentDevice
+        evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
+👾 import_module - Import & reload given python module (intended mainly for external snippets)
+```
+
+In order to view them within Hilda, please execute:
 
 ```python
 show_commands()
 ```
 
-It's really advised to first get a good overview over them before start using, so you take full advantage of everything Hilda
-has to offer.
-
-If you just want help for a specific one... Hmm.. for example the `stop` command, you can just use IPython's capabilities:
+If you just want help for a specific one... Hmm.. for example the `stop` command, you can just use IPython's
+capabilities:
 
 ```python
 # execute the following to print the command's documentation
@@ -198,17 +289,17 @@ s.bp(scripted_breakpoint)
 
 ### Globalized symbols
 
-Usually you would want/need to use the symbols already mapped into the currently running process. To do so, you can access them
-using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolsJar`, which is a wrapper to `dict` for accessing
-all exported symbols. For example, the following will generate a call to the exported
+Usually you would want/need to use the symbols already mapped into the currently running process. To do so, you can
+access them using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolsJar`, which is a wrapper
+to `dict` for accessing all exported symbols. For example, the following will generate a call to the exported
 `malloc` function with `20` as its only argument:
 
 ```python
 x = symbols.malloc(20)
 ```
 
-You can also just write their name as if they already were in the global scope. Hilda will check if no name collision exists,
-and if so, will perform the following lazily for you:
+You can also just write their name as if they already were in the global scope. Hilda will check if no name collision
+exists, and if so, will perform the following lazily for you:
 
 ```python
 x = malloc(20)
@@ -220,8 +311,8 @@ x = malloc(20)
 
 #### Searching for the right symbol
 
-Sometimes you don't really know where to start your research. All you have is just theories of how your desired exported symbol
-should be called (if any).
+Sometimes you don't really know where to start your research. All you have is just theories of how your desired exported
+symbol should be called (if any).
 
 For that reason alone, we have the `rebind_symbols()`
 command - to help you find the symbol you are looking for.
@@ -323,8 +414,8 @@ newDict = dict.dictionary()
 print(arr.po())
 ```
 
-Also, working with Objective-C objects like this can be somewhat exhausting, so we created the `ns` and `from_ns` commands so
-you are able to use complicated types when parsing values and passing as arguments:
+Also, working with Objective-C objects like this can be somewhat exhausting, so we created the `ns` and `from_ns`
+commands so you are able to use complicated types when parsing values and passing as arguments:
 
 ```python
 import datetime

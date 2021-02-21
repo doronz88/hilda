@@ -60,7 +60,7 @@ make_json_serializable = ^(NSObject *obj, BOOL isKey) {
     }
     return obj;
 };
-NSDictionary *wrapper = @{@"root": (NSObject *)__cf_object_address__};
+NSDictionary *wrapper = @{@"root": (NSObject *)__ns_object_address__};
 wrapper = make_json_serializable_dictionary(wrapper);
 NSData *jsonData = [NSJSONSerialization dataWithJSONObject:wrapper options:0 error:nil];
 [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];

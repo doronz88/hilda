@@ -323,7 +323,7 @@ newDict = dict.dictionary()
 print(arr.po())
 ```
 
-Also, working with Objective-C objects like this can be somewhat exhausting, so we created the `ns` and `from_cf` commands so
+Also, working with Objective-C objects like this can be somewhat exhausting, so we created the `ns` and `from_ns` commands so
 you are able to use complicated types when parsing values and passing as arguments:
 
 ```python
@@ -338,7 +338,7 @@ function_requiring_a_specfic_dictionary(ns({
 }))
 
 # and also parse one
-normal_python_dict = from_cf(ns({
+normal_python_dict = from_ns(ns({
     'key1': 'string',  # will convert to NSString
     'key2': True,  # will convert to NSNumber
     'key3': b'1234',  # will convert to NSData

@@ -23,8 +23,8 @@ class ConvertingToNsObjectError(HildaException):
     pass
 
 
-class ConvertingFromCfObjectError(HildaException):
-    """ Raise when failing to convert CF object to python object. """
+class ConvertingFromNSObjectError(HildaException):
+    """ Raise when failing to convert NS object to python object. """
     pass
 
 

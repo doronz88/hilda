@@ -5,7 +5,7 @@ from pygments.formatters import TerminalTrueColorFormatter
 from pygments import highlight
 from pygments.lexers import PythonLexer
 
-from hilda.exceptions import ConvertingFromCfObjectError
+from hilda.exceptions import ConvertingFromNSObjectError
 
 
 def xpc_sniff_send():
@@ -37,7 +37,7 @@ def from_xpc_object(address: int):
     Convert XPC object to python object.
     :param address: Address of XPC object.
     """
-    return lldb.hilda_client.from_cf(f'_CFXPCCreateCFObjectFromXPCObject({address})')
+    return lldb.hilda_client.from_ns(f'_CFXPCCreateCFObjectFromXPCObject({address})')
 
 
 def xpc_to_python_monitor_format(hilda_client, address):
@@ -50,5 +50,5 @@ def xpc_to_python_monitor_format(hilda_client, address):
     try:
         formatted = pformat(from_xpc_object(address))
         return highlight(formatted, PythonLexer(), TerminalTrueColorFormatter(style='native'))
-    except ConvertingFromCfObjectError:
+    except ConvertingFromNSObjectError:
         return address.po()

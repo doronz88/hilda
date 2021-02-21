@@ -738,21 +738,21 @@ class HildaClient(metaclass=CommandsMeta):
             raise ConvertingToNsObjectError from e
 
     @command()
-    def from_cf(self, address: Union[int, str]):
+    def from_ns(self, address: Union[int, str]):
         """
-        Create python object from CF object.
-        :param address: CF object.
+        Create python object from NS object.
+        :param address: NS object.
         :return: Python object.
         """
-        with open(os.path.join(Path(__file__).resolve().parent, 'from_cf_to_json.m'), 'r') as f:
+        with open(os.path.join(Path(__file__).resolve().parent, 'from_ns_to_json.m'), 'r') as f:
             obj_c_code = f.read()
         address = f'0x{address:x}' if isinstance(address, int) else address
-        expression = obj_c_code.replace('__cf_object_address__', address)
+        expression = obj_c_code.replace('__ns_object_address__', address)
         try:
             json_dump = self.po(expression)
         except EvaluatingExpressionError as e:
-            raise ConvertingFromCfObjectError from e
-        return json.loads(json_dump, object_hook=self._from_cf_json_object_hook)['root']
+            raise ConvertingFromNSObjectError from e
+        return json.loads(json_dump, object_hook=self._from_ns_json_object_hook)['root']
 
     @command()
     def evaluate_expression(self, expression) -> Symbol:
@@ -991,25 +991,25 @@ class HildaClient(metaclass=CommandsMeta):
         raise TypeError
 
     @staticmethod
-    def _from_cf_json_object_hook(obj: dict):
+    def _from_ns_json_object_hook(obj: dict):
         parsed_object = {}
         for key, value in obj.items():
-            parsed_object[HildaClient._from_cf_parse_function(key)] = HildaClient._from_cf_parse_function(value)
+            parsed_object[HildaClient._from_ns_parse_function(key)] = HildaClient._from_ns_parse_function(value)
         return parsed_object
 
     @staticmethod
-    def _from_cf_parse_function(obj):
+    def _from_ns_parse_function(obj):
         if isinstance(obj, list):
-            return list(map(HildaClient._from_cf_parse_function, obj))
+            return list(map(HildaClient._from_ns_parse_function, obj))
         if not isinstance(obj, str) or not obj.startswith('__hilda_magic_key__'):
             return obj
         _, type_, data = obj.split('|')
         if type_ == 'NSData':
             return base64.b64decode(data)
         if type_ == 'NSDictionary':
-            return tuple(json.loads(data, object_hook=HildaClient._from_cf_json_object_hook).items())
+            return tuple(json.loads(data, object_hook=HildaClient._from_ns_json_object_hook).items())
         if type_ == 'NSArray':
-            return tuple(json.loads(data, object_hook=HildaClient._from_cf_json_object_hook))
+            return tuple(json.loads(data, object_hook=HildaClient._from_ns_json_object_hook))
         if type_ == 'NSNumber':
             return eval(data)
         if type_ == 'NSNull':

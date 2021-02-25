@@ -12,6 +12,7 @@ import builtins
 import logging
 import pickle
 import json
+import sys
 import ast
 import os
 
@@ -942,6 +943,7 @@ class HildaClient(metaclass=CommandsMeta):
         namespace = globals()
         namespace.update(locals())
 
+        sys.argv = ['bla']
         IPython.start_ipython(config=c, user_ns=namespace)
 
     @staticmethod

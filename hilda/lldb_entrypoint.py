@@ -3,7 +3,6 @@
 import logging
 
 import coloredlogs
-import humanfriendly
 
 import lldb
 from hilda.hilda_client import HildaClient

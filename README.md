@@ -16,17 +16,16 @@
 
 ## Description
 
-Hilda is a debugger which combines both the power of LLDB and iPython for easier debugging on a jailbroken iDevice.
+Hilda is a debugger which combines both the power of LLDB and iPython for easier debugging.
 
 The name originates from the TV show "Hilda", which is the best friend of
 [Frida](https://frida.re/). Both Frida and Hilda are meant for pretty much the same purpose, except Hilda takes the
 more "
 debugger-y" approach (based on LLDB).
 
-Currently, the project is intended for iOS debugging, but in the future we will possibly add support for the following
-platforms as well:
+Currently, the project is intended for iOS/OSX debugging, but in the future we will possibly add support for the
+following platforms as well:
 
-* OSX
 * Linux
 * Android
 
@@ -46,7 +45,7 @@ More examples can be found under the [gifs folder](gifs/).
 
 ## Installation
 
-Requirements:
+Requirements for remote iOS device (not required for debugging a local OSX process):
 
 * Jailbroken iOS device
 * `iproxy` in PATH (`brew install libimobiledevice`)
@@ -64,12 +63,46 @@ xcrun python3 -m pip install --user -U -e .
 
 ## How to use
 
-### Starting Hilda shell
+### Starting a Hilda shell
 
-Simply run:
+#### Bare mode
+
+Use "Bare mode" to get a "bare-bones" lldb shell, whereas hilda plugin is already loaded and ready to start. This mode
+is useful when you need to have custom commands for attaching to the target process (for example when debugging OSX
+processes).
+
+To start this mode simply use:
 
 ```shell
-hilda PROCESS_NAME SSH_PORT
+hilda bare
+```
+
+Please refer to the following help page if you require help on the command available to you within the lldb shell:
+
+[lldb command map](https://lldb.llvm.org/use/map.html).
+
+As a cheatsheet, connecting to a remote platform like so:
+
+```shell
+platform connect connect://ip:port
+```
+
+... and attaching to a local process:
+
+```shell
+process attach -n proccess_name
+process attach -p proccess_pid
+```
+
+When you are ready, just execute `hilda` to move to Hilda's iPython shell.
+
+#### Remote mode
+
+This mode will auto-connect to the remote device and attach to your target process assuming you are trying to debug a
+remote jailbroken iOS device.
+
+```shell
+hilda remote PROCESS_NAME SSH_PORT
 ```
 
 Please note the script assumes the target device is running a ssh server. It will try running the following for you:
@@ -84,7 +117,7 @@ For this to work, make sure the connected device doesn't require a password for 
 ### Commands
 
 Commands are just global python functions you can access any time. It's really advised to first get a good overview over
-them before start using, so you take full advantage of everything Hilda has to offer. 
+them before start using, so you take full advantage of everything Hilda has to offer.
 
 Given below is a list of them:
 
@@ -468,3 +501,4 @@ xpc.xpc_sniff_all()
 ```
 
 This will monitor all XPC related traffic in the given process.
+ 

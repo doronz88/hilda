@@ -688,6 +688,11 @@ class HildaClient(metaclass=CommandsMeta):
                 self._add_global(name, value, reserved_names)
 
     @command()
+    def jump(self, symbol: int):
+        """ jump to given symbol """
+        self.lldb_handle_command(f'j *{symbol}')
+
+    @command()
     def lldb_handle_command(self, cmd):
         """
         Execute an LLDB command

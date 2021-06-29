@@ -2,7 +2,7 @@ def _CFRunLoopServiceMachPort_hook(hilda, *args):
     """
     :param hilda.hilda_client.HildaClient hilda:
     """
-    hilda.lldb_handle_command(f'j *{hilda.CFRunLoopServiceMachPort_while_ea}')
+    hilda.jump(hilda.CFRunLoopServiceMachPort_while_ea)
     hilda.cont()
 
 

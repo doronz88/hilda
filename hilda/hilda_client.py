@@ -407,6 +407,9 @@ class HildaClient(metaclass=CommandsMeta):
 
                 For example:
                     regs={'x0': 'x'} -> x0 will be printed in HEX format
+            expr={lldb_expression: format}
+                lldb_expression can be for example '$x0' or '$arg1'
+                format behaves just like 'regs' option
             retval=format
                 Print function's return value. The format is the same as regs format.
             stop=True
@@ -450,6 +453,12 @@ class HildaClient(metaclass=CommandsMeta):
                     value = hilda.symbol(frame.FindRegister(name).unsigned)
                     log_message += f'\n\t{name} = {hilda._monitor_format_value(fmt, value)}'
 
+            if 'expr' in options:
+                log_message += '\nexpr:'
+                for name, fmt in options['expr'].items():
+                    value = hilda.symbol(hilda.evaluate_expression(name))
+                    log_message += f'\n\t{name} = {hilda._monitor_format_value(fmt, value)}'
+
             if options.get('force_return', False):
                 hilda.force_return(options['force_return'])
                 log_message += f'\nforced return: {options["force_return"]}'
@@ -462,7 +471,7 @@ class HildaClient(metaclass=CommandsMeta):
             if options.get('retval', False):
                 # return from function
                 hilda.finish()
-                value = hilda.get_register('x0')
+                value = hilda.evaluate_expression('$arg1')
                 log_message += f'\nreturned: {hilda._monitor_format_value(options["retval"], value)}'
 
             hilda.log_info(log_message)
@@ -783,7 +792,7 @@ class HildaClient(metaclass=CommandsMeta):
         options.SetIgnoreBreakpoints(True)
         options.SetTryAllThreads(True)
 
-        e = self.target.EvaluateExpression(formatted_expression)
+        e = self.frame.EvaluateExpression(formatted_expression)
 
         if not e.error.Success():
             raise EvaluatingExpressionError(str(e.error))

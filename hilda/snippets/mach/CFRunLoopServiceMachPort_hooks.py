@@ -2,7 +2,7 @@ def _CFRunLoopServiceMachPort_hook(hilda, *args):
     """
     :param hilda.hilda_client.HildaClient hilda:
     """
-    hilda.registers.pc = hilda.CFRunLoopServiceMachPort_while_ea
+    hilda.lldb_handle_command(f'j *{hilda.CFRunLoopServiceMachPort_while_ea}')
     hilda.cont()
 
 
@@ -20,7 +20,7 @@ def disable_mach_msg_errors(self):
                 # Beginning of the `while(true) { ... }`
                 while_ea = instruction.GetOperands(self.target)
                 self.CFRunLoopServiceMachPort_while_ea = int(self.file_symbol(eval(while_ea)))
-            elif instruction.GetMnemonic(self.target) == 'brk':
+            elif instruction.GetMnemonic(self.target) in ('brk', 'ud2'):
                 symbol = self.symbol(instruction.addr.GetLoadAddress(self.target))
                 symbol.bp(
                     _CFRunLoopServiceMachPort_hook,

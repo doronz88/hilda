@@ -485,6 +485,11 @@ class HildaClient(metaclass=CommandsMeta):
         return self.bp(address, callback, **options)
 
     @command()
+    def show_current_source(self):
+        """ print current source code if possible """
+        self.lldb_handle_command('f')
+
+    @command()
     def finish(self):
         """ Run current frame till its end. """
         with self.sync_mode():

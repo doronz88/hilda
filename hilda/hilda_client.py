@@ -1081,14 +1081,16 @@ class HildaClient(metaclass=CommandsMeta):
                 # That are undefined
                 continue
 
-            try:
-                symbol = getattr(self.symbols, node.id)
-            except SymbolAbsentError:
-                pass
-            else:
-                self._add_global(
-                    node.id, symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.objc_get_class(node.id)
-                )
+            if not hasattr(SymbolsJar, node.id):
+                # ignore SymbolsJar properties
+                try:
+                    symbol = getattr(self.symbols, node.id)
+                except SymbolAbsentError:
+                    pass
+                else:
+                    self._add_global(
+                        node.id, symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.objc_get_class(node.id)
+                    )
 
     def _monitor_format_value(self, fmt, value):
         if callable(fmt):

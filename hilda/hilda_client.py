@@ -834,17 +834,23 @@ class HildaClient(metaclass=CommandsMeta):
         return self.thread.GetSelectedFrame()
 
     @contextmanager
-    def stopped(self):
-        """ Context-Manager for execution while process is stopped.  """
+    def stopped(self, interval=0):
+        """
+        Context-Manager for execution while process is stopped.
+        If interval is supplied, then if the device is in running state, it will sleep for the interval
+        given before and after execution.
+        """
         is_running = self.process.GetState() == lldb.eStateRunning
 
         if is_running:
             self.stop()
+            time.sleep(1)
 
         try:
             yield
         finally:
             if is_running:
+                time.sleep(1)
                 self.cont()
 
     @contextmanager
@@ -1089,7 +1095,8 @@ class HildaClient(metaclass=CommandsMeta):
                     pass
                 else:
                     self._add_global(
-                        node.id, symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.objc_get_class(node.id)
+                        node.id,
+                        symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.objc_get_class(node.id)
                     )
 
     def _monitor_format_value(self, fmt, value):

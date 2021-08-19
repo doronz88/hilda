@@ -3,13 +3,14 @@ from construct import *
 
 from hilda.symbol import SymbolFormatField
 
-
 LOAD_COMMAND_TYPE = Enum(Int32ul,
                          LC_LOAD_DYLIB=0xc,
                          LC_SEGMENT_64=0x19)
 
 
 class MachOStructFactory(object):
+    # for reference for all of the following structs please look at:
+    # https://opensource.apple.com/source/xnu/xnu-792/EXTERNAL_HEADERS/mach-o/loader.h
 
     @staticmethod
     def calculate_aslr(ctx):
@@ -38,13 +39,13 @@ class MachOStructFactory(object):
     def __load_command():
         return Struct(
             '_start' / Tell,
-            Probe(this._start),
+            # Probe(this._start),
             'cmd' / LOAD_COMMAND_TYPE,
-            Probe(this._cmd),
+            # Probe(this._cmd),
             'cmdsize' / Int32ul,
-            Probe(this._cmdSize),
+            # Probe(this._cmdSize),
             '_data_offset' / Tell,
-            Probe(this._data_offset),
+            # Probe(this._data_offset),
             'data' / Switch(this.cmd, {
                 LOAD_COMMAND_TYPE.LC_SEGMENT_64: MachOStructFactory.__segment_command(),
                 LOAD_COMMAND_TYPE.LC_LOAD_DYLIB: MachOStructFactory.__dylib_load_command(),
@@ -83,10 +84,11 @@ class MachOStructFactory(object):
 
     @staticmethod
     def __lc_str():
-        return Union(0,
-            'offset' / Int64ul,
-            Probe(this._offset),
-            '_ptr' / SymbolFormatField(lldb.hilda_client),
-            Probe(this._ptr),
-            'ptr' / If(this._ptr != 0, Pointer(this._ptr, CString('utf8'))),
+        return Struct(
+            # this struct appears as a union in apple's opensource, but is represented in an awful manner, whereas
+            # they would treat both the `ptr` and `offset` members as offsets (and never as pointers),
+            # so we changed this a bit into the struct that it should have been
+            'offset' / Hex(Int32ul),
+            '_pad' / Int32ul,
+            'name' / Pointer(this._._._._start + this.offset, PaddedString(this._._._.cmdsize - this.offset, 'utf8')),
         )

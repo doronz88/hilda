@@ -39,13 +39,9 @@ class MachOStructFactory(object):
     def __load_command():
         return Struct(
             '_start' / Tell,
-            # Probe(this._start),
             'cmd' / LOAD_COMMAND_TYPE,
-            # Probe(this._cmd),
             'cmdsize' / Int32ul,
-            # Probe(this._cmdSize),
             '_data_offset' / Tell,
-            # Probe(this._data_offset),
             'data' / Switch(this.cmd, {
                 LOAD_COMMAND_TYPE.LC_SEGMENT_64: MachOStructFactory.__segment_command(),
                 LOAD_COMMAND_TYPE.LC_LOAD_DYLIB: MachOStructFactory.__dylib_load_command(),
@@ -84,11 +80,12 @@ class MachOStructFactory(object):
 
     @staticmethod
     def __lc_str():
+        load_command = this._._._
         return Struct(
             # this struct appears as a union in apple's opensource, but is represented in an awful manner, whereas
             # they would treat both the `ptr` and `offset` members as offsets (and never as pointers),
             # so we changed this a bit into the struct that it should have been
             'offset' / Hex(Int32ul),
             '_pad' / Int32ul,
-            'name' / Pointer(this._._._._start + this.offset, PaddedString(this._._._.cmdsize - this.offset, 'utf8')),
+            'name' / Pointer(load_command._start + this.offset, PaddedString(load_command.cmdsize - this.offset, 'utf8')),
         )

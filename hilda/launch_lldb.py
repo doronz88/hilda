@@ -15,7 +15,7 @@ logging.getLogger('humanfriendly.prompts').disabled = True
 
 
 def tunnel_local_port(port):
-    execute(f'nohup iproxy {port} {port} >/dev/null 2>&1 &')
+    execute(f'pymobiledevice3 lockdown forward {port} {port} -d')
 
 
 def execute(cmd):

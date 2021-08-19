@@ -48,7 +48,6 @@ More examples can be found under the [gifs folder](gifs/).
 Requirements for remote iOS device (not required for debugging a local OSX process):
 
 * Jailbroken iOS device
-* `iproxy` in PATH (`brew install libimobiledevice`)
 * `debugserver` in device's PATH
     * [You can use this tool in order to obtain the binary](https://github.com/doronz88/debugserver-deploy)
     * After re-signing with new entitlements, you can put the binary in the following path: `/usr/bin/debugserver`

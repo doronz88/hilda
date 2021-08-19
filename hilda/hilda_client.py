@@ -14,7 +14,6 @@ import pickle
 import json
 import ast
 import os
-import time
 
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import XmlLexer

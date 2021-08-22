@@ -1,3 +1,4 @@
+from construct import FormatField
 from contextlib import contextmanager
 import struct
 import os
@@ -5,6 +6,19 @@ import os
 from hilda.objective_c_class import Class
 
 ADDRESS_SIZE_TO_STRUCT_FORMAT = {1: 'B', 2: 'H', 4: 'I', 8: 'Q'}
+
+
+class SymbolFormatField(FormatField):
+    """
+    A Symbol wrapper for construct
+    """
+
+    def __init__(self, client):
+        super(SymbolFormatField, self).__init__('<', 'Q')
+        self._client = client
+
+    def _parse(self, stream, context, path):
+        return self._client.symbol(FormatField._parse(self, stream, context, path))
 
 
 class Symbol(int):
@@ -23,6 +37,8 @@ class Symbol(int):
         if not isinstance(value, int):
             raise TypeError()
 
+        value &= 0xFFFFFFFFFFFFFFFF
+
         symbol = cls(value)
 
         # public properties
@@ -36,7 +52,7 @@ class Symbol(int):
         symbol._file_address = None
 
         # getting more data out from lldb
-        lldb_symbol = client.target.ResolveLoadAddress(symbol)
+        lldb_symbol = client.target.ResolveLoadAddress(int(symbol) & 0xFFFFFFFFFFFFFFFF)
         file_address = lldb_symbol.file_addr
         type_ = lldb_symbol.symbol.type
         filename = lldb_symbol.module.file.basename

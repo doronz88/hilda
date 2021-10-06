@@ -423,6 +423,8 @@ class HildaClient(metaclass=CommandsMeta):
                 force a return from function with the specified value
             name=some_value
                 use `some_name` instead of the symbol name automatically extracted from the calling frame
+            override=True
+                override previous break point at same location
 
 
         :param address:
@@ -568,7 +570,8 @@ class HildaClient(metaclass=CommandsMeta):
         :return:
         """
         if address in [bp.address for bp in self.breakpoints.values()]:
-            if prompts.prompt_for_confirmation('A breakpoint already exist in given location. '
+            override = True if options.get('override', True) else False
+            if override or prompts.prompt_for_confirmation('A breakpoint already exist in given location. '
                                                'Would you like to delete the previous one?', True):
                 breakpoints = list(self.breakpoints.items())
                 for bp_id, bp in breakpoints:

@@ -171,6 +171,8 @@ Given below is a list of them:
             force a return from function with the specified value
         name=some_value
             use `some_name` instead of the symbol name automatically extracted from the calling frame
+        override=True
+            override previous break point at same location 
 👾 finish - Run current frame till its end.
 👾 step_into - Step into current instruction.
 👾 step_over - Step over current instruction.

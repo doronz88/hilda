@@ -13,7 +13,8 @@ def all_image_infos():
 @cached_property
 def version():
     with lldb.hilda_client.stopped(1):
-        return lldb.hilda_client.symbols.dyldVersionString.peek_str().decode('utf-8').split("PROJECT", 1)[1].split("\n")[0]
+        return \
+            lldb.hilda_client.symbols.dyldVersionString.peek_str().decode('utf-8').split("PROJECT", 1)[1].split("\n")[0]
 
 
 def enable_syslog():
@@ -57,5 +58,3 @@ def enable_syslog():
 
             # enable for libdyld.dylib via dyld::setLoggingFromEnvs(eng)
             client.symbols._ZN5dyld318setLoggingFromEnvsEPPKc(envp)
-
-

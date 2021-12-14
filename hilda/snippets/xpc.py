@@ -1,11 +1,14 @@
 from pprint import pformat
 
 import lldb
-from pygments.formatters import TerminalTrueColorFormatter
 from pygments import highlight
+from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import PythonLexer
 
 from hilda.exceptions import ConvertingFromNSObjectError
+
+# module global for storing all active xpc connections
+active_xpc_connections = {}
 
 
 def xpc_sniff_send():
@@ -40,6 +43,15 @@ def from_xpc_object(address: int):
     return lldb.hilda_client.from_ns(f'_CFXPCCreateCFObjectFromXPCObject({address})')
 
 
+def to_xpc_object(obj: object):
+    """
+    Convert XPC object to python object.
+    :param obj: Native python object
+    """
+    hilda = lldb.hilda_client
+    return hilda.symbols._CFXPCCreateXPCObjectFromCFObject(hilda.ns(obj))
+
+
 def xpc_to_python_monitor_format(hilda_client, address):
     """
     Format an XPC object as a python object, intended to use as a callback to monitor command.
@@ -52,3 +64,30 @@ def xpc_to_python_monitor_format(hilda_client, address):
         return highlight(formatted, PythonLexer(), TerminalTrueColorFormatter(style='native'))
     except ConvertingFromNSObjectError:
         return address.po()
+
+
+def send_message_raw(service_name, message_raw):
+    hilda = lldb.hilda_client
+
+    with hilda.stopped():
+        if service_name in active_xpc_connections:
+            conn = active_xpc_connections[service_name]
+        else:
+            # 0 is for connecting instead of listening
+            conn = hilda.symbols.xpc_connection_create_mach_service(service_name, 0, 0)
+            assert conn != 0, 'failed to create xpc connection'
+            hilda.po(f'''xpc_connection_set_event_handler({conn}, ^(xpc_object_t obj) {{}})''')
+            hilda.symbols.xpc_connection_resume(conn)
+            active_xpc_connections[service_name] = conn
+
+        result = hilda.symbols.xpc_connection_send_message_with_reply_sync(conn, message_raw)
+        return result
+
+
+def send_message(service_name, message: object):
+    hilda = lldb.hilda_client
+
+    with hilda.stopped():
+        message_raw = to_xpc_object(message)
+        assert message_raw != 0, 'failed to convert python message object to native xpc object'
+        return from_xpc_object(send_message_raw(service_name, message_raw))

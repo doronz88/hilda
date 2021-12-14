@@ -1,3 +1,9 @@
+__all__ = ['HildaException', 'SymbolAbsentError', 'EvaluatingExpressionError', 'CreatingObjectiveCSymbolError',
+           'ConvertingToNsObjectError', 'ConvertingFromNSObjectError', 'DisableJetsamMemoryChecksError',
+           'GettingObjectiveCClassError', 'AccessingRegisterError', 'AccessingMemoryError',
+           'BrokenLocalSymbolsJarError', 'AddingLldbSymbolError']
+
+
 class HildaException(Exception):
     """ A domain exception for hilda errors. """
     pass

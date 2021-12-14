@@ -1,20 +1,21 @@
-- [Hilda](#hilda)
-    * [Description](#description)
-    * [Example](#example)
-    * [Installation](#installation)
-    * [How to use](#how-to-use)
-        + [Starting Hilda shell](#starting-hilda-shell)
-        + [Commands](#commands)
-        + [Symbol objects](#symbol-objects)
-        + [Globalized symbols](#globalized-symbols)
-            - [Searching for the right symbol](#searching-for-the-right-symbol)
+- [Description](#description)
+- [Example](#example)
+- [Installation](#installation)
+- [How to use](#how-to-use)
+    * [Starting a Hilda shell](#starting-a-hilda-shell)
+        + [Bare mode](#bare-mode)
+        + [Remote mode](#remote-mode)
+    * [Commands](#commands)
+    * [Symbol objects](#symbol-objects)
+    * [Globalized symbols](#globalized-symbols)
+        - [Searching for the right symbol](#searching-for-the-right-symbol)
+
         + [Objective-C Classes](#objective-c-classes)
-        + [Objective-C Objects](#objective-c-objects)
-        + [Using snippets](#using-snippets)
+    * [Objective-C Objects](#objective-c-objects)
+    * [Using snippets](#using-snippets)
+    * [Contributing](#contributing)
 
-# Hilda
-
-## Description
+# Description
 
 Hilda is a debugger which combines both the power of LLDB and iPython for easier debugging.
 
@@ -37,13 +38,13 @@ Pull requests are more than welcome 😊.
 If you need help or have an amazing idea you would like to suggest, feel free
 to [start a discussion 💬](https://github.com/doronz88/hilda/discussions).
 
-## Example
+# Example
 
 ![](gifs/example.gif)
 
 More examples can be found under the [gifs folder](gifs/).
 
-## Installation
+# Installation
 
 Requirements for remote iOS device (not required for debugging a local OSX process):
 
@@ -60,11 +61,11 @@ xcrun python3 -m pip install --user -U -e .
 
 *⚠️ Please note that Hilda is installed on top of XCode's python so LLDB will be able to use its features.*
 
-## How to use
+# How to use
 
-### Starting a Hilda shell
+## Starting a Hilda shell
 
-#### Bare mode
+### Bare mode
 
 Use "Bare mode" to get a "bare-bones" lldb shell, whereas hilda plugin is already loaded and ready to start. This mode
 is useful when you need to have custom commands for attaching to the target process (for example when debugging OSX
@@ -95,7 +96,7 @@ process attach -p proccess_pid
 
 When you are ready, just execute `hilda` to move to Hilda's iPython shell.
 
-#### Remote mode
+### Remote mode
 
 This mode will auto-connect to the remote device and attach to your target process assuming you are trying to debug a
 remote jailbroken iOS device.
@@ -113,7 +114,7 @@ ssh -p SSH_PORT root@localhost "debugserver localhost:1234 --attach=PROCESS_NAME
 For this to work, make sure the connected device doesn't require a password for the connection (you can use
 `ssh-copy-id` to achieve this).
 
-### Commands
+## Commands
 
 Commands are just global python functions you can access any time. It's really advised to first get a good overview over
 them before start using, so you take full advantage of everything Hilda has to offer.
@@ -223,7 +224,7 @@ capabilities:
 stop?
 ```
 
-### Symbol objects
+## Symbol objects
 
 In Hilda, almost everything is wrapped using the `Symbol` Object. Symbol is just a nicer way for referring to addresses
 encapsulated with an object allowing to deref the memory inside, or use these addresses as functions.
@@ -321,7 +322,7 @@ def scripted_breakpoint(hilda, *args):
 s.bp(scripted_breakpoint)
 ```
 
-### Globalized symbols
+## Globalized symbols
 
 Usually you would want/need to use the symbols already mapped into the currently running process. To do so, you can
 access them using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolsJar`, which is a wrapper
@@ -415,7 +416,7 @@ dictionary = NSDictionary.capture_self(True)
 dictionary.show()
 ```
 
-### Objective-C Objects
+## Objective-C Objects
 
 In order to work with ObjC objects, each symbol contains a property called
 `objc_symbol`. After calling, you can work better with each object:
@@ -481,7 +482,7 @@ abc_string = evaluate_expression('[NSString stringWithFormat:@"abc"]')
 print(abc_string.po())
 ```
 
-### Using snippets
+## Using snippets
 
 Snippets are extensions for normal functionality used as quick cookbooks for day-to-day tasks of a debugger.
 
@@ -502,4 +503,15 @@ xpc.xpc_sniff_all()
 ```
 
 This will monitor all XPC related traffic in the given process.
- 
+
+## Contributing
+
+Please run the tests as follows before submitting a PR:
+
+```shell
+xcrun python3 -m tests aggregated <ssh_port>
+
+# wait for lldb shell prompt
+
+run_tests
+```

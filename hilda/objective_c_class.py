@@ -179,7 +179,7 @@ class Class(object):
 
         def hook(hilda, frame, bp_loc, options):
             hilda.log_info(f'self object has been captured from {options["name"]}')
-            hilda.log_info(f'removing breakpoints')
+            hilda.log_info('removing breakpoints')
             for bp_id, bp in list(hilda.breakpoints.items()):
                 if 'group_uuid' in bp.options and bp.options.get('group_uuid', '') == options['group_uuid']:
                     hilda.remove_hilda_breakpoint(bp_id)

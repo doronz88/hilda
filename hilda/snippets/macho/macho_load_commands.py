@@ -168,7 +168,7 @@ class DylibCommand(LoadCommand):
         self.__compatibility_version = dylib_data.compatibility_version
 
     def __str__(self):
-        return f"<DylibCommand: path = {self.path}>"
+        return f'<DylibCommand: path = {self.path}>'
 
     def __repr__(self):
         return self.__str__()
@@ -201,7 +201,7 @@ class Segment64Command(LoadCommand):
         return self.__segname
 
     def __str__(self):
-        return f"<Segment64Command: segname={self.segname}, vmaddr={self.vmaddr}, vmsize={self.__vmsize}>"
+        return f'<Segment64Command: segname={self.segname}, vmaddr={self.vmaddr}, vmsize={self.__vmsize}>'
 
     def __repr__(self):
         return self.__str__()
@@ -214,7 +214,7 @@ class UUIDCommand(LoadCommand):
         self.__uuid = load_command_data.data.uuid
 
     def __str__(self):
-        return f"<UUIDCommand>"
+        return '<UUIDCommand>'
 
     def __repr__(self):
         return self.__str__()
@@ -231,7 +231,7 @@ class BuildVersionCommand(LoadCommand):
         self.__build_tools = load_command_data.data.build_tools
 
     def __str__(self):
-        return f"<BuildVersionCommand platform={self.platform}>"
+        return f'<BuildVersionCommand platform={self.platform}>'
 
     def __repr__(self):
         return self.__str__()
@@ -256,7 +256,7 @@ class UnimplementedCommand(LoadCommand):
         self.__bytes = load_command_data.data
 
     def __str__(self):
-        return f"<cmd={self.cmd} is not implemented((Feel free to add!!). bytes={self.__bytes}>"
+        return f'<cmd={self.cmd} is not implemented((Feel free to add!!). bytes={self.__bytes}>'
 
     def __repr__(self):
         return self.__str__()
@@ -266,15 +266,15 @@ class LoadCommands(object):
     def __init__(self, load_commands_data):
         self.__load_commands = []
         for load_command_data in load_commands_data:
-            if load_command_data.cmd == "LC_SEGMENT_64":
+            if load_command_data.cmd == 'LC_SEGMENT_64':
                 load_command = Segment64Command(load_command_data)
-            elif load_command_data.cmd == "LC_LOAD_DYLIB" or \
-                    load_command_data.cmd == "LC_ID_DYLIB" or \
-                    load_command_data.cmd == "LC_LOAD_WEAK_DYLIB" or \
-                    load_command_data.cmd == "LC_REEXPORT_DYLIB" or \
-                    load_command_data.cmd == "LC_LAZY_LOAD_DYLIB":
+            elif load_command_data.cmd == 'LC_LOAD_DYLIB' or \
+                    load_command_data.cmd == 'LC_ID_DYLIB' or \
+                    load_command_data.cmd == 'LC_LOAD_WEAK_DYLIB' or \
+                    load_command_data.cmd == 'LC_REEXPORT_DYLIB' or \
+                    load_command_data.cmd == 'LC_LAZY_LOAD_DYLIB':
                 load_command = DylibCommand(load_command_data)
-            elif load_command_data.cmd == "LC_UUID":
+            elif load_command_data.cmd == 'LC_UUID':
                 load_command = UUIDCommand(load_command_data)
             else:
                 load_command = UnimplementedCommand(load_command_data)

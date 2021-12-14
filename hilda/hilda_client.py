@@ -890,7 +890,7 @@ class HildaClient(metaclass=CommandsMeta):
 
         self.log_debug('disable mach_msg receive errors')
         try:
-            CFRunLoopServiceMachPort_hooks.disable_mach_msg_errors(self)
+            CFRunLoopServiceMachPort_hooks.disable_mach_msg_errors()
         except SymbolAbsentError:
             self.log_warning('failed to disable mach_msg errors')
 

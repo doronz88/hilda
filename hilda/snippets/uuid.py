@@ -8,4 +8,3 @@ uuid_t = Struct(
     'clock_seq_low' / Int8ul,
     'node' / Array(6, Int8ul)
 )
-

@@ -1,32 +1,32 @@
+import ast
+import base64
+import builtins
+import importlib
+import importlib.util
+import json
+import logging
+import os
+import pickle
+import textwrap
+import time
 from collections import namedtuple
 from contextlib import contextmanager, suppress
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
 from typing import Union
-import base64
-import importlib.util
-import importlib
-import textwrap
-import builtins
-import logging
-import pickle
-import json
-import ast
-import os
-import time
 
-from pygments.formatters import TerminalTrueColorFormatter
-from pygments.lexers import XmlLexer
-from pygments import highlight
-from humanfriendly.terminal.html import html_to_ansi
-from humanfriendly import prompts
-from traitlets.config import Config
-from tqdm import tqdm
-import docstring_parser
 import IPython
+import docstring_parser
 import hexdump
 import lldb
+from humanfriendly import prompts
+from humanfriendly.terminal.html import html_to_ansi
+from pygments import highlight
+from pygments.formatters import TerminalTrueColorFormatter
+from pygments.lexers import XmlLexer
+from tqdm import tqdm
+from traitlets.config import Config
 
 from hilda import objective_c_class
 from hilda.command import command, CommandsMeta
@@ -76,6 +76,10 @@ class HildaClient(metaclass=CommandsMeta):
         self.breakpoints = {}
         self.captured_objects = {}
         self.registers = Registers(self)
+
+        # should unwind the stack on errors. change this to False in order to debug self-made calls
+        # within hilda
+        self._evaluation_unwind_on_error = True
 
         self._dynamic_env_loaded = False
         self._symbols_loaded = False
@@ -572,7 +576,7 @@ class HildaClient(metaclass=CommandsMeta):
         if address in [bp.address for bp in self.breakpoints.values()]:
             override = True if options.get('override', True) else False
             if override or prompts.prompt_for_confirmation('A breakpoint already exist in given location. '
-                                               'Would you like to delete the previous one?', True):
+                                                           'Would you like to delete the previous one?', True):
                 breakpoints = list(self.breakpoints.items())
                 for bp_id, bp in breakpoints:
                     if address == bp.address:
@@ -800,8 +804,9 @@ class HildaClient(metaclass=CommandsMeta):
         options = lldb.SBExpressionOptions()
         options.SetIgnoreBreakpoints(True)
         options.SetTryAllThreads(True)
+        options.SetUnwindOnError(self._evaluation_unwind_on_error)
 
-        e = self.frame.EvaluateExpression(formatted_expression)
+        e = self.frame.EvaluateExpression(formatted_expression, options)
 
         if not e.error.Success():
             raise EvaluatingExpressionError(str(e.error))
@@ -822,6 +827,30 @@ class HildaClient(metaclass=CommandsMeta):
         m = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(m)
         return m
+
+    @command()
+    def set_evaluation_unwind(self, value: bool):
+        """
+        Set whether LLDB will attempt to unwind the stack whenever an expression evaluation error occurs.
+
+        Use unwind() to restore when an error is raised in this case.
+        """
+        self._evaluation_unwind_on_error = value
+
+    @command()
+    def get_evaluation_unwind(self, value: bool) -> bool:
+        """
+        Get evaluation unwind state.
+
+        When this value is True, LLDB will attempt unwinding the stack on evaluation errors.
+        Otherwise, the stack frame will remain the same on errors to help you investigate the error.
+        """
+        return self._evaluation_unwind_on_error
+
+    @command()
+    def unwind(self) -> bool:
+        """ Unwind the stack (useful when get_evaluation_unwind() == False) """
+        return self.thread.UnwindInnermostExpression().Success()
 
     @property
     def thread(self):

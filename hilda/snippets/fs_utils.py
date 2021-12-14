@@ -1,9 +1,11 @@
 import json
-from hilda.objective_c_symbol import ObjectiveCSymbol
+
+import lldb
 
 
-def dirlist(self, path):
-    return json.loads(self.po(f'''
+def dirlist(path: str):
+    hilda = lldb.hilda_client
+    return json.loads(hilda.po(f'''
     NSArray *objectData = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"{path}" error:Nil];
     NSData *data = [NSJSONSerialization dataWithJSONObject:objectData options:0 error:nil];
     [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];

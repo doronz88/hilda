@@ -80,7 +80,7 @@ def test_ns_date(hilda_client, day: int, month: int, year: int):
 
 @pytest.mark.parametrize('source, result', [
     # Dictionaries
-    ('@{1:1,234234:"asdasd","a":@[0,0],"asdasd":234234}', {'asdasd': 234234, 234234: 'asdasd', 1: 1, 'a': [0, 0]}),
+    ('@{@1:@1,@234234:@"asdasd",@"a":@[@0,@0],@"asdasd":@234234}', {'asdasd': 234234, 234234: 'asdasd', 1: 1, 'a': [0, 0]}),
     ('@{}', {}),
     ('@{"asdasds":324234}', {'asdasds': 324234}),
     ('@{[NSNull null]:324234}', {None: 324234}),
@@ -88,7 +88,7 @@ def test_ns_date(hilda_client, day: int, month: int, year: int):
     ('@{@["a",1]:324234}', {("a", 1): 324234}),
     ('@{1:@{2:@{3:"a"}}}', {1: {2: {3: 'a'}}}),
     # Arrays
-    ('@["asdasd",234234,1,1,@{"a":0}]', ['asdasd', 234234, 1, 1, {'a': 0}]),
+    ('@[@"asdasd",@234234,@1,@1,@{@"a":@0}]', ['asdasd', 234234, 1, 1, {'a': 0}]),
     ('@[]', []),
     ('@["asdasds",324234]', ['asdasds', 324234]),
     ('@[1,@[2,@[3,"a"]]]', [1, [2, [3, 'a']]]),

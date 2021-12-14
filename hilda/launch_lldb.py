@@ -28,24 +28,30 @@ def cli():
     pass
 
 
-@cli.command('remote')
-@click.argument('process')
-@click.argument('ssh_port', type=click.INT)
-@click.option('--debug-port', type=click.INT, default=1234)
-def remote(process, ssh_port, debug_port):
-    """ Start debugserver at remote device and connect using lldb """
+def start_remote(debug_port: int, ssh_port: int, process: str, hostname: str, rc_script: str):
     tunnel_local_port(debug_port)
     assert not execute(
-        f'ssh -i ~/.ssh/id_rsa -p {ssh_port} root@localhost "debugserver localhost:{debug_port} --attach={process}"&')
+        f'ssh -i ~/.ssh/id_rsa -p {ssh_port} root@{hostname} "debugserver {hostname}:{debug_port} --attach={process}"&')
 
     # wait for it to load
     time.sleep(1)
 
     # connect local LLDB client
-    commands = [f'process connect connect://localhost:{debug_port}',
-                f'command script import {os.path.join(Path(__file__).resolve().parent, "lldb_entrypoint.py")}']
+    commands = [f'process connect connect://{hostname}:{debug_port}',
+                f'command script import {rc_script}']
     commands = '\n'.join(commands)
-    execute(f'lldb --one-line "{commands}"')
+    os.system(f'lldb --one-line "{commands}"')
+
+
+@cli.command('remote')
+@click.argument('process')
+@click.argument('ssh_port', type=click.INT)
+@click.option('--debug-port', type=click.INT, default=1234)
+@click.option('--hostname', default='localhost')
+def remote(process, ssh_port, debug_port, hostname):
+    """ Start debugserver at remote device and connect using lldb """
+    start_remote(debug_port, ssh_port, process, hostname,
+                 os.path.join(Path(__file__).resolve().parent, "lldb_entrypoint.py"))
 
 
 @cli.command('bare')

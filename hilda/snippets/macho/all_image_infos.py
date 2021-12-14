@@ -1,14 +1,12 @@
-import lldb
 import logging
 
-from humanfriendly import prompts
+import lldb
 from construct import Struct, Tell, Int32ul, Pointer, this, Array, Int32ub, CString, If, Int64ul, Hex
-
 from hilda.snippets.macho.image_info import dyld_image_info_t, ImageInfo
 from hilda.snippets.macho.macho import mach_header_t
 from hilda.snippets.uuid import uuid_t
 from hilda.symbol import SymbolFormatField
-
+from humanfriendly import prompts
 
 all_image_infos_t = Struct(
     'address' / Tell,
@@ -38,7 +36,8 @@ all_image_infos_t = Struct(
     'initialImageCount' / Int64ul,
     'errorKind' / Int64ul,
     '_errorClientOfDyLibPath' / SymbolFormatField(lldb.hilda_client),
-    'errorClientOfDyLibPath' / If(this._errorClientOfDyLibPath != 0, Pointer(this._errorClientofoyLibPath, CString('utf8'))),
+    'errorClientOfDyLibPath' / If(this._errorClientOfDyLibPath != 0,
+                                  Pointer(this._errorClientofoyLibPath, CString('utf8'))),
     '_errorTargetDylibPath' / SymbolFormatField(lldb.hilda_client),
     'errorTargetDylibPath' / If(this._errorTargetDylibPath != 0, Pointer(this._errorTargetDylibPath, CString('utf8'))),
     '_errorSymbol' / SymbolFormatField(lldb.hilda_client),
@@ -104,11 +103,9 @@ class AllImageInfos(object):
 
     @staticmethod
     def __select_specific_image(images):
-        logging.info(f"Multiple images were found with that prefix.\nPlease select one")
+        logging.info('Multiple images were found with that prefix.\nPlease select one')
         print([f"{image.file_path}" for image in images])
         selected_image_path = prompts.prompt_for_choice([f"{image.file_path}" for image in images])
         for image in images:
             if image.file_path == selected_image_path:
                 return image
-
-

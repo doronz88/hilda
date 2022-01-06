@@ -31,7 +31,7 @@ def cli():
 def start_remote(debug_port: int, ssh_port: int, process: str, hostname: str, rc_script: str):
     tunnel_local_port(debug_port)
     assert not execute(
-        f'ssh -i ~/.ssh/id_rsa -p {ssh_port} root@{hostname} "debugserver {hostname}:{debug_port} --attach={process}"&')
+        f'ssh -i ~/.ssh/id_rsa -p {ssh_port} root@{hostname} "debugserver 0.0.0.0:{debug_port} --attach={process}"&')
 
     # wait for it to load
     time.sleep(1)

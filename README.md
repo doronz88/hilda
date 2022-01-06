@@ -101,18 +101,26 @@ When you are ready, just execute `hilda` to move to Hilda's iPython shell.
 This mode will auto-connect to the remote device and attach to your target process assuming you are trying to debug a
 remote jailbroken iOS device.
 
+Please note the following:
+* script assumes the connected device already **has a running ssh server**, which doesn't require a password (you can use
+`ssh-copy-id` to achieve this).
+
+From this point the flow diverges into 2 flows:
+
+### The connected device is connected to the network via `internet sharing` with your computer
+Run the following command:
 ```shell
 hilda remote PROCESS_NAME SSH_PORT
-```
+``` 
 
-Please note the script assumes the target device is running a ssh server. It will try running the following for you:
+### The connected device is connected via Wi-Fi
 
-```shell
-ssh -p SSH_PORT root@localhost "debugserver localhost:1234 --attach=PROCESS_NAME &"&
-```
-
-For this to work, make sure the connected device doesn't require a password for the connection (you can use
-`ssh-copy-id` to achieve this).
+For this to work, you will need to make sure of the following:
+  * Find your cellphone IP address (Settings -> Wi-Fi -> network info -> IP Address).
+  * Once you found it, run the following command:
+      ```shell
+      hilda remote PROCESS_NAME SSH_PORT --hostname <DEVICE_IP_ADDRESS>
+      ```
 
 ## Commands
 

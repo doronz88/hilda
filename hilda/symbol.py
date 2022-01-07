@@ -60,6 +60,7 @@ class Symbol(int):
         symbol._file_address = file_address
         symbol.type_ = type_
         symbol.filename = filename
+        symbol.lldb_symbol = lldb_symbol
 
         for method_name in Symbol.PROXY_METHODS:
             getattr(symbol.__class__, method_name).__doc__ = \

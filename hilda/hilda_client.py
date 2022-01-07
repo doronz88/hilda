@@ -81,6 +81,9 @@ class HildaClient(metaclass=CommandsMeta):
         # within hilda
         self._evaluation_unwind_on_error = True
 
+        # should ignore breakpoints while evaluation
+        self._evaluation_ignore_breakpoints = True
+
         self._dynamic_env_loaded = False
         self._symbols_loaded = False
 
@@ -802,7 +805,7 @@ class HildaClient(metaclass=CommandsMeta):
             formatted_expression = str(expression)
 
         options = lldb.SBExpressionOptions()
-        options.SetIgnoreBreakpoints(True)
+        options.SetIgnoreBreakpoints(self._evaluation_ignore_breakpoints)
         options.SetTryAllThreads(True)
         options.SetUnwindOnError(self._evaluation_unwind_on_error)
 
@@ -838,7 +841,7 @@ class HildaClient(metaclass=CommandsMeta):
         self._evaluation_unwind_on_error = value
 
     @command()
-    def get_evaluation_unwind(self, value: bool) -> bool:
+    def get_evaluation_unwind(self) -> bool:
         """
         Get evaluation unwind state.
 
@@ -846,6 +849,20 @@ class HildaClient(metaclass=CommandsMeta):
         Otherwise, the stack frame will remain the same on errors to help you investigate the error.
         """
         return self._evaluation_unwind_on_error
+
+    @command()
+    def set_evaluation_ignore_breakpoints(self, value: bool):
+        """
+        Set whether to ignore breakpoints while evaluating expressions
+        """
+        self._evaluation_ignore_breakpoints = value
+
+    @command()
+    def get_evaluation_ignore_breakpoints(self) -> bool:
+        """
+        Get evaluation "ignore-breakpoints" state.
+        """
+        return self._evaluation_ignore_breakpoints
 
     @command()
     def unwind(self) -> bool:

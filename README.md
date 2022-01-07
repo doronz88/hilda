@@ -168,6 +168,9 @@ Given below is a list of them:
 
             For example:
                 regs={'x0': 'x'} -> x0 will be printed in HEX format
+        expr={lldb_expression: format}
+            lldb_expression can be for example '$x0' or '$arg1'
+            format behaves just like 'regs' option
         retval=format
             Print function's return value. The format is the same as regs format.
         stop=True
@@ -181,7 +184,8 @@ Given below is a list of them:
         name=some_value
             use `some_name` instead of the symbol name automatically extracted from the calling frame
         override=True
-            override previous break point at same location 
+            override previous break point at same location
+👾 show_current_source - print current source code if possible
 👾 finish - Run current frame till its end.
 👾 step_into - Step into current instruction.
 👾 step_over - Step over current instruction.
@@ -201,6 +205,7 @@ Given below is a list of them:
 
     po('NSMutableString *s = [NSMutableString string]; [s appendString:@"abc"]; [s description]')
 👾 globalize_symbols - Make all symbols in python's global scope
+👾 jump - jump to given symbol
 👾 lldb_handle_command - Execute an LLDB command
     For example:
         lldb_handle_command('register read')
@@ -216,6 +221,14 @@ Given below is a list of them:
         currentDevice = objc_get_class('UIDevice').currentDevice
         evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
 👾 import_module - Import & reload given python module (intended mainly for external snippets)
+👾 set_evaluation_unwind - Set whether LLDB will attempt to unwind the stack whenever an expression evaluation error occurs.
+    Use unwind() to restore when an error is raised in this case.
+👾 get_evaluation_unwind - Get evaluation unwind state.
+    When this value is True, LLDB will attempt unwinding the stack on evaluation errors.
+    Otherwise, the stack frame will remain the same on errors to help you investigate the error.
+👾 set_evaluation_ignore_breakpoints - Set whether to ignore breakpoints while evaluating expressions
+👾 get_evaluation_ignore_breakpoints - Get evaluation "ignore-breakpoints" state.
+👾 unwind - Unwind the stack (useful when get_evaluation_unwind() == False)
 ```
 
 In order to view them within Hilda, please execute:

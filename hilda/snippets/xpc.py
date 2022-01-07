@@ -11,28 +11,28 @@ from hilda.exceptions import ConvertingFromNSObjectError
 active_xpc_connections = {}
 
 
-def xpc_sniff_send():
+def sniff_send():
     hilda = lldb.hilda_client
     hilda.symbols['xpc_connection_send_message{libxpc.dylib}'].monitor(regs={'x0': 'po', 'x1': 'po'})
     hilda.symbols['xpc_connection_send_message_with_reply{libxpc.dylib}'].monitor(regs={'x0': 'po', 'x1': 'po'})
     hilda.symbols['xpc_connection_send_message_with_reply_sync{libxpc.dylib}'].monitor(regs={'x0': 'po', 'x1': 'po'})
 
 
-def xpc_sniff_receive():
+def sniff_receive():
     lldb.hilda_client.symbols._xpc_connection_call_event_handler.monitor(regs={'x0': 'po', 'x1': 'po'})
 
 
-def xpc_sniff_incoming_event():
+def sniff_incoming_event():
     lldb.hilda_client.symbols.__XPC_CONNECTION_EVENT_HANDLER_CALLOUT__.monitor(regs={'x0': 'po', 'x1': 'po'})
 
 
-def xpc_sniff_activities():
+def sniff_activities():
     lldb.hilda_client.symbols.__XPC_ACTIVITY_CALLING_HANDLER__.monitor(regs={'x0': 'po'})
 
 
-def xpc_sniff_all():
-    xpc_sniff_send()
-    xpc_sniff_receive()
+def sniff_all():
+    sniff_send()
+    sniff_receive()
 
 
 def from_xpc_object(address: int):

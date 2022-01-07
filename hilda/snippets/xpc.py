@@ -5,29 +5,40 @@ from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import PythonLexer
 
-from hilda.exceptions import ConvertingFromNSObjectError
+from hilda.exceptions import ConvertingFromNSObjectError, SymbolAbsentError
 
 # module global for storing all active xpc connections
 active_xpc_connections = {}
 
 
-def sniff_send():
+def safe_monitor(symbol_name, **kwargs):
     hilda = lldb.hilda_client
-    hilda.symbols['xpc_connection_send_message{libxpc.dylib}'].monitor(regs={'x0': 'po', 'x1': 'po'})
-    hilda.symbols['xpc_connection_send_message_with_reply{libxpc.dylib}'].monitor(regs={'x0': 'po', 'x1': 'po'})
-    hilda.symbols['xpc_connection_send_message_with_reply_sync{libxpc.dylib}'].monitor(regs={'x0': 'po', 'x1': 'po'})
+    try:
+        hilda.symbols[symbol_name].monitor(**kwargs)
+    except KeyError:
+        args = []
+        for k, v in kwargs.items():
+            args.append(f'{k}={v}')
+        lldb.hilda_client.log_warning(f'missing symbol: "{symbol_name}". try to locate it manually (in IDA) and place '
+                                      f'a breakpoint as follows:\n\tfile_symbol(ADDRESS).monitor({", ".join(args)})')
+
+
+def sniff_send():
+    safe_monitor('xpc_connection_send_message{libxpc.dylib}', regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor('xpc_connection_send_message_with_reply{libxpc.dylib}', regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor('xpc_connection_send_message_with_reply_sync{libxpc.dylib}', regs={'x0': 'po', 'x1': 'po'})
 
 
 def sniff_receive():
-    lldb.hilda_client.symbols._xpc_connection_call_event_handler.monitor(regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor('_xpc_connection_call_event_handler', regs={'x0': 'po', 'x1': 'po'})
 
 
 def sniff_incoming_event():
-    lldb.hilda_client.symbols.__XPC_CONNECTION_EVENT_HANDLER_CALLOUT__.monitor(regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor('__XPC_CONNECTION_EVENT_HANDLER_CALLOUT__', regs={'x0': 'po', 'x1': 'po'})
 
 
 def sniff_activities():
-    lldb.hilda_client.symbols.__XPC_ACTIVITY_CALLING_HANDLER__.monitor(regs={'x0': 'po'})
+    safe_monitor('__XPC_ACTIVITY_CALLING_HANDLER__', regs={'x0': 'po'})
 
 
 def sniff_all():

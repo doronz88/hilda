@@ -283,6 +283,9 @@ s[0] = 1
 # into `*s`
 s[0] = symbol(0x11223344)()  # calling symbols also returns symbols 
 
+# attempt to resolve symbol's name
+print(symbol(0x11223344).lldb_symbol)
+
 # monitor each time a symbol is called into console and print its backtrace (`bt` option)
 # this will create a scripted breakpoint which prints your desired data and continue
 s.monitor(bt=True)
@@ -499,7 +502,7 @@ For example, XPC sniffing can be done using:
 ```python
 from hilda.snippets import xpc
 
-xpc.xpc_sniff_all()
+xpc.sniff_all()
 ```
 
 This will monitor all XPC related traffic in the given process.

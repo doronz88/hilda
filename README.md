@@ -56,7 +56,7 @@ Requirements for remote iOS device (not required for debugging a local OSX proce
 In order to install please run:
 
 ```shell
-xcrun python3 -m pip install --user -U -e .
+xcrun python3 -m pip install --user -U hilda
 ```
 
 *⚠️ Please note that Hilda is installed on top of XCode's python so LLDB will be able to use its features.*

@@ -447,15 +447,14 @@ class HildaClient(metaclass=CommandsMeta):
             :param dict options: User defined options.
             """
             bp = bp_loc.GetBreakpoint()
-            symbol = frame.GetSymbol()
-            symbol_address = symbol.addr.GetLoadAddress(hilda.target)
-            symbol_name = symbol.GetName()
+            symbol = hilda.breakpoints[bp.id].address  # type: Symbol
 
-            name = symbol_name
+            # by default, attempt to resolve the symbol name through lldb
+            name = str(symbol.lldb_symbol)
             if options.get('name', False):
                 name = options['name']
 
-            log_message = f'🚨 #{bp.id} 0x{symbol_address:x} {name}'
+            log_message = f'🚨 #{bp.id} 0x{symbol:x} {name}'
 
             if 'regs' in options:
                 log_message += '\nregs:'

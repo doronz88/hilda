@@ -56,7 +56,7 @@ def from_xpc_object(address: int):
 
 def to_xpc_object(obj: object):
     """
-    Convert XPC object to python object.
+    Convert python object to XPC object.
     :param obj: Native python object
     """
     hilda = lldb.hilda_client

@@ -36,6 +36,7 @@ from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
 from hilda.symbols_jar import SymbolsJar
+from hilda.launch_lldb import disable_logs
 
 IsaMagic = namedtuple('IsaMagic', 'mask value')
 ISA_MAGICS = [
@@ -1011,6 +1012,7 @@ class HildaClient(metaclass=CommandsMeta):
         c = Config()
         c.IPCompleter.use_jedi = False
         c.InteractiveShellApp.exec_lines = [
+            '''disable_logs()''',
             '''IPython.get_ipython().events.register('pre_run_cell', self._ipython_run_cell_hook)'''
         ]
         namespace = globals()

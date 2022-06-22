@@ -8,14 +8,8 @@ import lldb
 from hilda.hilda_client import HildaClient
 
 coloredlogs.install(level=logging.DEBUG)
-logging.getLogger('asyncio').disabled = True
-logging.getLogger('parso.cache').disabled = True
-logging.getLogger('parso.cache.pickle').disabled = True
-logging.getLogger('parso.python.diff').disabled = True
-logging.getLogger('humanfriendly.prompts').disabled = True
 
 lldb.hilda_client = None
-
 
 def hilda(debugger, command, result, internal_dict):
     if lldb.hilda_client is None:

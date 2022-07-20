@@ -11,6 +11,7 @@ coloredlogs.install(level=logging.DEBUG)
 
 lldb.hilda_client = None
 
+
 def hilda(debugger, command, result, internal_dict):
     if lldb.hilda_client is None:
         lldb.hilda_client = HildaClient(debugger)

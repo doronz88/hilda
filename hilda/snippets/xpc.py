@@ -5,7 +5,7 @@ from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import PythonLexer
 
-from hilda.exceptions import ConvertingFromNSObjectError, SymbolAbsentError
+from hilda.exceptions import ConvertingFromNSObjectError
 
 # module global for storing all active xpc connections
 active_xpc_connections = {}

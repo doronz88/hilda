@@ -36,7 +36,6 @@ from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
 from hilda.symbols_jar import SymbolsJar
-from hilda.launch_lldb import disable_logs
 
 IsaMagic = namedtuple('IsaMagic', 'mask value')
 ISA_MAGICS = [
@@ -399,7 +398,7 @@ class HildaClient(metaclass=CommandsMeta):
             return self.evaluate_expression(call_expression)
 
     @command()
-    def monitor(self, address, **options) -> lldb.SBBreakpoint:
+    def monitor(self, address, condition: str = None, **options) -> lldb.SBBreakpoint:
         """
         Monitor every time a given address is called
 
@@ -436,6 +435,7 @@ class HildaClient(metaclass=CommandsMeta):
 
 
         :param address:
+        :param condition: set as a conditional breakpoint using an lldb expression
         :param options:
         :return:
         """
@@ -492,7 +492,7 @@ class HildaClient(metaclass=CommandsMeta):
             if not options.get('stop', False):
                 hilda.cont()
 
-        return self.bp(address, callback, **options)
+        return self.bp(address, callback, condition=condition, **options)
 
     @command()
     def show_current_source(self):
@@ -567,10 +567,11 @@ class HildaClient(metaclass=CommandsMeta):
         print(highlight(entitlements, XmlLexer(), TerminalTrueColorFormatter()))
 
     @command()
-    def bp(self, address, callback=None, forced=False, **options) -> lldb.SBBreakpoint:
+    def bp(self, address, callback=None, condition: str = None, forced=False, **options) -> lldb.SBBreakpoint:
         """
         Add a breakpoint
         :param address:
+        :param condition: set as a conditional breakpoint using lldb expression
         :param callback: callback(hilda, *args) to be called
         :param forced: whether the breakpoint should be protected frm usual removal.
         :param options:
@@ -586,6 +587,9 @@ class HildaClient(metaclass=CommandsMeta):
                         self.remove_hilda_breakpoint(bp_id)
 
         bp = self.target.BreakpointCreateByAddress(address)
+
+        if condition is not None:
+            bp.SetCondition(condition)
 
         # add into Hilda's internal list of breakpoints
         self.breakpoints[bp.id] = HildaClient.Breakpoint(

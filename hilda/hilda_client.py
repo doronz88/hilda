@@ -1117,6 +1117,10 @@ class HildaClient(metaclass=CommandsMeta):
     def _generate_call_expression(address, params):
         args_type = ','.join(['intptr_t'] * len(params))
         args_conv = ','.join(params)
+
+        if self.target.modules[0].triple.split('-')[0] == 'arm64e':
+            address = f'ptrauth_sign_unauthenticated((void *){address}, ptrauth_key_asia, 0)'
+
         return f'((intptr_t(*)({args_type}))({address}))({args_conv})'
 
     def _globalize_commands(self):

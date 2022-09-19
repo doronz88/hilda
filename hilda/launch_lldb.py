@@ -19,7 +19,7 @@ def disable_logs():
 
 
 def tunnel_local_port(port):
-    execute(f'python3 -m pymobiledevice3 lockdown forward {port} {port} -d')
+    execute(f'python3 -m pymobiledevice3 usbmux forward {port} {port} -d')
 
 
 def execute(cmd):

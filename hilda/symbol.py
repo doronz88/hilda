@@ -141,7 +141,7 @@ class Symbol(int):
         """ Construct compliance. """
         pass
 
-    def seek(self, offset, whence):
+    def seek(self, offset, whence=os.SEEK_SET):
         """ Construct compliance. """
         if whence == os.SEEK_CUR:
             self._offset += offset

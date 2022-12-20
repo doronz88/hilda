@@ -30,3 +30,13 @@ def disable_mach_msg_errors():
                     forced=True,
                     name=f'__CFRunLoopServiceMachPort-brk-{int(symbol - hilda.symbols.__CFRunLoopServiceMachPort)}'
                 )
+
+        # on iOS 16.x, will need to also patch this one
+        handle_error = hilda.symbols.get('__CFRunLoopServiceMachPort.cold.1')
+        if handle_error is None:
+            return
+
+        for instruction in handle_error.disass(2000, should_print=False):
+            if instruction.GetMnemonic(hilda.target) in ('brk', 'ud2'):
+                # mov x0, x0
+                hilda.symbol(instruction.addr.GetLoadAddress(hilda.target)).poke(b'\xe0\x03\x00\xaa')

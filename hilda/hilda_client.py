@@ -239,13 +239,16 @@ class HildaClient(metaclass=CommandsMeta):
         return retval
 
     @command()
-    def peek(self, address, size) -> bytes:
+    def peek(self, address, size: int) -> bytes:
         """
         Read data at given address
         :param address:
         :param size:
         :return:
         """
+        if size == 0:
+            return b''
+
         err = lldb.SBError()
         retval = self.process.ReadMemory(address, int(size), err)
 

@@ -67,6 +67,26 @@ def bare():
     execute(f'lldb --one-line "{commands}"')
 
 
+@cli.command('attach')
+@click.option('-n', '--name', help='process name to attach')
+@click.option('-p', '--pid', type=click.INT, help='pid to attach')
+def attach(name: str, pid: int):
+    """ Attach to given process and start an lldb shell """
+    # connect local LLDB client
+    commands = []
+    if name is not None:
+        commands.append(f'process attach -n {name}')
+    elif pid is not None:
+        commands.append(f'process attach -p {pid}')
+    else:
+        print('missing either process name or pid for attaching')
+        return
+
+    commands.append(f'command script import {os.path.join(Path(__file__).resolve().parent, "lldb_entrypoint.py")}')
+    commands = '\n'.join(commands)
+    execute(f'lldb --one-line "{commands}"')
+
+
 if __name__ == '__main__':
     disable_logs()
     cli()

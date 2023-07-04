@@ -65,6 +65,16 @@ xcrun python3 -m pip install --user -U hilda
 
 ## Starting a Hilda shell
 
+### Attach mode
+
+Use the attach sub-command in order to start an LLDB shell attached to given process.
+
+```shell
+hilda attach [-p pid] [-n process-name]
+```
+
+After attaching, simply execute `hilda` command to enter the hilda shell.
+
 ### Bare mode
 
 Use "Bare mode" to get a "bare-bones" lldb shell, whereas hilda plugin is already loaded and ready to start. This mode
@@ -102,13 +112,17 @@ This mode will auto-connect to the remote device and attach to your target proce
 remote jailbroken iOS device.
 
 Please note the following:
-* script assumes the connected device already **has a running ssh server**, which doesn't require a password (you can use
-`ssh-copy-id` to achieve this).
+
+* script assumes the connected device already **has a running ssh server**, which doesn't require a password (you can
+  use
+  `ssh-copy-id` to achieve this).
 
 From this point the flow diverges into 2 flows:
 
 ### The connected device is connected to the network via `internet sharing` with your computer
+
 Run the following command:
+
 ```shell
 hilda remote PROCESS_NAME SSH_PORT
 ``` 
@@ -116,11 +130,12 @@ hilda remote PROCESS_NAME SSH_PORT
 ### The connected device is connected via Wi-Fi
 
 For this to work, you will need to make sure of the following:
-  * Find your cellphone IP address (Settings -> Wi-Fi -> network info -> IP Address).
-  * Once you found it, run the following command:
-      ```shell
-      hilda remote PROCESS_NAME SSH_PORT --hostname <DEVICE_IP_ADDRESS>
-      ```
+
+* Find your cellphone IP address (Settings -> Wi-Fi -> network info -> IP Address).
+* Once you found it, run the following command:
+    ```shell
+    hilda remote PROCESS_NAME SSH_PORT --hostname <DEVICE_IP_ADDRESS>
+    ```
 
 ## Commands
 

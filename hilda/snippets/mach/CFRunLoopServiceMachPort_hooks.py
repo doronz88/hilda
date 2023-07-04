@@ -1,5 +1,7 @@
 import lldb
 
+from hilda.exceptions import SymbolAbsentError
+
 
 def _CFRunLoopServiceMachPort_hook(hilda, *args):
     """
@@ -9,7 +11,7 @@ def _CFRunLoopServiceMachPort_hook(hilda, *args):
     hilda.cont()
 
 
-def disable_mach_msg_errors():
+def disable_mach_msg_errors() -> None:
     """
     Disable the error check inside the CFRunLoopServiceMachPort from the mach_msg syscall.
     This is used to debug slow handling of mach messages.
@@ -32,8 +34,9 @@ def disable_mach_msg_errors():
                 )
 
         # on iOS 16.x, will need to also patch this one
-        handle_error = hilda.symbols.get('__CFRunLoopServiceMachPort.cold.1')
-        if handle_error is None:
+        try:
+            handle_error = hilda.symbols['__CFRunLoopServiceMachPort.cold.1']
+        except SymbolAbsentError:
             return
 
         for instruction in handle_error.disass(2000, should_print=False):

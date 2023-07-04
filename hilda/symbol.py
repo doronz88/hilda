@@ -119,8 +119,8 @@ class Symbol(int):
     def poke(self, buf):
         return self._client.poke(self, buf)
 
-    def peek_str(self, encoding=None):
-        return self._client.peek_str(self, encoding)
+    def peek_str(self):
+        return self._client.peek_str(self)
 
     def monitor(self, **args):
         return self._client.monitor(self, **args)

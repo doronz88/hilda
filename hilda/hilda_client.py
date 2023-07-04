@@ -258,28 +258,13 @@ class HildaClient(metaclass=CommandsMeta):
         return retval
 
     @command()
-    def peek_str(self, address, encoding=None):
+    def peek_str(self, address: Symbol) -> str:
         """
         Peek a buffer till null termination
         :param address:
-        :param encoding: character encoding. if None, bytes is returned
         :return:
         """
-        if hasattr(self.symbols, 'strlen'):
-            # always prefer using native strlen
-            buf = self.peek(address, self.symbols.strlen(address))
-        else:
-            buf = self.peek(address, 1)
-            while buf[-1] != 0:
-                buf += self.peek(address + len(buf), 1)
-
-            # remove null terminator
-            buf = buf[:-1]
-
-        if encoding is not None:
-            buf = str(buf, encoding)
-
-        return buf
+        return address.po('char *')[1:-1]  # strip the ""
 
     @command()
     def stop(self):

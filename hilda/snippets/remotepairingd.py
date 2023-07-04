@@ -35,7 +35,7 @@ TLV_MAP = {
 }
 
 
-def TLV8CopyCoalesced_bp(hilda, *args):
+def _TLV8CopyCoalesced_bp(hilda, *args):
     src = hilda.registers.x0
     end = hilda.registers.x1
     type_ = hilda.registers.x2
@@ -56,7 +56,7 @@ def TLV8CopyCoalesced_bp(hilda, *args):
     hilda.cont()
 
 
-def TLV8BufferAppend_bp(hilda, *args):
+def _TLV8BufferAppend_bp(hilda, *args):
     buffer = hilda.registers.x0
     type_ = hilda.registers.x1
     buffer = hilda.registers.x2
@@ -68,7 +68,7 @@ def TLV8BufferAppend_bp(hilda, *args):
     hilda.cont()
 
 
-def SRPClientStart_libsrp_bp(hilda, *args):
+def _SRPClientStart_libsrp_bp(hilda, *args):
     client = hilda.registers.x0
     params = hilda.registers.x1
     username = hilda.registers.x2
@@ -91,7 +91,7 @@ def SRPClientStart_libsrp_bp(hilda, *args):
     hilda.cont()
 
 
-def cced25519_sign_bp(hilda, *args):
+def _cced25519_sign_bp(hilda, *args):
     digest_info = hilda.registers.x0
     sig = hilda.registers.x1
     len = hilda.registers.x2
@@ -109,7 +109,7 @@ def cced25519_sign_bp(hilda, *args):
     hilda.cont()
 
 
-def cced25519_verify_bp(hilda, *args):
+def _cced25519_verify_bp(hilda, *args):
     digest_info = hilda.registers.x0
     sig = hilda.registers.x3
     len = hilda.registers.x1
@@ -125,7 +125,7 @@ def cced25519_verify_bp(hilda, *args):
     hilda.cont()
 
 
-def CryptoHKDF_bp(hilda, *args):
+def _CryptoHKDF_bp(hilda, *args):
     descriptor = hilda.registers.x0
     key = hilda.registers.x1.peek(hilda.registers.x2)
     salt = hilda.registers.x3
@@ -177,14 +177,14 @@ def _chacha20_poly1305_decrypt_all_bp(hilda, *args):
 def monitor_crypto_functions() -> None:
     hilda_client = lldb.hilda_client
 
-    hilda_client.symbols.TLV8CopyCoalesced.bp(TLV8CopyCoalesced_bp)
-    hilda_client.symbols.TLV8BufferAppend.bp(TLV8BufferAppend_bp)
-    hilda_client.symbols.SRPClientStart_libsrp.bp(SRPClientStart_libsrp_bp)
+    hilda_client.symbols.TLV8CopyCoalesced.bp(_TLV8CopyCoalesced_bp)
+    hilda_client.symbols.TLV8BufferAppend.bp(_TLV8BufferAppend_bp)
+    hilda_client.symbols.SRPClientStart_libsrp.bp(_SRPClientStart_libsrp_bp)
     hilda_client.symbols.SRPClientVerify_libsrp.monitor()
     hilda_client.symbols.SRPServerStart_libsrp.monitor()
     hilda_client.symbols.SRPServerVerify_libsrp.monitor()
-    hilda_client.symbols.cced25519_sign.bp(cced25519_sign_bp)
-    hilda_client.symbols.cced25519_verify.bp(cced25519_verify_bp)
-    hilda_client.symbols.CryptoHKDF.bp(CryptoHKDF_bp)
+    hilda_client.symbols.cced25519_sign.bp(_cced25519_sign_bp)
+    hilda_client.symbols.cced25519_verify.bp(_cced25519_verify_bp)
+    hilda_client.symbols.CryptoHKDF.bp(_CryptoHKDF_bp)
     hilda_client.symbols._chacha20_poly1305_encrypt_all.bp(_chacha20_poly1305_encrypt_all_bp)
     hilda_client.symbols._chacha20_poly1305_decrypt_all.bp(_chacha20_poly1305_decrypt_all_bp)

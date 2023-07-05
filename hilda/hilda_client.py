@@ -37,7 +37,7 @@ from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
 from hilda.symbols_jar import SymbolsJar
-from launch_lldb import disable_logs
+from hilda.launch_lldb import disable_logs
 
 IsaMagic = namedtuple('IsaMagic', 'mask value')
 ISA_MAGICS = [
@@ -605,7 +605,7 @@ class HildaClient(metaclass=CommandsMeta):
 
     def bp_callback_router(self, frame, bp_loc, *_):
         """
-        Route the breakpoint callback the the specific breakpoint callback.
+        Route the breakpoint callback the specific breakpoint callback.
         :param lldb.SBFrame frame: LLDB Frame object.
         :param lldb.SBBreakpointLocation bp_loc: LLDB Breakpoint location object.
         """
@@ -899,13 +899,13 @@ class HildaClient(metaclass=CommandsMeta):
 
         if is_running:
             self.stop()
-            time.sleep(1)
+            time.sleep(interval)
 
         try:
             yield
         finally:
             if is_running:
-                time.sleep(1)
+                time.sleep(interval)
                 self.cont()
 
     @contextmanager
@@ -1113,12 +1113,11 @@ class HildaClient(metaclass=CommandsMeta):
                 raise NotImplementedError('cannot serialize argument')
         return args_conv
 
-    @staticmethod
-    def _generate_call_expression(address, params):
+    def _generate_call_expression(self, address, params):
         args_type = ','.join(['intptr_t'] * len(params))
         args_conv = ','.join(params)
 
-        if self.target.modules[0].triple.split('-')[0] == 'arm64e':
+        if self.arch == 'arm64e':
             address = f'ptrauth_sign_unauthenticated((void *){address}, ptrauth_key_asia, 0)'
 
         return f'((intptr_t(*)({args_type}))({address}))({args_conv})'

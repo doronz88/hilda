@@ -12,16 +12,17 @@ import time
 from collections import namedtuple
 from contextlib import contextmanager, suppress
 from datetime import datetime, timezone
-from functools import partial
+from functools import cached_property, partial
 from pathlib import Path
 from typing import Union
 
-import IPython
 import docstring_parser
 import hexdump
+import IPython
 import lldb
 from humanfriendly import prompts
 from humanfriendly.terminal.html import html_to_ansi
+from keystone import Ks, KS_ARCH_ARM64, KS_ARCH_X86, KS_MODE_64, KS_MODE_LITTLE_ENDIAN
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import XmlLexer
@@ -77,7 +78,7 @@ class HildaClient(metaclass=CommandsMeta):
         self.breakpoints = {}
         self.captured_objects = {}
         self.registers = Registers(self)
-
+        self.arch = self.target.GetTriple().split('-')[0]
         # should unwind the stack on errors. change this to False in order to debug self-made calls
         # within hilda
         self._evaluation_unwind_on_error = True
@@ -239,6 +240,16 @@ class HildaClient(metaclass=CommandsMeta):
         return retval
 
     @command()
+    def poke_text(self, address: int, code: str) -> int:
+        """
+        Write instructions to address.
+        :param address:
+        :param code:
+        """
+        bytecode, count = self._ks.asm(code, as_bytes=True)
+        return self.poke(address, bytecode)
+
+    @command()
     def peek(self, address, size: int) -> bytes:
         """
         Read data at given address
@@ -307,15 +318,16 @@ class HildaClient(metaclass=CommandsMeta):
             self.log_critical('failed to detach')
 
     @command()
-    def disass(self, address, buf, should_print=True) -> lldb.SBInstructionList:
+    def disass(self, address, buf, flavor='intel', should_print=True) -> lldb.SBInstructionList:
         """
         Print disassembly from a given address
+        :param flavor:
         :param address:
         :param buf:
         :param should_print:
         :return:
         """
-        inst = self.target.GetInstructions(lldb.SBAddress(address, self.target), buf)
+        inst = self.target.GetInstructionsWithFlavor(lldb.SBAddress(address, self.target), flavor, buf)
         if should_print:
             print(inst)
         return inst
@@ -593,7 +605,7 @@ class HildaClient(metaclass=CommandsMeta):
 
     def bp_callback_router(self, frame, bp_loc, *_):
         """
-        Route the breakpoint callback the the specific breakpoint callback.
+        Route the breakpoint callback the specific breakpoint callback.
         :param lldb.SBFrame frame: LLDB Frame object.
         :param lldb.SBBreakpointLocation bp_loc: LLDB Breakpoint location object.
         """
@@ -887,13 +899,13 @@ class HildaClient(metaclass=CommandsMeta):
 
         if is_running:
             self.stop()
-            time.sleep(1)
+            time.sleep(interval)
 
         try:
             yield
         finally:
             if is_running:
-                time.sleep(1)
+                time.sleep(interval)
                 self.cont()
 
     @contextmanager
@@ -1101,12 +1113,11 @@ class HildaClient(metaclass=CommandsMeta):
                 raise NotImplementedError('cannot serialize argument')
         return args_conv
 
-    @staticmethod
-    def _generate_call_expression(address, params):
+    def _generate_call_expression(self, address, params):
         args_type = ','.join(['intptr_t'] * len(params))
         args_conv = ','.join(params)
 
-        if self.target.modules[0].triple.split('-')[0] == 'arm64e':
+        if self.arch == 'arm64e':
             address = f'ptrauth_sign_unauthenticated((void *){address}, ptrauth_key_asia, 0)'
 
         return f'((intptr_t(*)({args_type}))({address}))({args_conv})'
@@ -1163,3 +1174,10 @@ class HildaClient(metaclass=CommandsMeta):
             return formatters[fmt](value)
         else:
             return f'{value:x} (unsupported format)'
+
+    @cached_property
+    def _ks(self) -> Ks:
+        platforms = {'arm64': Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
+                     'arm64e': Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
+                     'x86_64h': Ks(KS_ARCH_X86, KS_MODE_64)}
+        return platforms.get(self.arch)

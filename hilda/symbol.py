@@ -1,7 +1,8 @@
-from construct import FormatField
-from contextlib import contextmanager
-import struct
 import os
+import struct
+from contextlib import contextmanager
+
+from construct import FormatField
 
 from hilda.objective_c_class import Class
 
@@ -118,6 +119,9 @@ class Symbol(int):
 
     def poke(self, buf):
         return self._client.poke(self, buf)
+
+    def poke_text(self, code: str) -> int:
+        return self._client.poke_text(self, code)
 
     def peek_str(self):
         return self._client.peek_str(self)

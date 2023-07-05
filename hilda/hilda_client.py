@@ -12,16 +12,17 @@ import time
 from collections import namedtuple
 from contextlib import contextmanager, suppress
 from datetime import datetime, timezone
-from functools import partial
+from functools import cached_property, partial
 from pathlib import Path
 from typing import Union
 
-import IPython
 import docstring_parser
 import hexdump
+import IPython
 import lldb
 from humanfriendly import prompts
 from humanfriendly.terminal.html import html_to_ansi
+from keystone import Ks, KS_ARCH_ARM64, KS_ARCH_X86, KS_MODE_64, KS_MODE_LITTLE_ENDIAN
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import XmlLexer
@@ -36,7 +37,7 @@ from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
 from hilda.symbols_jar import SymbolsJar
-from hilda.launch_lldb import disable_logs
+from launch_lldb import disable_logs
 
 IsaMagic = namedtuple('IsaMagic', 'mask value')
 ISA_MAGICS = [
@@ -77,7 +78,7 @@ class HildaClient(metaclass=CommandsMeta):
         self.breakpoints = {}
         self.captured_objects = {}
         self.registers = Registers(self)
-
+        self.arch = self.target.GetTriple().split('-')[0]
         # should unwind the stack on errors. change this to False in order to debug self-made calls
         # within hilda
         self._evaluation_unwind_on_error = True
@@ -239,6 +240,16 @@ class HildaClient(metaclass=CommandsMeta):
         return retval
 
     @command()
+    def poke_text(self, address: int, code: str) -> int:
+        """
+        Write instructions to address.
+        :param address:
+        :param code:
+        """
+        bytecode, count = self._ks.asm(code, as_bytes=True)
+        return self.poke(address, bytecode)
+
+    @command()
     def peek(self, address, size: int) -> bytes:
         """
         Read data at given address
@@ -307,15 +318,16 @@ class HildaClient(metaclass=CommandsMeta):
             self.log_critical('failed to detach')
 
     @command()
-    def disass(self, address, buf, should_print=True) -> lldb.SBInstructionList:
+    def disass(self, address, buf, flavor='intel', should_print=True) -> lldb.SBInstructionList:
         """
         Print disassembly from a given address
+        :param flavor:
         :param address:
         :param buf:
         :param should_print:
         :return:
         """
-        inst = self.target.GetInstructions(lldb.SBAddress(address, self.target), buf)
+        inst = self.target.GetInstructionsWithFlavor(lldb.SBAddress(address, self.target), flavor, buf)
         if should_print:
             print(inst)
         return inst
@@ -1163,3 +1175,10 @@ class HildaClient(metaclass=CommandsMeta):
             return formatters[fmt](value)
         else:
             return f'{value:x} (unsupported format)'
+
+    @cached_property
+    def _ks(self) -> Ks:
+        platforms = {'arm64': Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
+                     'arm64e': Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
+                     'x86_64h': Ks(KS_ARCH_X86, KS_MODE_64)}
+        return platforms.get(self.arch)

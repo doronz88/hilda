@@ -5,15 +5,15 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 
+from objc_types_decoder.decode import decode as decode_type
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import ObjectiveCLexer
-from objc_types_decoder.decode import decode as decode_type
 
 from hilda.exceptions import HildaException
-from hilda.objective_c_class import Class, convert_encoded_property_attributes, Method, Property
-from hilda.symbols_jar import SymbolsJar
+from hilda.objective_c_class import Class, Method, Property, convert_encoded_property_attributes
 from hilda.symbol import Symbol
+from hilda.symbols_jar import SymbolsJar
 
 
 class SettingIvarError(HildaException):

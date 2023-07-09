@@ -1,4 +1,5 @@
-from construct import Int32ul, Struct, Hex, this, Tell, LazyArray, Computed
+from construct import Computed, Hex, Int32ul, LazyArray, Struct, Tell, this
+
 from hilda.snippets.macho.macho_load_commands import LOAD_COMMAND_TYPE, load_command_t
 
 

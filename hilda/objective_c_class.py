@@ -7,13 +7,14 @@ from functools import partial
 from pathlib import Path
 from uuid import uuid4
 
+from objc_types_decoder.decode import decode as decode_type
+from objc_types_decoder.decode import decode_with_tail
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import ObjectiveCLexer
-from objc_types_decoder.decode import decode as decode_type, decode_with_tail
 
-from hilda.symbols_jar import SymbolsJar
 from hilda.exceptions import GettingObjectiveCClassError
+from hilda.symbols_jar import SymbolsJar
 
 Ivar = namedtuple('Ivar', 'name type_ offset')
 Property = namedtuple('Property', 'name attributes')

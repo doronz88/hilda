@@ -22,7 +22,7 @@ import IPython
 import lldb
 from humanfriendly import prompts
 from humanfriendly.terminal.html import html_to_ansi
-from keystone import Ks, KS_ARCH_ARM64, KS_ARCH_X86, KS_MODE_64, KS_MODE_LITTLE_ENDIAN
+from keystone import KS_ARCH_ARM64, KS_ARCH_X86, KS_MODE_64, KS_MODE_LITTLE_ENDIAN, Ks
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import XmlLexer
@@ -30,14 +30,16 @@ from tqdm import tqdm
 from traitlets.config import Config
 
 from hilda import objective_c_class
-from hilda.command import command, CommandsMeta
-from hilda.exceptions import *
+from hilda.command import CommandsMeta, command
+from hilda.exceptions import AccessingMemoryError, AccessingRegisterError, AddingLldbSymbolError, \
+    BrokenLocalSymbolsJarError, ConvertingFromNSObjectError, ConvertingToNsObjectError, CreatingObjectiveCSymbolError, \
+    DisableJetsamMemoryChecksError, EvaluatingExpressionError, HildaException, SymbolAbsentError
+from hilda.launch_lldb import disable_logs  # noqa: F401
 from hilda.objective_c_symbol import ObjectiveCSymbol
 from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
 from hilda.symbols_jar import SymbolsJar
-from hilda.launch_lldb import disable_logs
 
 IsaMagic = namedtuple('IsaMagic', 'mask value')
 ISA_MAGICS = [

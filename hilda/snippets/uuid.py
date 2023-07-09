@@ -1,4 +1,4 @@
-from construct import Struct, Int64ul, Int32ul, Int8ul, Array
+from construct import Array, Int8ul, Int32ul, Int64ul, Struct
 
 uuid_t = Struct(
     'time_low' / Int64ul,

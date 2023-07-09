@@ -2,7 +2,7 @@ from contextlib import suppress
 
 import lldb
 
-from hilda.exceptions import SymbolAbsentError, AddingLldbSymbolError
+from hilda.exceptions import AddingLldbSymbolError, SymbolAbsentError
 
 
 class SymbolsJar(dict):

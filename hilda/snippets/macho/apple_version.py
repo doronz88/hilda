@@ -1,4 +1,4 @@
-from construct import BitStruct, Octet, BitsInteger
+from construct import BitsInteger, BitStruct, Octet
 
 version_t = BitStruct(
     'major' / BitsInteger(16),

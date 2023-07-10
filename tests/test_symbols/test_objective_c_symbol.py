@@ -1,6 +1,6 @@
 import pytest
 
-from hilda.exceptions import *
+from hilda.exceptions import CreatingObjectiveCSymbolError
 from hilda.objective_c_symbol import ObjectiveCSymbol
 
 

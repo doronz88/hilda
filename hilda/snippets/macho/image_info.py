@@ -1,5 +1,5 @@
 import lldb
-from construct import Pointer, this, CString, Int64ul, Struct, If
+from construct import CString, If, Int64ul, Pointer, Struct, this
 
 from hilda.snippets.macho.macho import mach_header_t
 from hilda.snippets.macho.macho_load_commands import LoadCommands

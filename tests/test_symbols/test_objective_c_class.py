@@ -1,6 +1,6 @@
 import pytest
 
-from hilda.objective_c_class import convert_encoded_property_attributes, PropertyAttributes
+from hilda.objective_c_class import PropertyAttributes, convert_encoded_property_attributes
 
 
 def test_calling_class_method_by_method_name(hilda_client):

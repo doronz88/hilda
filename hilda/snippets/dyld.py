@@ -1,6 +1,5 @@
-from cached_property import cached_property
-
 import lldb
+from cached_property import cached_property
 
 from hilda.snippets.macho.all_image_infos import AllImageInfos
 from hilda.snippets.syslog import open_syslog_socket

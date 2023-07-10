@@ -1,10 +1,10 @@
 import logging
 
 import lldb
-from construct import Struct, Tell, Int32ul, Pointer, this, Array, Int32ub, CString, If, Int64ul, Hex
+from construct import Array, CString, Hex, If, Int32ub, Int32ul, Int64ul, Pointer, Struct, Tell, this
 from humanfriendly import prompts
 
-from hilda.snippets.macho.image_info import dyld_image_info_t, ImageInfo
+from hilda.snippets.macho.image_info import ImageInfo, dyld_image_info_t
 from hilda.snippets.macho.macho import mach_header_t
 from hilda.snippets.uuid import uuid_t
 from hilda.symbol import SymbolFormatField

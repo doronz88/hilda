@@ -36,8 +36,6 @@ TLV_MAP = {
 
 
 def _TLV8CopyCoalesced_bp(hilda, *args):
-    src = hilda.registers.x0
-    end = hilda.registers.x1
     type_ = hilda.registers.x2
     out_len = hilda.registers.x3
     out_len.item_size = 4
@@ -69,8 +67,6 @@ def _TLV8BufferAppend_bp(hilda, *args):
 
 
 def _SRPClientStart_libsrp_bp(hilda, *args):
-    client = hilda.registers.x0
-    params = hilda.registers.x1
     username = hilda.registers.x2
     username_len = hilda.registers.x3
     password = hilda.registers.x4
@@ -92,7 +88,6 @@ def _SRPClientStart_libsrp_bp(hilda, *args):
 
 
 def _cced25519_sign_bp(hilda, *args):
-    digest_info = hilda.registers.x0
     sig = hilda.registers.x1
     len = hilda.registers.x2
     msg = hilda.registers.x3
@@ -110,7 +105,6 @@ def _cced25519_sign_bp(hilda, *args):
 
 
 def _cced25519_verify_bp(hilda, *args):
-    digest_info = hilda.registers.x0
     sig = hilda.registers.x3
     len = hilda.registers.x1
     msg = hilda.registers.x2

@@ -1,7 +1,6 @@
 import lldb
-
-from construct import Hex, Int32ul, Pointer, PaddedString, Int64ul, this, Enum, Struct, Tell, Switch, Bytes, Seek, \
-    Array, Int8ul
+from construct import Array, Bytes, Enum, Hex, Int8ul, Int32ul, Int64ul, PaddedString, Pointer, Seek, Struct, Switch, \
+    Tell, this
 
 from hilda.snippets.macho.apple_version import version_t
 from hilda.symbol import SymbolFormatField

@@ -1,7 +1,48 @@
 import lldb
 
 
-def disable_mach_msg_errors() -> None:
+def _CFRunLoopServiceMachPort_hook(hilda, *args):
+    """
+    :param hilda.hilda_client.HildaClient hilda:
+     """
+    hilda.jump(hilda.CFRunLoopServiceMachPort_while_ea)
+    hilda.cont()
+
+
+def _disable_internal_error_handling() -> None:
+    hilda = lldb.hilda_client
+    with hilda.stopped():
+        instructions = hilda.symbols.__CFRunLoopServiceMachPort.disass(2000, should_print=False)
+        while_ea = None
+        for instruction in instructions:
+            if (while_ea is None) and instruction.DoesBranch():
+                # Beginning of the `while(true) { ... }`
+                while_ea = instruction.GetOperands(hilda.target)
+                hilda.CFRunLoopServiceMachPort_while_ea = int(hilda.file_symbol(eval(while_ea)))
+            elif instruction.GetMnemonic(hilda.target) in ('brk', 'ud2'):
+                symbol = hilda.symbol(instruction.addr.GetLoadAddress(hilda.target))
+                symbol.bp(
+                    _CFRunLoopServiceMachPort_hook,
+                    forced=True,
+                    name=f'__CFRunLoopServiceMachPort-brk-{int(symbol - hilda.symbols.__CFRunLoopServiceMachPort)}'
+                )
+
+    if hilda.arch == 'x86_64h':
+        return
+
+    # on iOS 16.x, will need to also patch this one
+    try:
+        handle_error = hilda.symbols['__CFRunLoopServiceMachPort.cold.1']
+    except SymbolAbsentError:
+        return
+
+    for instruction in handle_error.disass(2000, should_print=False):
+        if instruction.GetMnemonic(hilda.target) in ('brk', 'ud2'):
+            # mov x0, x0
+            hilda.symbol(instruction.addr.GetLoadAddress(hilda.target)).poke(b'\xe0\x03\x00\xaa')
+
+
+def _disable_mach_msg_timeout() -> None:
     """
     Remove the timeout validation from __CFRunLoopServiceMachPort. This is done by patching the mach_msg_timeout_t
     parameter (4rd one) to MACH_MSG_TIMEOUT_NONE. On arm the parameter passes on `x3` register.
@@ -42,3 +83,8 @@ def disable_mach_msg_errors() -> None:
             new_inst = f'{mnemonic} {operands.replace("x3", "0")}'
             hilda.file_symbol(file_addr).poke_text(new_inst)
             break
+
+
+def disable_mach_msg_errors() -> None:
+    _disable_mach_msg_timeout()
+    _disable_internal_error_handling()

@@ -1,5 +1,7 @@
 import lldb
 
+from hilda.exceptions import SymbolAbsentError
+
 
 def _CFRunLoopServiceMachPort_hook(hilda, *args):
     """

@@ -9,6 +9,7 @@ import os
 import pickle
 import textwrap
 import time
+import typing
 from collections import namedtuple
 from contextlib import contextmanager, suppress
 from datetime import datetime, timezone
@@ -1020,7 +1021,7 @@ class HildaClient(metaclass=CommandsMeta):
 
         return value
 
-    def interactive(self):
+    def interactive(self, additional_namespace: typing.Mapping = None):
         """ Start an interactive Hilda shell """
         if not self._dynamic_env_loaded:
             self.init_dynamic_environment()
@@ -1036,6 +1037,8 @@ class HildaClient(metaclass=CommandsMeta):
         ]
         namespace = globals()
         namespace.update(locals())
+        if additional_namespace is not None:
+            namespace.update(additional_namespace)
 
         IPython.start_ipython(config=c, user_ns=namespace)
 

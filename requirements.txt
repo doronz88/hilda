@@ -7,3 +7,4 @@ click
 objc_types_decoder
 construct
 pymobiledevice3
+keystone-engine

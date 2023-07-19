@@ -1,0 +1,13 @@
+{
+  "title": "green",
+  "address": "bright_blue",
+  "regs_title": "green",
+  "regs_name": "cyan",
+  "regs_value": "white",
+  "mnemonic": "white",
+  "operands": "white",
+  "basename": "yellow",
+  "stack_offset": "white",
+  "stack_data": "white",
+  "diff": "red"
+}

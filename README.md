@@ -260,6 +260,65 @@ capabilities:
 stop?
 ```
 
+## UI Configuration
+
+Hilda contains minimal UI for examining the target state.
+The UI is divided into views:
+
+- Registers
+- Disassembly
+- Stack
+- Backtrace
+
+![img.png](gifs/ui.png)
+
+This UI can be displayed at any time be executing:
+
+```python
+ui.show()
+```
+
+By default `step_into` and `step_over` will show this UI automatically.
+You may disable this behaviour by executing:
+
+```python
+ui.active = False
+```
+
+Attentively, if you want to display UI after hitting a breakpoint, you can register `ui.show` as callback:
+
+```python
+symbol(0x7ff7b97c21b0).bp(ui.show)
+```
+
+Try playing with the UI settings by yourself:
+
+```python
+# Disable stack view
+ui.views.stack.active = False
+
+# View words from the stack
+ui.views.stack.depth = 10
+
+# View last 10 frames
+ui.views.backtrace.depth = 10
+
+# Disassemble 5 instructions
+ui.views.disassembly.instruction_count = 5
+
+# Change disassembly syntax to AT&T
+ui.views.disassembly.flavor = 'att'
+
+# View floating point registers
+ui.views.registers.rtype = 'float'
+
+# Change addresses print color
+ui.colors.address = 'red'
+
+# Change titles color
+ui.color.title = 'green'
+```
+
 ## Symbol objects
 
 In Hilda, almost everything is wrapped using the `Symbol` Object. Symbol is just a nicer way for referring to addresses

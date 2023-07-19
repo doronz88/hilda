@@ -9,12 +9,13 @@ import os
 import pickle
 import textwrap
 import time
+import typing
 from collections import namedtuple
 from contextlib import contextmanager, suppress
 from datetime import datetime, timezone
 from functools import cached_property, partial
 from pathlib import Path
-from typing import Union
+from typing import List, Optional, Union
 
 import docstring_parser
 import hexdump
@@ -40,6 +41,7 @@ from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
 from hilda.symbols_jar import SymbolsJar
+from hilda.ui.ui_manager import UiManager
 
 IsaMagic = namedtuple('IsaMagic', 'mask value')
 ISA_MAGICS = [
@@ -81,6 +83,7 @@ class HildaClient(metaclass=CommandsMeta):
         self.captured_objects = {}
         self.registers = Registers(self)
         self.arch = self.target.GetTriple().split('-')[0]
+        self.ui_manager = UiManager(self)
         # should unwind the stack on errors. change this to False in order to debug self-made calls
         # within hilda
         self._evaluation_unwind_on_error = True
@@ -120,16 +123,22 @@ class HildaClient(metaclass=CommandsMeta):
         return {int(k): v for k, v in result.items()}
 
     @command()
-    def bt(self):
+    def bt(self, should_print=True, depth: Optional[int] = None) -> List:
         """ Print an improved backtrace. """
+        backtrace = []
         for i, frame in enumerate(self.thread.frames):
+            if i == depth:
+                break
             row = ''
             row += html_to_ansi(f'<span style="color: cyan">0x{frame.addr.GetFileAddress():x}</span> ')
             row += str(frame)
             if i == 0:
                 # first line
                 row += ' 👈'
-            print(row)
+            backtrace.append([f'0x{frame.addr.file_addr:016x}', frame])
+            if should_print:
+                print(row)
+        return backtrace
 
     @command()
     def disable_jetsam_memory_checks(self):
@@ -514,12 +523,16 @@ class HildaClient(metaclass=CommandsMeta):
         """ Step into current instruction. """
         with self.sync_mode():
             self.thread.StepInto()
+        if self.ui_manager.active:
+            self.ui_manager.show()
 
     @command()
     def step_over(self):
         """ Step over current instruction. """
         with self.sync_mode():
             self.thread.StepOver()
+        if self.ui_manager.active:
+            self.ui_manager.show()
 
     @command()
     def remove_all_hilda_breakpoints(self, remove_forced=False):
@@ -1008,7 +1021,7 @@ class HildaClient(metaclass=CommandsMeta):
 
         return value
 
-    def interactive(self):
+    def interactive(self, additional_namespace: typing.Mapping = None):
         """ Start an interactive Hilda shell """
         if not self._dynamic_env_loaded:
             self.init_dynamic_environment()
@@ -1024,6 +1037,8 @@ class HildaClient(metaclass=CommandsMeta):
         ]
         namespace = globals()
         namespace.update(locals())
+        if additional_namespace is not None:
+            namespace.update(additional_namespace)
 
         IPython.start_ipython(config=c, user_ns=namespace)
 

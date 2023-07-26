@@ -54,6 +54,15 @@ def from_xpc_object(address: int):
     return lldb.hilda_client.from_ns(f'_CFXPCCreateCFObjectFromXPCObject({address})')
 
 
+def disable_transaction_exit():
+    """
+    xpc_transaction_exit_clean will kill the process when transaction is done.
+    By patching this function the process will stay alive.
+    """
+    hilda = lldb.hilda_client
+    hilda.symbols.xpc_transaction_exit_clean.poke_text('ret')
+
+
 def to_xpc_object(obj: object):
     """
     Convert python object to XPC object.

@@ -1,6 +1,6 @@
 [project]
 name = "hilda"
-version = "0.3.0"
+version = "0.3.1"
 description = "LLDB wrapped and empowered by iPython's features"
 readme = "README.md"
 requires-python = ">=3.8"

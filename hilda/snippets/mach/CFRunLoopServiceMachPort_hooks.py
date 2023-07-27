@@ -70,6 +70,9 @@ def _disable_mach_msg_timeout() -> None:
         CoreFoundation:__text:0000000186E50150                 MOV             X22, X4
         CoreFoundation:__text:0000000186E50154                 MOV             X23, X3       <-------- Timeout parameter
     """
+    if not lldb.KEYSTONE_SUPPORT:
+        return
+
     hilda = lldb.hilda_client
     if hilda.arch == 'x86_64h':
         return

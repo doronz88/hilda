@@ -23,7 +23,6 @@ import IPython
 import lldb
 from humanfriendly import prompts
 from humanfriendly.terminal.html import html_to_ansi
-from keystone import KS_ARCH_ARM64, KS_ARCH_X86, KS_MODE_64, KS_MODE_LITTLE_ENDIAN, Ks
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import XmlLexer
@@ -42,6 +41,13 @@ from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
 from hilda.symbols_jar import SymbolsJar
 from hilda.ui.ui_manager import UiManager
+
+lldb.KEYSTONE_SUPPORT = True
+try:
+    from keystone import KS_ARCH_ARM64, KS_ARCH_X86, KS_MODE_64, KS_MODE_LITTLE_ENDIAN, Ks
+except ImportError:
+    lldb.KEYSTONE_SUPPORT = False
+    print('failed to import keystone. disabling some features')
 
 IsaMagic = namedtuple('IsaMagic', 'mask value')
 ISA_MAGICS = [
@@ -257,6 +263,8 @@ class HildaClient(metaclass=CommandsMeta):
         :param address:
         :param code:
         """
+        if not lldb.KEYSTONE_SUPPORT:
+            raise NotImplementedError('Not supported without keystone')
         bytecode, count = self._ks.asm(code, as_bytes=True)
         return self.poke(address, bytecode)
 
@@ -1193,7 +1201,9 @@ class HildaClient(metaclass=CommandsMeta):
             return f'{value:x} (unsupported format)'
 
     @cached_property
-    def _ks(self) -> Ks:
+    def _ks(self) -> Optional['Ks']:
+        if not lldb.KEYSTONE_SUPPORT:
+            return False
         platforms = {'arm64': Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
                      'arm64e': Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
                      'x86_64h': Ks(KS_ARCH_X86, KS_MODE_64)}

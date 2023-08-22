@@ -9,11 +9,12 @@ keywords = ["python", "debugger", "lldb", "ipython", "ios", "debug"]
 authors = [
     { name = "doronz88", email = "doron88@gmail.com" },
     { name = "matan", email = "matan1008@gmail.com" },
-    { name = "netanel", email = "matan1008@gmail.com" }
+    { name = "netanel cohen", email = "netanelc305@protonmail.com" }
 ]
 maintainers = [
     { name = "doronz88", email = "doron88@gmail.com" },
-    { name = "matan", email = "matan1008@gmail.com" }
+    { name = "matan", email = "matan1008@gmail.com" },
+    { name = "netanel cohen", email = "netanelc305@protonmail.com" }
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

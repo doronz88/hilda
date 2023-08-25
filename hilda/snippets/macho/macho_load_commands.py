@@ -287,11 +287,11 @@ class LoadCommands(object):
     @property
     def segment_commands(self):
         return [segment_command for segment_command in self.__load_commands if
-                type(segment_command) == Segment64Command]
+                isinstance(segment_command, Segment64Command)]
 
     @property
     def dylib_commands(self):
-        return [dylib_command for dylib_command in self.__load_commands if type(dylib_command) == DylibCommand]
+        return [dylib_command for dylib_command in self.__load_commands if isinstance(dylib_command, DylibCommand)]
 
     def find(self, predicate=None):
         if predicate is None:

@@ -1,5 +1,12 @@
 @import ObjectiveC;
 @import Foundation;
+
+#ifdef __ARM_ARCH_ISA_A64
+    #define STRIP_PAC(x) (((uintptr_t)x) & 0x0000000fffffffff)
+#else
+    #define STRIP_PAC(x) ((uintptr_t)x)
+#endif
+
 unsigned int outCount = 0;
 unsigned int i = 0, j = 0;
 id objcObject = (id)__symbol_address__;
@@ -114,7 +121,7 @@ for (i = 0; i < outCount; ++i) {
     methodReturnType = method_copyReturnType(methods[i]);
     [objectData[@"methods"] addObject:@{
         @"name": [NSString stringWithCString:sel_getName(method_getName(methods[i])) encoding:NSUTF8StringEncoding],
-        @"address": [NSNumber numberWithLong:(uintptr_t)method_getImplementation(methods[i])],
+        @"address": [NSNumber numberWithLong:STRIP_PAC(method_getImplementation(methods[i]))],
         @"is_class": @YES,
         @"type": [NSString stringWithCString:method_getTypeEncoding(methods[i]) encoding:NSUTF8StringEncoding],
         @"return_type": [NSString stringWithCString:methodReturnType encoding:NSUTF8StringEncoding],
@@ -142,7 +149,7 @@ for (i = 0; i < outCount; ++i) {
     methodReturnType = method_copyReturnType(methods[i]);
     [objectData[@"methods"] addObject:@{
         @"name": [NSString stringWithCString:sel_getName(method_getName(methods[i])) encoding:NSUTF8StringEncoding],
-        @"address": [NSNumber numberWithLong:(uintptr_t)method_getImplementation(methods[i])],
+        @"address": [NSNumber numberWithLong:STRIP_PAC(method_getImplementation(methods[i]))],
         @"is_class": @NO,
         @"type": [NSString stringWithCString:method_getTypeEncoding(methods[i]) encoding:NSUTF8StringEncoding],
         @"return_type": [NSString stringWithCString:methodReturnType encoding:NSUTF8StringEncoding],

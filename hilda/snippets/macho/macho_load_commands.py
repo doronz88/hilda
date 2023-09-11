@@ -1,3 +1,5 @@
+from typing import List
+
 import lldb
 from construct import Array, Bytes, Enum, Hex, Int8ul, Int32ul, Int64ul, PaddedString, Pointer, Seek, Struct, Switch, \
     Tell, this
@@ -261,7 +263,7 @@ class UnimplementedCommand(LoadCommand):
         return self.__str__()
 
 
-class LoadCommands(object):
+class LoadCommands:
     def __init__(self, load_commands_data):
         self.__load_commands = []
         for load_command_data in load_commands_data:
@@ -285,20 +287,20 @@ class LoadCommands(object):
         return self.__load_commands
 
     @property
-    def segment_commands(self):
+    def segment_commands(self) -> List[Segment64Command]:
         return [segment_command for segment_command in self.__load_commands if
                 isinstance(segment_command, Segment64Command)]
 
     @property
-    def dylib_commands(self):
+    def dylib_commands(self) -> List[DylibCommand]:
         return [dylib_command for dylib_command in self.__load_commands if isinstance(dylib_command, DylibCommand)]
 
-    def find(self, predicate=None):
+    def find(self, predicate=None) -> List[LoadCommand]:
         if predicate is None:
             return self.__load_commands
 
         matching_load_commands = []
-        for load_command in self.load_commands:
+        for load_command in self.__load_commands:
             if predicate(load_command):
                 matching_load_commands.append(load_command)
 

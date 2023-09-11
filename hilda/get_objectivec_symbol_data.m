@@ -16,12 +16,12 @@ NSDictionary *objectData = @{
     @"class_super": [NSNumber numberWithLong:(uintptr_t)class_getSuperclass(objcClass)],
 };
 
-id *protocols = class_copyProtocolList(objcClass, &outCount);
+id *protocolList = class_copyProtocolList(objcClass, &outCount);
 for (i = 0; i < outCount; ++i) {
-    [objectData[@"protocols"] addObject: [NSString stringWithCString:protocol_getName(protocols[i]) encoding:NSUTF8StringEncoding]];
+    [objectData[@"protocols"] addObject: [NSString stringWithCString:protocol_getName(protocolList[i]) encoding:NSUTF8StringEncoding]];
 }
-if (protocols) {
-    free(protocols);
+if (protocolList) {
+    free(protocolList);
 }
 
 Ivar *ivars = class_copyIvarList(objcClass, &outCount);

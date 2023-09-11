@@ -51,7 +51,7 @@ def from_xpc_object(address: int):
     Convert XPC object to python object.
     :param address: Address of XPC object.
     """
-    return lldb.hilda_client.from_ns(f'_CFXPCCreateCFObjectFromXPCObject({address})')
+    return lldb.hilda_client.decode_cf(f'_CFXPCCreateCFObjectFromXPCObject({address})')
 
 
 def disable_transaction_exit() -> None:

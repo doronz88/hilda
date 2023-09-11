@@ -1,9 +1,12 @@
 import os
 import struct
 from contextlib import contextmanager
+from typing import Any, Optional
 
+import lldb
 from construct import FormatField
 
+from hilda.common import CfSerializable
 from hilda.objective_c_class import Class
 
 ADDRESS_SIZE_TO_STRUCT_FORMAT = {1: 'B', 2: 'H', 4: 'I', 8: 'Q'}
@@ -78,7 +81,7 @@ class Symbol(int):
         return self._file_address
 
     @property
-    def objc_class(self):
+    def objc_class(self) -> Class:
         """
         Get the objc class of the respected symbol
         :return: Class
@@ -94,7 +97,7 @@ class Symbol(int):
         return self._client.objc_symbol(self)
 
     @property
-    def cf_description(self):
+    def cf_description(self) -> str:
         """
         Get output from CFCopyDescription()
         :return: CFCopyDescription()'s output as a string
@@ -102,7 +105,7 @@ class Symbol(int):
         return self._client.symbols.CFCopyDescription(self).po()
 
     @contextmanager
-    def change_item_size(self, new_item_size: int):
+    def change_item_size(self, new_item_size: int) -> None:
         """
         Temporarily change item size
         :param new_item_size: Temporary item size
@@ -114,38 +117,41 @@ class Symbol(int):
         finally:
             self.item_size = save_item_size
 
-    def peek(self, count):
+    def py(self) -> CfSerializable:
+        return self._client.decode_cf(self)
+
+    def peek(self, count: int):
         return self._client.peek(self, count)
 
-    def poke(self, buf):
+    def poke(self, buf: bytes) -> None:
         return self._client.poke(self, buf)
 
     def poke_text(self, code: str) -> int:
         return self._client.poke_text(self, code)
 
-    def peek_str(self):
+    def peek_str(self) -> str:
         return self._client.peek_str(self)
 
-    def monitor(self, **args):
+    def monitor(self, **args) -> lldb.SBBreakpoint:
         return self._client.monitor(self, **args)
 
-    def bp(self, callback=None, **args):
+    def bp(self, callback=None, **args) -> lldb.SBBreakpoint:
         return self._client.bp(self, callback, **args)
 
-    def disass(self, size, **args):
+    def disass(self, size, **args) -> lldb.SBInstructionList:
         return self._client.disass(self, self.peek(size), **args)
 
-    def po(self, cast=None):
+    def po(self, cast: Optional[str] = None) -> str:
         return self._client.po(self, cast=cast)
 
-    def objc_call(self, selector, *params):
+    def objc_call(self, selector: str, *params) -> Any:
         return self._client.objc_call(self, selector, *params)
 
-    def close(self):
+    def close(self) -> None:
         """ Construct compliance. """
         pass
 
-    def seek(self, offset, whence=os.SEEK_SET):
+    def seek(self, offset: int, whence: int = os.SEEK_SET) -> None:
         """ Construct compliance. """
         if whence == os.SEEK_CUR:
             self._offset += offset
@@ -154,19 +160,19 @@ class Symbol(int):
         else:
             raise IOError('Unsupported whence')
 
-    def read(self, count):
+    def read(self, count: int) -> bytes:
         """ Construct compliance. """
         val = (self + self._offset).peek(count)
         self._offset += count
         return val
 
-    def write(self, buf):
+    def write(self, buf: bytes) -> int:
         """ Construct compliance. """
         val = (self + self._offset).poke(buf)
         self._offset += len(buf)
         return val
 
-    def tell(self):
+    def tell(self) -> int:
         """ Construct compliance. """
         return self + self._offset
 

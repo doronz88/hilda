@@ -10,7 +10,7 @@ import coloredlogs
 coloredlogs.install(level=logging.DEBUG)
 
 
-def disable_logs():
+def disable_logs() -> None:
     logging.getLogger('asyncio').disabled = True
     logging.getLogger('parso.cache').disabled = True
     logging.getLogger('parso.cache.pickle').disabled = True
@@ -19,11 +19,11 @@ def disable_logs():
     logging.getLogger('blib2to3.pgen2.driver').disabled = True
 
 
-def tunnel_local_port(port):
+def tunnel_local_port(port: int) -> None:
     execute(f'python3 -m pymobiledevice3 usbmux forward {port} {port} -d')
 
 
-def execute(cmd):
+def execute(cmd: str) -> None:
     logging.debug(f'executing: {cmd}')
     return os.system(cmd)
 

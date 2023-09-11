@@ -17,7 +17,7 @@ def hilda(debugger, command, result, internal_dict):
         lldb.hilda_client = HildaClient(debugger)
 
     additional_namespace = {'ui': lldb.hilda_client.ui_manager}
-    lldb.hilda_client.interactive(additional_namespace=additional_namespace)
+    lldb.hilda_client.interact(additional_namespace=additional_namespace)
 
 
 def __lldb_init_module(debugger, internal_dict):

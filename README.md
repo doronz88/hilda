@@ -1,5 +1,4 @@
 - [Description](#description)
-- [Example](#example)
 - [Installation](#installation)
 - [How to use](#how-to-use)
     * [Starting a Hilda shell](#starting-a-hilda-shell)
@@ -37,12 +36,6 @@ Pull requests are more than welcome 😊.
 
 If you need help or have an amazing idea you would like to suggest, feel free
 to [start a discussion 💬](https://github.com/doronz88/hilda/discussions).
-
-# Example
-
-![](gifs/example.gif)
-
-More examples can be found under the [gifs folder](gifs/).
 
 # Installation
 
@@ -137,128 +130,169 @@ For this to work, you will need to make sure of the following:
     hilda remote PROCESS_NAME SSH_PORT --hostname <DEVICE_IP_ADDRESS>
     ```
 
-## Commands
+## Usage
 
-Commands are just global python functions you can access any time. It's really advised to first get a good overview over
-them before start using, so you take full advantage of everything Hilda has to offer.
-
-Given below is a list of them:
+Upon starting Hilda shell, you are greeted with:
 
 ```
-👾 hd - Print an hexdump of given buffer
-👾 lsof - Get dictionary of all open FDs
-👾 bt - Print an improved backtrace.
-👾 disable_jetsam_memory_checks - Disable jetsam memory checks, prevent raising:
-    `error: Execution was interrupted, reason: EXC_RESOURCE RESOURCE_TYPE_MEMORY (limit=15 MB, unused=0x0).`
-    when evaluating expression.
-👾 symbol - Get symbol object for a given address
-👾 objc_symbol - Get objc symbol wrapper for given address
-👾 inject - Inject a single library into currently running process
-👾 rebind_symbols - Reparse all loaded images symbols
-👾 poke - Write data at given address
-👾 peek - Read data at given address
-👾 peek_str - Peek a buffer till null termination
-👾 stop - Stop process.
-👾 cont - Continue process.
-👾 detach - Detach from process.
-    Useful in order to exit gracefully so process doesn't get killed
-    while you exit
-👾 disass - Print disassembly from a given address
-👾 file_symbol - Calculate symbol address without ASLR
-👾 get_register - Get value for register by its name
-👾 set_register - Set value for register by its name
-👾 objc_call - Simulate a call to an objc selector
-👾 call - Call function at given address with given parameters
-👾 monitor - Monitor every time a given address is called
-    The following options are available:
-        regs={reg1: format}
-            will print register values
-
-            Available formats:
-                x: hex
-                s: string
-                cf: use CFCopyDescription() to get more informative description of the object
-                po: use LLDB po command
-                User defined function, will be called like `format_function(hilda_client, value)`.
-
-            For example:
-                regs={'x0': 'x'} -> x0 will be printed in HEX format
-        expr={lldb_expression: format}
-            lldb_expression can be for example '$x0' or '$arg1'
-            format behaves just like 'regs' option
-        retval=format
-            Print function's return value. The format is the same as regs format.
-        stop=True
-            force a stop at every hit
-        bt=True
-            print backtrace
-        cmd=[cmd1, cmd2]
-            run several LLDB commands, one by another
-        force_return=value
-            force a return from function with the specified value
-        name=some_value
-            use `some_name` instead of the symbol name automatically extracted from the calling frame
-        override=True
-            override previous break point at same location
-👾 show_current_source - print current source code if possible
-👾 finish - Run current frame till its end.
-👾 step_into - Step into current instruction.
-👾 step_over - Step over current instruction.
-👾 remove_all_hilda_breakpoints - Remove all breakpoints created by Hilda
-👾 remove_hilda_breakpoint - Remove a single breakpoint placed by Hilda
-👾 force_return - Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
-    yielding a specified value.
-👾 proc_info - Print information about currently running mapped process.
-👾 print_proc_entitlements - Get the plist embedded inside the process' __LINKEDIT section.
-👾 bp - Add a breakpoint
-👾 show_hilda_breakpoints - Show existing breakpoints created by Hilda.
-👾 show_commands - Show available commands.
-👾 save - Save loaded symbols map (for loading later using the load() command)
-👾 load - Load an existing symbols map (previously saved by the save() command)
-👾 po - Print given object using LLDB's po command
-    Can also run big chunks of native code:
-
-    po('NSMutableString *s = [NSMutableString string]; [s appendString:@"abc"]; [s description]')
-👾 globalize_symbols - Make all symbols in python's global scope
-👾 jump - jump to given symbol
-👾 lldb_handle_command - Execute an LLDB command
-    For example:
-        lldb_handle_command('register read')
-👾 objc_get_class - Get ObjC class object
-👾 CFSTR - Create CFStringRef object from given string
-👾 ns - Create NSObject from given data
-👾 from_ns - Create python object from NS object.
-👾 evaluate_expression - Wrapper for LLDB's EvaluateExpression.
-    Used for quick code snippets.
-
-    Feel free to use local variables inside the expression using format string.
-    For example:
-        currentDevice = objc_get_class('UIDevice').currentDevice
-        evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
-👾 import_module - Import & reload given python module (intended mainly for external snippets)
-👾 set_evaluation_unwind - Set whether LLDB will attempt to unwind the stack whenever an expression evaluation error occurs.
-    Use unwind() to restore when an error is raised in this case.
-👾 get_evaluation_unwind - Get evaluation unwind state.
-    When this value is True, LLDB will attempt unwinding the stack on evaluation errors.
-    Otherwise, the stack frame will remain the same on errors to help you investigate the error.
-👾 set_evaluation_ignore_breakpoints - Set whether to ignore breakpoints while evaluating expressions
-👾 get_evaluation_ignore_breakpoints - Get evaluation "ignore-breakpoints" state.
-👾 unwind - Unwind the stack (useful when get_evaluation_unwind() == False)
+Hilda has been successfully loaded! 😎
+Use the p global to access all features.
+Have a nice flight ✈️! Starting an IPython shell...
 ```
 
-In order to view them within Hilda, please execute:
+Here is a gist of methods you can access from `p`:
 
-```python
-show_commands()
-```
+- `hd`
+    - Print an hexdump of given buffer
+- `lsof`
+    - Get dictionary of all open FDs
+- `bt`
+    - Print an improved backtrace.
+- `disable_jetsam_memory_checks`
+    - Disable jetsam memory checks, prevent raising:
+      `error: Execution was interrupted, reason: EXC_RESOURCE RESOURCE_TYPE_MEMORY (limit=15 MB, unused=0x0).`
+      when evaluating expression.
+- `symbol`
+    - Get symbol object for a given address
+- `objc_symbol`
+    - Get objc symbol wrapper for given address
+- `inject`
+    - Inject a single library into currently running process
+- `rebind_symbols`
+    - Reparse all loaded images symbols
+- `poke`
+    - Write data at given address
+- `peek`
+    - Read data at given address
+- `peek_str`
+    - Peek a buffer till null termination
+- `stop`
+    - Stop process.
+- `cont`
+    - Continue process.
+- `detach`
+    - Detach from process.
+      Useful in order to exit gracefully so process doesn't get killed
+      while you exit
+- `disass`
+    - Print disassembly from a given address
+- `file_symbol`
+    - Calculate symbol address without ASLR
+- `get_register`
+    - Get value for register by its name
+- `set_register`
+    - Set value for register by its name
+- `objc_call`
+    - Simulate a call to an objc selector
+- `call`
+    - Call function at given address with given parameters
+- `monitor`
+    - Monitor every time a given address is called
+      The following options are available:
+      ```
+      regs={reg1: format}
+      will print register values
+  
+               Available formats:
+                   x: hex
+                   s: string
+                   cf: use CFCopyDescription() to get more informative description of the object
+                   po: use LLDB po command
+                   User defined function, will be called like `format_function(hilda_client, value)`.
+  
+               For example:
+                   regs={'x0': 'x'} -> x0 will be printed in HEX format
+           expr={lldb_expression: format}
+               lldb_expression can be for example '$x0' or '$arg1'
+               format behaves just like 'regs' option
+           retval=format
+               Print function's return value. The format is the same as regs format.
+           stop=True
+               force a stop at every hit
+           bt=True
+               print backtrace
+           cmd=[cmd1, cmd2]
+               run several LLDB commands, one by another
+           force_return=value
+               force a return from function with the specified value
+           name=some_value
+               use `some_name` instead of the symbol name automatically extracted from the calling frame
+           override=True
+               override previous break point at same location
+      ```
+- `show_current_source`
+    - print current source code if possible
+- `finish`
+    - Run current frame till its end.
+- `step_into`
+    - Step into current instruction.
+- `step_over`
+    - Step over current instruction.
+- `remove_all_hilda_breakpoints`
+    - Remove all breakpoints created by Hilda
+- `remove_hilda_breakpoint`
+    - Remove a single breakpoint placed by Hilda
+- `force_return`
+    - Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
+      yielding a specified value.
+- `proc_info`
+    - Print information about currently running mapped process.
+- `print_proc_entitlements`
+    - Get the plist embedded inside the process' __LINKEDIT section.
+- `bp`
+    - Add a breakpoint
+- `show_hilda_breakpoints`
+    - Show existing breakpoints created by Hilda.
+- `show_commands`
+    - Show available commands.
+- `save`
+    - Save loaded symbols map (for loading later using the load() command)
+- `load`
+    - Load an existing symbols map (previously saved by the save() command)
+- `po`
+    - Print given object using LLDB's po command
+      Can also run big chunks of native code:
 
-If you just want help for a specific one... Hmm.. for example the `stop` command, you can just use IPython's
-capabilities:
+      po('NSMutableString *s = [NSMutableString string]; [s appendString:@"abc"]; [s description]')
+- `globalize_symbols`
+    - Make all symbols in python's global scope
+- `jump`
+    - jump to given symbol
+- `lldb_handle_command`
+    - Execute an LLDB command
+      For example:
+      lldb_handle_command('register read')
+- `objc_get_class`
+    - Get ObjC class object
+- `CFSTR`
+    - Create CFStringRef object from given string
+- `ns`
+    - Create NSObject from given data
+- `from_ns`
+    - Create python object from NS object.
+- `evaluate_expression`
+    - Wrapper for LLDB's EvaluateExpression.
+      Used for quick code snippets.
 
-```python
-# execute the following to print the command's documentation
-stop?
-```
+      Feel free to use local variables inside the expression using format string.
+      For example:
+      currentDevice = objc_get_class('UIDevice').currentDevice
+      evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
+- `import_module`
+    - Import & reload given python module (intended mainly for external snippets)
+- `set_evaluation_unwind`
+    - Set whether LLDB will attempt to unwind the stack whenever an expression evaluation error occurs.
+      Use unwind() to restore when an error is raised in this case.
+- `get_evaluation_unwind`
+    - Get evaluation unwind state.
+      When this value is True, LLDB will attempt unwinding the stack on evaluation errors.
+      Otherwise, the stack frame will remain the same on errors to help you investigate the error.
+- `set_evaluation_ignore_breakpoints`
+    - Set whether to ignore breakpoints while evaluating expressions
+- `get_evaluation_ignore_breakpoints`
+    - Get evaluation "ignore-breakpoints" state.
+- `unwind`
+    - Unwind the stack (useful when get_evaluation_unwind() == False)
 
 ## UI Configuration
 
@@ -288,7 +322,7 @@ ui.active = False
 Attentively, if you want to display UI after hitting a breakpoint, you can register `ui.show` as callback:
 
 ```python
-symbol(0x7ff7b97c21b0).bp(ui.show)
+p.symbol(0x7ff7b97c21b0).bp(ui.show)
 ```
 
 Try playing with the UI settings by yourself:
@@ -327,18 +361,18 @@ encapsulated with an object allowing to deref the memory inside, or use these ad
 In order to create a symbol from a given address, please use:
 
 ```python
-s = symbol(0x12345678)
+s = p.symbol(0x12345678)
 
 # the Symbol object extends `int`
 True == isinstance(s, int)
 
-# print print the un-shifted file address 
+# print the un-shifted file address 
 # (calculating the ASLR shift for you, so you can just view it in IDA)
 print(s.file_address)
 
 # or.. if you know the file address, but don't wanna mess
 # with ASLR calculations
-s = file_symbol(0x12345678)
+s = p.file_symbol(0x12345678)
 
 # peek(/read) 20 bytes of memory
 print(s.peek(20))
@@ -376,10 +410,10 @@ s[0] = 1
 
 # storing the return value of the function executed at `0x11223344`
 # into `*s`
-s[0] = symbol(0x11223344)()  # calling symbols also returns symbols 
+s[0] = p.symbol(0x11223344)()  # calling symbols also returns symbols 
 
 # attempt to resolve symbol's name
-print(symbol(0x11223344).lldb_symbol)
+print(p.symbol(0x11223344).lldb_symbol)
 
 # monitor each time a symbol is called into console and print its backtrace (`bt` option)
 # this will create a scripted breakpoint which prints your desired data and continue
@@ -428,7 +462,7 @@ to `dict` for accessing all exported symbols. For example, the following will ge
 `malloc` function with `20` as its only argument:
 
 ```python
-x = symbols.malloc(20)
+x = p.symbols.malloc(20)
 ```
 
 You can also just write their name as if they already were in the global scope. Hilda will check if no name collision
@@ -438,7 +472,7 @@ exists, and if so, will perform the following lazily for you:
 x = malloc(20)
 
 # is equivalent to:
-malloc = symbols.malloc
+malloc = p.symbols.malloc
 x = malloc(20)
 ```
 
@@ -451,11 +485,11 @@ For that reason alone, we have the `rebind_symbols()`
 command - to help you find the symbol you are looking for.
 
 ```python
-rebind_symbols()  # this might take some time
+p.rebind_symbols()  # this might take some time
 
 # find all symbols prefixed as `mem*` AND don't have `cpy`
 # in their name
-jar = symbols.startswith('mem') - symbols.find('cpy')
+jar = p.symbols.startswith('mem') - p.symbols.find('cpy')
 
 # filter only symbols of type "code" (removing data global for example)
 jar = jar.code()
@@ -473,7 +507,7 @@ The same as symbols applies to Objective-C classes name resolution. You can eith
 d = NSDictionary.new()  # call its `new` selector
 
 # which is equivalent to:
-NSDictionary = objc_get_class('NSDictionary')
+NSDictionary = p.objc_get_class('NSDictionary')
 d = NSDictionary.new()
 ```
 
@@ -562,19 +596,19 @@ function_requiring_a_specfic_dictionary(ns({
 }))
 
 # and also parse one
-normal_python_dict = from_ns(ns({
+normal_python_dict = p.cf({
     'key1': 'string',  # will convert to NSString
     'key2': True,  # will convert to NSNumber
     'key3': b'1234',  # will convert to NSData
     'key4': datetime.datetime(2021, 1, 1)  # will convert to NSDate
-}))
+}).py()
 ```
 
 On last resort, if the object is not serializable for this to work, you can just run pure Objective-C code:
 
 ```python
 # let LLDB compile and execute the expression
-abc_string = evaluate_expression('[NSString stringWithFormat:@"abc"]')
+abc_string = p.evaluate_expression('[NSString stringWithFormat:@"abc"]')
 
 # will print "abc"
 print(abc_string.po())
@@ -607,7 +641,7 @@ This will monitor all XPC related traffic in the given process.
 Please run the tests as follows before submitting a PR:
 
 ```shell
-xcrun python3 -m tests aggregated <ssh_port>
+xcrun python3 -m tests aggregated
 
 # wait for lldb shell prompt
 

@@ -7,17 +7,15 @@ import json
 import logging
 import os
 import pickle
-import textwrap
 import time
 import typing
 from collections import namedtuple
 from contextlib import contextmanager, suppress
 from datetime import datetime, timezone
-from functools import cached_property, partial
+from functools import cached_property
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
-import docstring_parser
 import hexdump
 import IPython
 import lldb
@@ -30,7 +28,7 @@ from tqdm import tqdm
 from traitlets.config import Config
 
 from hilda import objective_c_class
-from hilda.command import CommandsMeta, command
+from hilda.common import CfSerializable
 from hilda.exceptions import AccessingMemoryError, AccessingRegisterError, AddingLldbSymbolError, \
     BrokenLocalSymbolsJarError, ConvertingFromNSObjectError, ConvertingToNsObjectError, CreatingObjectiveCSymbolError, \
     DisableJetsamMemoryChecksError, EvaluatingExpressionError, HildaException, SymbolAbsentError
@@ -49,16 +47,6 @@ except ImportError:
     lldb.KEYSTONE_SUPPORT = False
     print('failed to import keystone. disabling some features')
 
-IsaMagic = namedtuple('IsaMagic', 'mask value')
-ISA_MAGICS = [
-    # ARM64
-    IsaMagic(mask=0x000003f000000001, value=0x000001a000000001),
-    # X86_64
-    IsaMagic(mask=0x001f800000000001, value=0x001d800000000001),
-]
-# Mask for tagged pointer, from objc-internal.h
-OBJC_TAG_MASK = (1 << 63)
-
 with open(os.path.join(Path(__file__).resolve().parent, 'hilda_ascii_art.html'), 'r') as f:
     hilda_art = f.read()
 
@@ -66,14 +54,14 @@ GREETING = f"""
 {hilda_art}
 
 <b>Hilda has been successfully loaded! 😎
-Also, please review the show_commands() function.
+Use the <span style="color: magenta">p</span> global to access all features.
 Have a nice flight ✈️! Starting an IPython shell...
 """
 
 SerializableSymbol = namedtuple('SerializableSymbol', 'address type_ filename')
 
 
-class HildaClient(metaclass=CommandsMeta):
+class HildaClient:
     Breakpoint = namedtuple('Breakpoint', 'address options forced callback')
 
     RETVAL_BIT_COUNT = 64
@@ -109,7 +97,6 @@ class HildaClient(metaclass=CommandsMeta):
         self.log_info(f'Target: {self.target}')
         self.log_info(f'Process: {self.process}')
 
-    @command()
     def hd(self, buf):
         """
         Print an hexdump of given buffer
@@ -117,7 +104,6 @@ class HildaClient(metaclass=CommandsMeta):
         """
         print(hexdump.hexdump(buf))
 
-    @command()
     def lsof(self) -> dict:
         """
         Get dictionary of all open FDs
@@ -128,7 +114,6 @@ class HildaClient(metaclass=CommandsMeta):
         # convert FDs into int
         return {int(k): v for k, v in result.items()}
 
-    @command()
     def bt(self, should_print=True, depth: Optional[int] = None) -> List:
         """ Print an improved backtrace. """
         backtrace = []
@@ -146,7 +131,6 @@ class HildaClient(metaclass=CommandsMeta):
                 print(row)
         return backtrace
 
-    @command()
     def disable_jetsam_memory_checks(self):
         """
         Disable jetsam memory checks, prevent raising:
@@ -158,7 +142,6 @@ class HildaClient(metaclass=CommandsMeta):
         if result:
             raise DisableJetsamMemoryChecksError()
 
-    @command()
     def symbol(self, address):
         """
         Get symbol object for a given address
@@ -167,7 +150,6 @@ class HildaClient(metaclass=CommandsMeta):
         """
         return Symbol.create(address, self)
 
-    @command()
     def objc_symbol(self, address) -> ObjectiveCSymbol:
         """
         Get objc symbol wrapper for given address
@@ -179,7 +161,6 @@ class HildaClient(metaclass=CommandsMeta):
         except HildaException as e:
             raise CreatingObjectiveCSymbolError from e
 
-    @command()
     def inject(self, filename):
         """
         Inject a single library into currently running process
@@ -215,7 +196,6 @@ class HildaClient(metaclass=CommandsMeta):
             injected[name] = self.symbol(load_addr)
         return injected
 
-    @command()
     def rebind_symbols(self, image_range=None, filename_expr=''):
         """
         Reparse all loaded images symbols
@@ -241,7 +221,6 @@ class HildaClient(metaclass=CommandsMeta):
         globals()['symbols'] = self.symbols
         self._symbols_loaded = True
 
-    @command()
     def poke(self, address, buf: bytes):
         """
         Write data at given address
@@ -256,7 +235,6 @@ class HildaClient(metaclass=CommandsMeta):
 
         return retval
 
-    @command()
     def poke_text(self, address: int, code: str) -> int:
         """
         Write instructions to address.
@@ -268,7 +246,6 @@ class HildaClient(metaclass=CommandsMeta):
         bytecode, count = self._ks.asm(code, as_bytes=True)
         return self.poke(address, bytecode)
 
-    @command()
     def peek(self, address, size: int) -> bytes:
         """
         Read data at given address
@@ -287,7 +264,6 @@ class HildaClient(metaclass=CommandsMeta):
 
         return retval
 
-    @command()
     def peek_str(self, address: Symbol) -> str:
         """
         Peek a buffer till null termination
@@ -296,7 +272,6 @@ class HildaClient(metaclass=CommandsMeta):
         """
         return address.po('char *')[1:-1]  # strip the ""
 
-    @command()
     def stop(self):
         """ Stop process. """
         self.debugger.SetAsync(False)
@@ -309,7 +284,6 @@ class HildaClient(metaclass=CommandsMeta):
         if not self.process.Stop().Success():
             self.log_critical('failed to stop process')
 
-    @command()
     def cont(self):
         """ Continue process. """
         is_running = self.process.GetState() == lldb.eStateRunning
@@ -325,7 +299,6 @@ class HildaClient(metaclass=CommandsMeta):
         if not self.process.Continue().Success():
             self.log_critical('failed to continue process')
 
-    @command()
     def detach(self):
         """
         Detach from process.
@@ -336,7 +309,6 @@ class HildaClient(metaclass=CommandsMeta):
         if not self.process.Detach().Success():
             self.log_critical('failed to detach')
 
-    @command()
     def disass(self, address, buf, flavor='intel', should_print=True) -> lldb.SBInstructionList:
         """
         Print disassembly from a given address
@@ -351,7 +323,6 @@ class HildaClient(metaclass=CommandsMeta):
             print(inst)
         return inst
 
-    @command()
     def file_symbol(self, address) -> Symbol:
         """
         Calculate symbol address without ASLR
@@ -359,7 +330,6 @@ class HildaClient(metaclass=CommandsMeta):
         """
         return self.symbol(self.target.ResolveFileAddress(address).GetLoadAddress(self.target))
 
-    @command()
     def get_register(self, name) -> Symbol:
         """
         Get value for register by its name
@@ -371,7 +341,6 @@ class HildaClient(metaclass=CommandsMeta):
             raise AccessingRegisterError()
         return self.symbol(register.unsigned)
 
-    @command()
     def set_register(self, name, value):
         """
         Set value for register by its name
@@ -384,7 +353,6 @@ class HildaClient(metaclass=CommandsMeta):
             raise AccessingRegisterError()
         register.value = hex(value)
 
-    @command()
     def objc_call(self, obj, selector, *params):
         """
         Simulate a call to an objc selector
@@ -403,7 +371,6 @@ class HildaClient(metaclass=CommandsMeta):
         with self.stopped():
             return self.evaluate_expression(call_expression)
 
-    @command()
     def call(self, address, argv: list = None):
         """
         Call function at given address with given parameters
@@ -417,7 +384,6 @@ class HildaClient(metaclass=CommandsMeta):
         with self.stopped():
             return self.evaluate_expression(call_expression)
 
-    @command()
     def monitor(self, address, condition: str = None, **options) -> lldb.SBBreakpoint:
         """
         Monitor every time a given address is called
@@ -514,19 +480,16 @@ class HildaClient(metaclass=CommandsMeta):
 
         return self.bp(address, callback, condition=condition, **options)
 
-    @command()
     def show_current_source(self):
         """ print current source code if possible """
         self.lldb_handle_command('f')
 
-    @command()
     def finish(self):
         """ Run current frame till its end. """
         with self.sync_mode():
             self.thread.StepOutOfFrame(self.frame)
             self._bp_frame = None
 
-    @command()
     def step_into(self):
         """ Step into current instruction. """
         with self.sync_mode():
@@ -534,7 +497,6 @@ class HildaClient(metaclass=CommandsMeta):
         if self.ui_manager.active:
             self.ui_manager.show()
 
-    @command()
     def step_over(self):
         """ Step over current instruction. """
         with self.sync_mode():
@@ -542,7 +504,6 @@ class HildaClient(metaclass=CommandsMeta):
         if self.ui_manager.active:
             self.ui_manager.show()
 
-    @command()
     def remove_all_hilda_breakpoints(self, remove_forced=False):
         """
         Remove all breakpoints created by Hilda
@@ -553,7 +514,6 @@ class HildaClient(metaclass=CommandsMeta):
             if remove_forced or not bp.forced:
                 self.remove_hilda_breakpoint(bp_id)
 
-    @command()
     def remove_hilda_breakpoint(self, bp_id):
         """
         Remove a single breakpoint placed by Hilda
@@ -563,7 +523,6 @@ class HildaClient(metaclass=CommandsMeta):
         del self.breakpoints[bp_id]
         self.log_info(f'BP #{bp_id} has been removed')
 
-    @command()
     def force_return(self, value=0):
         """
         Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
@@ -574,12 +533,10 @@ class HildaClient(metaclass=CommandsMeta):
         self.finish()
         self.set_register('x0', value)
 
-    @command()
     def proc_info(self):
         """ Print information about currently running mapped process. """
         print(self.process)
 
-    @command()
     def print_proc_entitlements(self):
         """ Get the plist embedded inside the process' __LINKEDIT section. """
         linkedit_section = self.target.modules[0].FindSection('__LINKEDIT')
@@ -590,7 +547,6 @@ class HildaClient(metaclass=CommandsMeta):
         entitlements = str(linkedit_data[linkedit_data.find(b'<?xml'):].split(b'\xfa', 1)[0], 'utf8')
         print(highlight(entitlements, XmlLexer(), TerminalTrueColorFormatter()))
 
-    @command()
     def bp(self, address, callback=None, condition: str = None, forced=False, **options) -> lldb.SBBreakpoint:
         """
         Add a breakpoint
@@ -639,7 +595,6 @@ class HildaClient(metaclass=CommandsMeta):
         finally:
             self._bp_frame = None
 
-    @command()
     def show_hilda_breakpoints(self):
         """ Show existing breakpoints created by Hilda. """
         for bp_id, bp in self.breakpoints.items():
@@ -647,16 +602,6 @@ class HildaClient(metaclass=CommandsMeta):
             print(f'\tAddress: 0x{bp.address:x}')
             print(f'\tOptions: {bp.options}')
 
-    @command()
-    def show_commands(self):
-        """ Show available commands. """
-        for command_name, command_func in self.commands:
-            doc = docstring_parser.parse(command_func.__doc__)
-            print(f'👾 {command_name} - {doc.short_description}')
-            if doc.long_description:
-                print(textwrap.indent(doc.long_description, '    '))
-
-    @command()
     def save(self, filename=None):
         """
         Save loaded symbols map (for loading later using the load() command)
@@ -675,7 +620,6 @@ class HildaClient(metaclass=CommandsMeta):
                                                      filename=v.filename)
             pickle.dump(symbols_copy, f)
 
-    @command()
     def load(self, filename=None):
         """
         Load an existing symbols map (previously saved by the save() command)
@@ -701,7 +645,6 @@ class HildaClient(metaclass=CommandsMeta):
             self.init_dynamic_environment()
             self._symbols_loaded = True
 
-    @command()
     def po(self, expression, cast=None):
         """
         Print given object using LLDB's po command
@@ -726,7 +669,6 @@ class HildaClient(metaclass=CommandsMeta):
             raise EvaluatingExpressionError(res.GetError())
         return res.GetOutput().strip()
 
-    @command()
     def globalize_symbols(self):
         """
         Make all symbols in python's global scope
@@ -740,12 +682,10 @@ class HildaClient(metaclass=CommandsMeta):
                     and '.' not in name:
                 self._add_global(name, value, reserved_names)
 
-    @command()
     def jump(self, symbol: int):
         """ jump to given symbol """
         self.lldb_handle_command(f'j *{symbol}')
 
-    @command()
     def lldb_handle_command(self, cmd):
         """
         Execute an LLDB command
@@ -757,7 +697,6 @@ class HildaClient(metaclass=CommandsMeta):
         """
         self.debugger.HandleCommand(cmd)
 
-    @command()
     def objc_get_class(self, name) -> objective_c_class.Class:
         """
         Get ObjC class object
@@ -766,19 +705,21 @@ class HildaClient(metaclass=CommandsMeta):
         """
         return objective_c_class.Class.from_class_name(self, name)
 
-    @command()
-    def CFSTR(self, s):
-        """
-        Create CFStringRef object from given string
-        :param s: given string
-        :return:
-        """
-        return self.ns(s)
+    def CFSTR(self, symbol: int) -> Symbol:
+        """ Create CFStringRef object from given string """
+        return self.cf(symbol)
 
-    @command()
-    def ns(self, data) -> Symbol:
+    def cf(self, data: CfSerializable) -> Symbol:
         """
-        Create NSObject from given data
+        Create NSObject from given data (same as ns())
+        :param data: Data representing the NSObject, must by JSON serializable
+        :return: Pointer to a NSObject
+        """
+        return self.ns(data)
+
+    def ns(self, data: CfSerializable) -> Symbol:
+        """
+        Create NSObject from given data (same as cf())
         :param data: Data representing the NSObject, must by JSON serializable
         :return: Pointer to a NSObject
         """
@@ -787,16 +728,14 @@ class HildaClient(metaclass=CommandsMeta):
         except TypeError as e:
             raise ConvertingToNsObjectError from e
 
-        with open(os.path.join(Path(__file__).resolve().parent, 'to_ns_from_json.m'), 'r') as code_f:
-            obj_c_code = code_f.read()
+        obj_c_code = (Path(__file__).resolve().parent / 'to_ns_from_json.m').read_text()
         expression = obj_c_code.replace('__json_object_dump__', json_data.replace('"', r'\"'))
         try:
             return self.evaluate_expression(expression)
         except EvaluatingExpressionError as e:
             raise ConvertingToNsObjectError from e
 
-    @command()
-    def from_ns(self, address: Union[int, str]):
+    def decode_cf(self, address: Union[int, str]) -> CfSerializable:
         """
         Create python object from NS object.
         :param address: NS object.
@@ -812,7 +751,6 @@ class HildaClient(metaclass=CommandsMeta):
             raise ConvertingFromNSObjectError from e
         return json.loads(json_dump, object_hook=self._from_ns_json_object_hook)['root']
 
-    @command()
     def evaluate_expression(self, expression) -> Symbol:
         """
         Wrapper for LLDB's EvaluateExpression.
@@ -844,7 +782,6 @@ class HildaClient(metaclass=CommandsMeta):
 
         return self.symbol(e.unsigned)
 
-    @command()
     def import_module(self, filename, name=None):
         """
         Import & reload given python module (intended mainly for external snippets)
@@ -859,7 +796,6 @@ class HildaClient(metaclass=CommandsMeta):
         spec.loader.exec_module(m)
         return m
 
-    @command()
     def set_evaluation_unwind(self, value: bool):
         """
         Set whether LLDB will attempt to unwind the stack whenever an expression evaluation error occurs.
@@ -868,7 +804,6 @@ class HildaClient(metaclass=CommandsMeta):
         """
         self._evaluation_unwind_on_error = value
 
-    @command()
     def get_evaluation_unwind(self) -> bool:
         """
         Get evaluation unwind state.
@@ -878,21 +813,18 @@ class HildaClient(metaclass=CommandsMeta):
         """
         return self._evaluation_unwind_on_error
 
-    @command()
     def set_evaluation_ignore_breakpoints(self, value: bool):
         """
         Set whether to ignore breakpoints while evaluating expressions
         """
         self._evaluation_ignore_breakpoints = value
 
-    @command()
     def get_evaluation_ignore_breakpoints(self) -> bool:
         """
         Get evaluation "ignore-breakpoints" state.
         """
         return self._evaluation_ignore_breakpoints
 
-    @command()
     def unwind(self) -> bool:
         """ Unwind the stack (useful when get_evaluation_unwind() == False) """
         return self.thread.UnwindInnermostExpression().Success()
@@ -1029,26 +961,26 @@ class HildaClient(metaclass=CommandsMeta):
 
         return value
 
-    def interactive(self, additional_namespace: typing.Mapping = None):
+    def interact(self, additional_namespace: typing.Mapping = None) -> None:
         """ Start an interactive Hilda shell """
         if not self._dynamic_env_loaded:
             self.init_dynamic_environment()
-        self._globalize_commands()
         print('\n')
         self.log_info(html_to_ansi(GREETING))
 
-        c = Config()
-        c.IPCompleter.use_jedi = False
-        c.InteractiveShellApp.exec_lines = [
+        config = Config()
+        config.IPCompleter.use_jedi = True
+        config.InteractiveShellApp.exec_lines = [
             '''disable_logs()''',
             '''IPython.get_ipython().events.register('pre_run_cell', self._ipython_run_cell_hook)'''
         ]
         namespace = globals()
         namespace.update(locals())
+        namespace['p'] = self
         if additional_namespace is not None:
             namespace.update(additional_namespace)
 
-        IPython.start_ipython(config=c, user_ns=namespace)
+        IPython.start_ipython(config=config, user_ns=namespace)
 
     def is_objc_type(self, symbol: Symbol) -> bool:
         """
@@ -1063,7 +995,7 @@ class HildaClient(metaclass=CommandsMeta):
             return False
 
     @staticmethod
-    def _add_global(name, value, reserved_names=None):
+    def _add_global(name: str, value: Any, reserved_names=None):
         if reserved_names is None or name not in reserved_names:
             # don't override existing symbols
             globals()[name] = value
@@ -1130,16 +1062,6 @@ class HildaClient(metaclass=CommandsMeta):
             address = f'ptrauth_sign_unauthenticated((void *){address}, ptrauth_key_asia, 0)'
 
         return f'((intptr_t(*)({args_type}))({address}))({args_conv})'
-
-    def _globalize_commands(self):
-        """ Make all command available in global scope. """
-        reserved_names = list(globals().keys()) + dir(builtins)
-
-        for command_name, function in self.commands:
-            command_func = partial(function, self)
-            command_func.__doc__ = function.__doc__
-
-            self._add_global(command_name, command_func, reserved_names)
 
     def _ipython_run_cell_hook(self, info):
         """

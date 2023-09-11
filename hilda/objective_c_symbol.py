@@ -45,10 +45,10 @@ class ObjectiveCSymbol(Symbol):
         :rtype: ObjectiveCSymbol
         """
         symbol = super(ObjectiveCSymbol, cls).create(value, client)
-        symbol.ivars = []
-        symbol.properties = []
-        symbol.methods = []
-        symbol.class_ = None  # type: Class
+        symbol.ivars = []  # type: List[Ivar]
+        symbol.properties = []  # type: List[Property]
+        symbol.methods = []  # type: List[Method]
+        symbol.class_ = None  # type: Optional[Class]
         symbol.reload()
         return symbol
 

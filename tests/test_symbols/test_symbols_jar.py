@@ -34,6 +34,5 @@ def test_find(hilda_client):
     # populate the jar
     hilda_client.symbols.malloc
     hilda_client.symbols.rand
-    hilda_client.symbols.strlen
 
     assert 1 == len(hilda_client.symbols.clean().find('malloc')), 'expected to find only one'

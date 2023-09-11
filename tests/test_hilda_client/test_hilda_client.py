@@ -39,13 +39,13 @@ def test_lsof(hilda_client):
     temp_dir_url = hilda_client.objc_get_class('NSFileManager').defaultManager().objc_symbol.temporaryDirectory
     temp_url = temp_dir_url.URLByAppendingPathComponent_(hilda_client.ns('temp.txt')).objc_symbol
     c_file_path = temp_url.path.cString()
-    file_path = c_file_path.peek_str().decode()
+    file_path = c_file_path.peek_str()
     file_handle = hilda_client.symbols.mkstemp(c_file_path)
     max_path_len = hilda_client.evaluate_expression('PATH_MAX')
     try:
         with hilda_client.safe_malloc(max_path_len) as real_path:
             hilda_client.symbols.realpath(file_path, real_path)
-            assert hilda_client.lsof()[file_handle] == real_path.peek_str().decode()
+            assert hilda_client.lsof()[file_handle] == real_path.peek_str()
     finally:
         hilda_client.symbols.close(file_handle)
         hilda_client.symbols.unlink(file_path)

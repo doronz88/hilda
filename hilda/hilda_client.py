@@ -1050,33 +1050,17 @@ class HildaClient(metaclass=CommandsMeta):
 
         IPython.start_ipython(config=c, user_ns=namespace)
 
-    @staticmethod
-    def is_objc_type(symbol: Symbol) -> bool:
+    def is_objc_type(self, symbol: Symbol) -> bool:
         """
         Test if a given symbol represents an objc object
         :param symbol:
         :return:
         """
-        # Tagged pointers are ObjC objects
-        if symbol & OBJC_TAG_MASK == OBJC_TAG_MASK:
-            return True
-
-        # Class are not ObjC objects
-        for mask, value in ISA_MAGICS:
-            if symbol & mask == value:
-                return False
-
         try:
-            with symbol.change_item_size(8):
-                isa = symbol[0]
-        except HildaException:
+            self.symbols.CFGetTypeID(symbol)
+            return True
+        except EvaluatingExpressionError:
             return False
-
-        for mask, value in ISA_MAGICS:
-            if isa & mask == value:
-                return True
-
-        return False
 
     @staticmethod
     def _add_global(name, value, reserved_names=None):

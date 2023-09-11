@@ -4,7 +4,7 @@
     * [Starting a Hilda shell](#starting-a-hilda-shell)
         + [Bare mode](#bare-mode)
         + [Remote mode](#remote-mode)
-    * [Commands](#commands)
+    * [Usage](#usage)
     * [Symbol objects](#symbol-objects)
     * [Globalized symbols](#globalized-symbols)
         - [Searching for the right symbol](#searching-for-the-right-symbol)

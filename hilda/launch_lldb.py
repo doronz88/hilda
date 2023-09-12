@@ -94,6 +94,19 @@ def cli_attach(name: str, pid: int):
     attach(name=name, pid=pid)
 
 
+
+@cli.command('kernel')
+@click.option('-n', '--name', help='process name to attach')
+@click.option('-p', '--pid', type=click.INT, help='pid to attach')
+def cli_kernel(name: str, pid: int):
+    """ Attach to given process and start an lldb shell """
+    commands = []
+    commands.append(f'target create kernel')
+    commands.append('add-dsym kernel.dSYM/Contents/Resources/DWARF/kernel')
+    commands.append(f'command script import {os.path.join(Path(__file__).resolve().parent, "lldb_entrypoint.py")}')
+    commands = '\n'.join(commands)
+    execute(f'lldb --one-line "{commands}"')
+
 if __name__ == '__main__':
     disable_logs()
     cli()

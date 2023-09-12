@@ -22,9 +22,20 @@ class SymbolsJar(dict):
         if '{' in name:
             # remove module name from symbol
             name = name.split('{', 1)[0]
+
+
         for s in client.target.FindSymbols(name):
             with suppress(AddingLldbSymbolError):
                 return client.add_lldb_symbol(s.symbol)
+
+        for s in client.target.FindGlobalVariables(name, 0):
+            with suppress(AddingLldbSymbolError):
+                return client.add_lldb_symbol(s)
+
+        for s in client.target.FindGlobalFunctions(name, 1, 0):
+            with suppress(AddingLldbSymbolError):
+                return client.add_lldb_symbol(s)
+
         return None
 
     def __getitem__(self, item):
@@ -40,6 +51,14 @@ class SymbolsJar(dict):
             for s in client.target.FindSymbols(name):
                 with suppress(AddingLldbSymbolError):
                     return client.add_lldb_symbol(s.symbol)
+
+            for s in client.target.FindGlobalVariables(name, 0):
+                with suppress(AddingLldbSymbolError):
+                    return client.add_lldb_symbol(s)
+
+            for s in client.target.FindGlobalFunctions(name, 1, 0):
+                with suppress(AddingLldbSymbolError):
+                    return client.add_lldb_symbol(s)
             raise SymbolAbsentError(f'no such symbol: {name}')
 
         return self.get(name)

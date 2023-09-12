@@ -931,7 +931,7 @@ class HildaClient:
         """ Log at info level """
         self.logger.info(message)
 
-    def add_lldb_symbol(self, symbol: lldb.SBSymbol) -> Symbol:
+    def add_lldb_symbol(self, symbol: Union[lldb.SBSymbol, lldb.SBValue]) -> Symbol:
         """
         Convert an LLDB symbol into Hilda's symbol object and insert into `symbols` global
         :param symbol: LLDB symbol
@@ -946,12 +946,13 @@ class HildaClient:
         name = symbol.name
         type_ = symbol.GetType()
 
-        if name in ('<redacted>',) or (type_ not in (lldb.eSymbolTypeCode,
-                                                     lldb.eSymbolTypeRuntime,
-                                                     lldb.eSymbolTypeData,
-                                                     lldb.eSymbolTypeObjCMetaClass)):
-            # ignore unnamed symbols and those which are not in a really used type
-            raise AddingLldbSymbolError()
+        if isinstance(symbol, lldb.SBSymbol):
+            if name in ('<redacted>',) or (type_ not in (lldb.eSymbolTypeCode,
+                                                         lldb.eSymbolTypeRuntime,
+                                                         lldb.eSymbolTypeData,
+                                                         lldb.eSymbolTypeObjCMetaClass)):
+                # ignore unnamed symbols and those which are not in a really used type
+                raise AddingLldbSymbolError()
 
         value = self.symbol(load_addr)
 

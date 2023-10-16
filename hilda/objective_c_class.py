@@ -185,8 +185,7 @@ class Class(object):
                 if 'group_uuid' in bp.options and bp.options.get('group_uuid', '') == options['group_uuid']:
                     hilda.remove_hilda_breakpoint(bp_id)
             captured = hilda.evaluate_expression('$arg1')
-            if hilda.is_objc_type(captured):
-                captured = captured.objc_symbol
+            captured = captured.objc_symbol
             hilda.captured_objects[options['name'].split(' ')[0].split('[')[1]] = captured
             hilda.cont()
 

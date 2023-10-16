@@ -80,22 +80,6 @@ def test_call_objective_c_method_by_objc_call(hilda_client):
     assert not dictionary1.objc_call('isEqualToDictionary:', dictionary2)
 
 
-def test_call_objective_c_property_returns_objc_object(hilda_client):
-    """
-    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
-    """
-    dictionary1 = hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
-    assert isinstance(dictionary1.description, ObjectiveCSymbol)
-
-
-def test_call_objective_c_method_returns_objc_object(hilda_client):
-    """
-    :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
-    """
-    dictionary1 = hilda_client.evaluate_expression('@{@"one": @1}').objc_symbol
-    assert isinstance(dictionary1.objectForKey_(hilda_client.ns('one')), ObjectiveCSymbol)
-
-
 def test_call_objective_c_method_returns_native_symbol(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.

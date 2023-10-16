@@ -829,6 +829,10 @@ class HildaClient:
         """ Unwind the stack (useful when get_evaluation_unwind() == False) """
         return self.thread.UnwindInnermostExpression().Success()
 
+    @cached_property
+    def pid(self) -> int:
+        return self.process.GetProcessID()
+
     @property
     def thread(self):
         """ Current active thread. """
@@ -981,18 +985,6 @@ class HildaClient:
             namespace.update(additional_namespace)
 
         IPython.start_ipython(config=config, user_ns=namespace)
-
-    def is_objc_type(self, symbol: Symbol) -> bool:
-        """
-        Test if a given symbol represents an objc object
-        :param symbol:
-        :return:
-        """
-        try:
-            self.symbols.CFGetTypeID(symbol)
-            return True
-        except EvaluatingExpressionError:
-            return False
 
     @staticmethod
     def _add_global(name: str, value: Any, reserved_names=None):

@@ -1,6 +1,5 @@
 [project]
 name = "hilda"
-version = "1.1.0"
 description = "LLDB wrapped and empowered by iPython's features"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -24,9 +23,10 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3 :: Only",
 ]
-dynamic = ["dependencies"]
+dynamic = ["dependencies", "version"]
 
 [project.optional-dependencies]
 test = ["pytest"]
@@ -46,7 +46,11 @@ exclude = ["docs*", "tests*"]
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
+version = {attr = "hilda._version.__version__"}
+
+[tool.setuptools_scm]
+version_file = "hilda/_version.py"
 
 [build-system]
-requires = ["setuptools>=43.0.0", "wheel"]
+requires = ["setuptools>=43.0.0", "setuptools_scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"

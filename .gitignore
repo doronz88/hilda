@@ -130,3 +130,6 @@ dmypy.json
 
 # Pycharm
 .idea
+
+# setuptools-scm
+hilda/_version.py

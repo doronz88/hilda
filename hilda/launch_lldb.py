@@ -1,6 +1,5 @@
 import logging
 import os
-import time
 from pathlib import Path
 from typing import Optional
 
@@ -19,10 +18,6 @@ def disable_logs() -> None:
     logging.getLogger('blib2to3.pgen2.driver').disabled = True
 
 
-def tunnel_local_port(port: int) -> None:
-    execute(f'python3 -m pymobiledevice3 usbmux forward {port} {port} -d')
-
-
 def execute(cmd: str) -> None:
     logging.debug(f'executing: {cmd}')
     return os.system(cmd)
@@ -33,16 +28,9 @@ def cli():
     pass
 
 
-def start_remote(debug_port: int, ssh_port: int, process: str, hostname: str, rc_script: str) -> None:
-    tunnel_local_port(debug_port)
-    assert not execute(
-        f'ssh -i ~/.ssh/id_rsa -p {ssh_port} root@{hostname} "debugserver 0.0.0.0:{debug_port} --attach={process}"&')
-
-    # wait for it to load
-    time.sleep(1)
-
+def start_remote(hostname: str, port: int, rc_script: str) -> None:
     # connect local LLDB client
-    commands = [f'process connect connect://{hostname}:{debug_port}',
+    commands = [f'process connect connect://{hostname}:{port}',
                 f'command script import {rc_script}']
     commands = '\n'.join(commands)
     execute(f'lldb --one-line "{commands}"')
@@ -68,13 +56,11 @@ def attach(name: Optional[str] = None, pid: Optional[int] = None, rc_script: Opt
 
 
 @cli.command('remote')
-@click.argument('process')
-@click.argument('ssh_port', type=click.INT)
-@click.option('--debug-port', type=click.INT, default=1234)
-@click.option('--hostname', default='localhost')
-def remote(process, ssh_port, debug_port, hostname):
-    """ Start debugserver at remote device and connect using lldb """
-    start_remote(debug_port, ssh_port, process, hostname, Path(__file__).resolve().parent / 'lldb_entrypoint.py')
+@click.argument('hostname', default='localhost')
+@click.argument('port', type=click.INT, default=1234)
+def remote(hostname: str, port: int) -> None:
+    """ Connect to remote debugserver at given address """
+    start_remote(hostname, port, Path(__file__).resolve().parent / 'lldb_entrypoint.py')
 
 
 @cli.command('bare')

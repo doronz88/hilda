@@ -112,23 +112,13 @@ Please note the following:
 
 From this point the flow diverges into 2 flows:
 
-### The connected device is connected to the network via `internet sharing` with your computer
+### The connected device is connected via network
 
 Run the following command:
 
 ```shell
-hilda remote PROCESS_NAME SSH_PORT
+hilda remote HOSTNAME PORT
 ``` 
-
-### The connected device is connected via Wi-Fi
-
-For this to work, you will need to make sure of the following:
-
-* Find your cellphone IP address (Settings -> Wi-Fi -> network info -> IP Address).
-* Once you found it, run the following command:
-    ```shell
-    hilda remote PROCESS_NAME SSH_PORT --hostname <DEVICE_IP_ADDRESS>
-    ```
 
 ## Usage
 

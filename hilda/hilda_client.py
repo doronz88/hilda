@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import pickle
+import struct
 import time
 import typing
 from collections import namedtuple
@@ -16,8 +17,8 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
-import hexdump
 import IPython
+import hexdump
 import lldb
 from humanfriendly import prompts
 from humanfriendly.terminal.html import html_to_ansi
@@ -333,6 +334,7 @@ class HildaClient:
             module = self.target
         else:
             module = self.target.FindModule(lldb.SBFileSpec(module_name))
+
         return self.symbol(module.ResolveFileAddress(address).GetLoadAddress(self.target))
 
     def get_register(self, name) -> Symbol:
@@ -402,6 +404,8 @@ class HildaClient:
                     s: string
                     cf: use CFCopyDescription() to get more informative description of the object
                     po: use LLDB po command
+                    std::string: for std::string
+                    
                     User defined function, will be called like `format_function(hilda_client, value)`.
 
                 For example:
@@ -1089,6 +1093,13 @@ class HildaClient:
                         symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.objc_get_class(node.id)
                     )
 
+    @staticmethod
+    def _std_string(value):
+        if struct.unpack("b", (value + 23).peek(1))[0] >= 0:
+            return value.peek_str()
+        else:
+            return value[0].peek_str()
+
     def _monitor_format_value(self, fmt, value):
         if callable(fmt):
             return fmt(self, value)
@@ -1097,6 +1108,7 @@ class HildaClient:
             's': lambda val: val.peek_str(),
             'cf': lambda val: val.cf_description,
             'po': lambda val: val.po(),
+            'std::string': self._std_string
         }
         if fmt in formatters:
             return formatters[fmt](value)

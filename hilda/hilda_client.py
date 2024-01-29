@@ -333,7 +333,6 @@ class HildaClient:
             module = self.target
         else:
             module = self.target.FindModule(lldb.SBFileSpec(module_name))
-            
         return self.symbol(module.ResolveFileAddress(address).GetLoadAddress(self.target))
 
     def get_register(self, name) -> Symbol:

@@ -323,12 +323,18 @@ class HildaClient:
             print(inst)
         return inst
 
-    def file_symbol(self, address) -> Symbol:
+    def file_symbol(self, address: int, module_name: Optional[str] = None) -> Symbol:
         """
         Calculate symbol address without ASLR
         :param address: address as can be seen originally in Mach-O
+        :param module_name: Module name to resolve the symbol from
         """
-        return self.symbol(self.target.ResolveFileAddress(address).GetLoadAddress(self.target))
+        if module_name is None:
+            module = self.target
+        else:
+            module = self.target.FindModule(lldb.SBFileSpec(module_name))
+            
+        return self.symbol(module.ResolveFileAddress(address).GetLoadAddress(self.target))
 
     def get_register(self, name) -> Symbol:
         """

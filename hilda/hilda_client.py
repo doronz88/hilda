@@ -17,8 +17,8 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
-import IPython
 import hexdump
+import IPython
 import lldb
 from humanfriendly import prompts
 from humanfriendly.terminal.html import html_to_ansi
@@ -405,7 +405,7 @@ class HildaClient:
                     cf: use CFCopyDescription() to get more informative description of the object
                     po: use LLDB po command
                     std::string: for std::string
-                    
+
                     User defined function, will be called like `format_function(hilda_client, value)`.
 
                 For example:
@@ -590,6 +590,10 @@ class HildaClient:
 
         self.log_info(f'Breakpoint #{bp.id} has been set')
         return bp
+
+    def place_future_breakpoint(self, symbol_name: str) -> None:
+        """ Place a breakpoint on a function that will resolve in the future of the process lifecycle """
+        self.lldb_handle_command(f'b {symbol_name}')
 
     def bp_callback_router(self, frame, bp_loc, *_):
         """

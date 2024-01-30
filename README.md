@@ -231,6 +231,8 @@ Here is a gist of methods you can access from `p`:
     - Get the plist embedded inside the process' __LINKEDIT section.
 - `bp`
     - Add a breakpoint
+- `place_future_breakpoint`
+    - Place a breakpoint on a function that will resolve in the future of the process lifecycle
 - `show_hilda_breakpoints`
     - Show existing breakpoints created by Hilda.
 - `show_commands`

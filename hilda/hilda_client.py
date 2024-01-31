@@ -15,7 +15,7 @@ from contextlib import contextmanager, suppress
 from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import hexdump
 import IPython
@@ -556,33 +556,38 @@ class HildaClient:
         entitlements = str(linkedit_data[linkedit_data.find(b'<?xml'):].split(b'\xfa', 1)[0], 'utf8')
         print(highlight(entitlements, XmlLexer(), TerminalTrueColorFormatter()))
 
-    def bp(self, address, callback=None, condition: str = None, forced=False, **options) -> lldb.SBBreakpoint:
+    def bp(self, address_or_name: Union[int, str], callback: Optional[Callable] = None, condition: str = None,
+           forced=False, module_name: Optional[str] = None, **options) -> lldb.SBBreakpoint:
         """
         Add a breakpoint
-        :param address:
+        :param address_or_name:
         :param condition: set as a conditional breakpoint using lldb expression
         :param callback: callback(hilda, *args) to be called
         :param forced: whether the breakpoint should be protected frm usual removal.
-        :param options:
-        :return:
+        :param module_name: Specify module name to place the BP in (used with `address_or_name` when using a name)
+        :param options: can contain an `override` keyword to specify if to override an existing BP
+        :return: native LLDB breakpoint
         """
-        if address in [bp.address for bp in self.breakpoints.values()]:
+        if address_or_name in [bp.address for bp in self.breakpoints.values()]:
             override = True if options.get('override', True) else False
             if override or prompts.prompt_for_confirmation('A breakpoint already exist in given location. '
                                                            'Would you like to delete the previous one?', True):
                 breakpoints = list(self.breakpoints.items())
                 for bp_id, bp in breakpoints:
-                    if address == bp.address:
+                    if address_or_name == bp.address:
                         self.remove_hilda_breakpoint(bp_id)
 
-        bp = self.target.BreakpointCreateByAddress(address)
+        if isinstance(address_or_name, int):
+            bp = self.target.BreakpointCreateByAddress(address_or_name)
+        elif isinstance(address_or_name, str):
+            bp = self.target.BreakpointCreateByName(address_or_name)
 
         if condition is not None:
             bp.SetCondition(condition)
 
         # add into Hilda's internal list of breakpoints
         self.breakpoints[bp.id] = HildaClient.Breakpoint(
-            address=address, options=options, forced=forced, callback=callback
+            address=address_or_name, options=options, forced=forced, callback=callback
         )
 
         if callback is not None:
@@ -590,10 +595,6 @@ class HildaClient:
 
         self.log_info(f'Breakpoint #{bp.id} has been set')
         return bp
-
-    def place_future_breakpoint(self, symbol_name: str) -> None:
-        """ Place a breakpoint on a function that will resolve in the future of the process lifecycle """
-        self.lldb_handle_command(f'b {symbol_name}')
 
     def bp_callback_router(self, frame, bp_loc, *_):
         """
@@ -612,7 +613,10 @@ class HildaClient:
         """ Show existing breakpoints created by Hilda. """
         for bp_id, bp in self.breakpoints.items():
             print(f'🚨 Breakpoint #{bp_id}: Forced: {bp.forced}')
-            print(f'\tAddress: 0x{bp.address:x}')
+            if isinstance(bp.address, int):
+                print(f'\tAddress: 0x{bp.address:x}')
+            elif isinstance(bp.address, str):
+                print(f'\tName: {bp.address}')
             print(f'\tOptions: {bp.options}')
 
     def save(self, filename=None):

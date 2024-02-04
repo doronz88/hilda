@@ -4,6 +4,7 @@ from collections import namedtuple
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from objc_types_decoder.decode import decode as decode_type
@@ -49,7 +50,9 @@ def convert_encoded_property_attributes(encoded):
 @dataclass
 class Method:
     name: str
+    client: Any = field(compare=False)
     address: int = field(compare=False)
+    imp: int = field(compare=False)
     type_: str = field(compare=False)
     return_type: str = field(compare=False)
     is_class: bool = field(compare=False)
@@ -64,12 +67,18 @@ class Method:
         """
         return Method(
             name=data['name'],
+            client=client,
             address=client.symbol(data['address']),
+            imp=client.symbol(data['imp']),
             type_=data['type'],
             return_type=decode_type(data['return_type']),
             is_class=data['is_class'],
             args_types=list(map(decode_type, data['args_types']))
         )
+
+    def set_implementation(self, new_imp: int):
+        self.client.symbols.method_setImplementation(self.address, new_imp)
+        self.imp = self.client.symbol(new_imp)
 
     def __str__(self):
         if ':' in self.name:
@@ -191,8 +200,8 @@ class Class(object):
         for method in self.methods:
             if not method.is_class:
                 # only instance methods are relevant for capturing self
-                method.address.bp(hook, group_uuid=group_uuid,
-                                  name=f'-[{class_name} {method.name}]')
+                method.imp.bp(hook, group_uuid=group_uuid,
+                              name=f'-[{class_name} {method.name}]')
 
         if sync:
             self._client.cont()
@@ -214,7 +223,7 @@ class Class(object):
         """
         for method in self.methods:
             kwargs['name'] = f'[{self.name} {method.name}]'
-            method.address.bp(callback, **kwargs)
+            method.imp.bp(callback, **kwargs)
 
     def iter_supers(self):
         """

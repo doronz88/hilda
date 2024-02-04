@@ -146,3 +146,11 @@ def test_symbol_str_recursive(hilda_client):
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
     assert '+ alloc;' in hilda_client.ns({1: 2, 3: 4}).objc_symbol._to_str(True)
+
+
+def test_set_implementation(hilda_client):
+    pid = hilda_client.symbols.getpid()
+
+    hilda_client.objc_get_class('NSJSONSerialization').get_method('isValidJSONObject:').set_implementation(
+        hilda_client.symbols.getpid)
+    assert hilda_client.objc_get_class('NSJSONSerialization').isValidJSONObject_() == pid

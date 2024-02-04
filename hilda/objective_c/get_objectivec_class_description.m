@@ -82,7 +82,8 @@ for (i = 0; i < outCount; ++i) {
     methodReturnType = method_copyReturnType(methods[i]);
     [classDescription[@"methods"] addObject:@{
         @"name": [NSString stringWithCString:sel_getName(method_getName(methods[i])) encoding:NSUTF8StringEncoding],
-        @"address": [NSNumber numberWithLong:STRIP_PAC(method_getImplementation(methods[i]))],
+        @"address": [NSNumber numberWithLong:STRIP_PAC((uintptr_t)(methods[i]))],
+        @"imp": [NSNumber numberWithLong:STRIP_PAC(method_getImplementation(methods[i]))],
         @"is_class": @YES,
         @"type": [NSString stringWithCString:method_getTypeEncoding(methods[i]) encoding:NSUTF8StringEncoding],
         @"return_type": [NSString stringWithCString:methodReturnType encoding:NSUTF8StringEncoding],
@@ -110,7 +111,8 @@ for (i = 0; i < outCount; ++i) {
     methodReturnType = method_copyReturnType(methods[i]);
     [classDescription[@"methods"] addObject:@{
         @"name": [NSString stringWithCString:sel_getName(method_getName(methods[i])) encoding:NSUTF8StringEncoding],
-        @"address": [NSNumber numberWithLong:STRIP_PAC(method_getImplementation(methods[i]))],
+        @"address": [NSNumber numberWithLong:STRIP_PAC((uintptr_t)(methods[i]))],
+        @"imp": [NSNumber numberWithLong:STRIP_PAC(method_getImplementation(methods[i]))],
         @"is_class": @NO,
         @"type": [NSString stringWithCString:method_getTypeEncoding(methods[i]) encoding:NSUTF8StringEncoding],
         @"return_type": [NSString stringWithCString:methodReturnType encoding:NSUTF8StringEncoding],

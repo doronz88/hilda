@@ -1113,7 +1113,7 @@ class HildaClient:
             return fmt(self, value)
         formatters = {
             'x': lambda val: f'0x{int(val):x}',
-            's': lambda val: val.peek_str(),
+            's': lambda val: val.peek_str() if val else None,
             'cf': lambda val: val.cf_description,
             'po': lambda val: val.po(),
             'std::string': self._std_string

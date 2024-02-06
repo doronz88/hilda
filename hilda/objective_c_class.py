@@ -1,5 +1,4 @@
 import json
-import os
 import time
 from collections import namedtuple
 from dataclasses import dataclass, field
@@ -112,8 +111,7 @@ class Class(object):
         :param hilda.hilda_client.HildaClient client: Hilda client.
         :param class_name: Class name.
         """
-        with open(os.path.join(Path(__file__).resolve().parent, 'get_objectivec_class_description.m'), 'r') as f:
-            obj_c_code = f.read()
+        obj_c_code = (Path(__file__).parent / 'objective_c' / 'get_objectivec_class_description.m').read_text()
         obj_c_code = obj_c_code.replace('__class_address__', '0').replace('__class_name__', class_name)
         class_symbol = Class(client, class_data=json.loads(client.po(obj_c_code)))
         if class_symbol.name != class_name:
@@ -136,8 +134,7 @@ class Class(object):
         Reload class object data.
         Should be used whenever the class layout changes (for example, during method swizzling)
         """
-        with open(os.path.join(Path(__file__).resolve().parent, 'get_objectivec_class_description.m'), 'r') as f:
-            obj_c_code = f.read()
+        obj_c_code = (Path(__file__).parent / 'objective_c' / 'get_objectivec_class_description.m').read_text()
         obj_c_code = obj_c_code.replace('__class_address__', f'{self._class_object:d}')
         obj_c_code = obj_c_code.replace('__class_name__', self.name)
         self._load_class_data(json.loads(self._client.po(obj_c_code)))

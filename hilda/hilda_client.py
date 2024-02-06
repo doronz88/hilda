@@ -110,8 +110,8 @@ class HildaClient:
         Get dictionary of all open FDs
         :return: Mapping between open FDs and their paths
         """
-        with open(os.path.join(Path(__file__).resolve().parent, 'lsof.m'), 'r') as f:
-            result = json.loads(self.po(f.read()))
+        data = (Path(__file__).parent / 'objective_c' / 'lsof.m').read_text()
+        result = json.loads(self.po(data))
         # convert FDs into int
         return {int(k): v for k, v in result.items()}
 
@@ -714,13 +714,18 @@ class HildaClient:
         """
         self.debugger.HandleCommand(cmd)
 
-    def objc_get_class(self, name) -> objective_c_class.Class:
+    def objc_get_class(self, name: str, module_name: Optional[str] = None) -> objective_c_class.Class:
         """
         Get ObjC class object
+        :param module_name:
         :param name:
         :return:
         """
-        return objective_c_class.Class.from_class_name(self, name)
+        if module_name is not None:
+            ret = self.symbol(self._get_module_class_list(module_name)[name]).objc_class
+        else:
+            ret = objective_c_class.Class.from_class_name(self, name)
+        return ret
 
     def CFSTR(self, symbol: int) -> Symbol:
         """ Create CFStringRef object from given string """
@@ -745,7 +750,7 @@ class HildaClient:
         except TypeError as e:
             raise ConvertingToNsObjectError from e
 
-        obj_c_code = (Path(__file__).resolve().parent / 'to_ns_from_json.m').read_text()
+        obj_c_code = (Path(__file__).parent / 'objective_c' / 'to_ns_from_json.m').read_text()
         expression = obj_c_code.replace('__json_object_dump__', json_data.replace('"', r'\"'))
         try:
             return self.evaluate_expression(expression)
@@ -758,8 +763,7 @@ class HildaClient:
         :param address: NS object.
         :return: Python object.
         """
-        with open(os.path.join(Path(__file__).resolve().parent, 'from_ns_to_json.m'), 'r') as f:
-            obj_c_code = f.read()
+        obj_c_code = (Path(__file__).parent / 'objective_c' / 'from_ns_to_json.m').read_text()
         address = f'0x{address:x}' if isinstance(address, int) else address
         expression = obj_c_code.replace('__ns_object_address__', address)
         try:
@@ -1131,3 +1135,15 @@ class HildaClient:
                      'arm64e': Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
                      'x86_64h': Ks(KS_ARCH_X86, KS_MODE_64)}
         return platforms.get(self.arch)
+
+    def _get_module_class_list(self, module_name: str):
+        for m in self.target.module_iter():
+            if module_name != m.file.basename:
+                continue
+            objc_classlist = m.FindSection('__DATA').FindSubSection('__objc_classlist')
+            objc_classlist_addr = self.symbol(objc_classlist.GetLoadAddress(self.target))
+            obj_c_code = (Path(__file__).parent / 'objective_c' / 'get_objectivec_class_by_module.m').read_text()
+            obj_c_code = obj_c_code.replace('__count_objc_class', f'{objc_classlist.size // 8}').replace(
+                '__objc_class_list',
+                f'{objc_classlist_addr}')
+            return json.loads(self.po(obj_c_code))

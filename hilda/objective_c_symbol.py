@@ -1,5 +1,4 @@
 import json
-import os
 from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
@@ -61,9 +60,7 @@ class ObjectiveCSymbol(Symbol):
         self.methods.clear()
         self.class_ = None
 
-        with open(os.path.join(Path(__file__).resolve().parent, 'get_objectivec_symbol_data.m'), 'r') as f:
-            obj_c_code = f.read()
-
+        obj_c_code = (Path(__file__).parent / 'objective_c' / 'get_objectivec_symbol_data.m').read_text()
         obj_c_code = obj_c_code.replace('__symbol_address__', f'{self:d}')
         data = json.loads(self._client.po(obj_c_code))
 

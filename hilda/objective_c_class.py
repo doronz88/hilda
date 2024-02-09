@@ -255,7 +255,7 @@ class Class(object):
         jar = SymbolsJar.create(self._client)
 
         for m in self.methods:
-            jar[f'[{self.name} {m.name}]'] = m.address
+            jar[f'[{self.name} {m.name}]'] = m.imp
 
         return jar
 

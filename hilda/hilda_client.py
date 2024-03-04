@@ -803,13 +803,14 @@ class HildaClient:
 
         return self.symbol(e.unsigned)
 
-    def import_module(self, filename, name=None):
+    def import_module(self, filename: str, name: Optional[str] = None) -> Any:
         """
         Import & reload given python module (intended mainly for external snippets)
         :param filename: Python filename to import
         :param name: Optional module name, or otherwise use the filename
         :return: Python module
         """
+        filename = os.path.expanduser(filename)
         if name is None:
             name = os.path.splitext(os.path.basename(filename))[0]
         spec = importlib.util.spec_from_file_location(name, filename)

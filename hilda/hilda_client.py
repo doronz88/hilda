@@ -22,6 +22,7 @@ import IPython
 import lldb
 from humanfriendly import prompts
 from humanfriendly.terminal.html import html_to_ansi
+from IPython.core.magic import register_line_magic  # noqa: F401
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import XmlLexer
@@ -57,6 +58,26 @@ GREETING = f"""
 <b>Hilda has been successfully loaded! 😎
 Use the <span style="color: magenta">p</span> global to access all features.
 Have a nice flight ✈️! Starting an IPython shell...
+"""
+
+MAGIC_FUNCTIONS = """
+from IPython.core.magic import register_line_magic, needs_local_scope
+
+@register_line_magic
+@needs_local_scope
+def objc(line, local_ns=None):
+    p = local_ns['p']
+    className = line.strip()
+    if not className:
+        print("Error: className is required.")
+        return
+    try:
+        # Assuming `p.objc_get_class` is a method you have defined or imported
+        # Replace `p` with the correct reference to where `objc_get_class` is defined
+        local_ns[className] = p.objc_get_class(className)
+        p.log_info(f"{className} class loaded successfully.")
+    except Exception:
+        p.log_error(f"Error loading class {className}")
 """
 
 SerializableSymbol = namedtuple('SerializableSymbol', 'address type_ filename')
@@ -997,8 +1018,9 @@ class HildaClient:
         config = Config()
         config.IPCompleter.use_jedi = True
         config.InteractiveShellApp.exec_lines = [
-            '''disable_logs()''',
-            '''IPython.get_ipython().events.register('pre_run_cell', self._ipython_run_cell_hook)'''
+            """disable_logs()""",
+            """IPython.get_ipython().events.register('pre_run_cell', self._ipython_run_cell_hook)""",
+            MAGIC_FUNCTIONS,
         ]
         namespace = globals()
         namespace.update(locals())

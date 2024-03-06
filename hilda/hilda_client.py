@@ -1082,7 +1082,7 @@ class HildaClient:
         Enable lazy loading for symbols
         :param info: IPython's CellInfo object
         """
-        if info.raw_cell.startswith('!') or info.raw_cell.endswith('?'):
+        if info.raw_cell[0] in ['!', '%'] or info.raw_cell.endswith('?'):
             return
 
         for node in ast.walk(ast.parse(info.raw_cell)):

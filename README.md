@@ -505,6 +505,9 @@ d = NSDictionary.new()  # call its `new` selector
 # which is equivalent to:
 NSDictionary = p.objc_get_class('NSDictionary')
 d = NSDictionary.new()
+
+# Or you can use the IPython magic function
+%objc NSDictionary
 ```
 
 This is possible only since `NSDictionary` is exported. In case it is not, you must call `objc_get_class()` explicitly.

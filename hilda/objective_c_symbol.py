@@ -231,3 +231,6 @@ class ObjectiveCSymbol(Symbol):
 
     def __str__(self):
         return self._to_str(False)
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__} 0x{int(self):x} Class: {self.class_.name}>'

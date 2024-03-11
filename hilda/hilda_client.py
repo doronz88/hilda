@@ -61,6 +61,7 @@ Have a nice flight ✈️! Starting an IPython shell...
 """
 
 MAGIC_FUNCTIONS = """
+import shlex
 from IPython.core.magic import register_line_magic, needs_local_scope
 
 @register_line_magic
@@ -69,15 +70,22 @@ def objc(line, local_ns=None):
     p = local_ns['p']
     className = line.strip()
     if not className:
-        print("Error: className is required.")
+        p.log_error("Error: className is required.")
         return
     try:
-        # Assuming `p.objc_get_class` is a method you have defined or imported
-        # Replace `p` with the correct reference to where `objc_get_class` is defined
         local_ns[className] = p.objc_get_class(className)
-        p.log_info(f"{className} class loaded successfully.")
+        p.log_info(f'{className} class loaded successfully')
     except Exception:
-        p.log_error(f"Error loading class {className}")
+        p.log_error(f'Error loading class {className}')
+
+
+@register_line_magic
+@needs_local_scope
+def fbp(line, local_ns=None):
+    p = local_ns['p']
+    module_name, address = shlex.split(line.strip())
+    address = int(address, 16)
+    p.file_symbol(address, module_name).bp()
 """
 
 SerializableSymbol = namedtuple('SerializableSymbol', 'address type_ filename')

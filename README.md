@@ -284,6 +284,15 @@ Here is a gist of methods you can access from `p`:
 - `unwind`
     - Unwind the stack (useful when get_evaluation_unwind() == False)
 
+## Magic functions
+
+Sometimes accessing the python API can be tiring, so we added some magic functions to help you out!
+
+- `%objc <className>`
+    - Equivalent to: `className = p.objc_get_class(className)`
+- `%fbp <filename> <addressInHex>`
+    - Equivalent to: `p.file_symbol(addressInHex, filename).bp()`
+
 ## UI Configuration
 
 Hilda contains minimal UI for examining the target state.
@@ -507,7 +516,8 @@ NSDictionary = p.objc_get_class('NSDictionary')
 d = NSDictionary.new()
 
 # Or you can use the IPython magic function
-%objc NSDictionary
+%objc
+NSDictionary
 ```
 
 This is possible only since `NSDictionary` is exported. In case it is not, you must call `objc_get_class()` explicitly.

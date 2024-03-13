@@ -179,11 +179,13 @@ class DisassemblyView(View):
         fmt_parts = []
         for inst in disass:
             load_addr = inst.addr.GetLoadAddress(self.hilda.target)
+            file_addr = inst.addr.GetFileAddress()
             base_name = style(inst.addr.module.file.basename, self.color_scheme.basename)
-            addr = style(hex(load_addr), fg=self.color_scheme.address)
+            load_addr = style(hex(load_addr), fg=self.color_scheme.address)
+            file_addr = style(hex(file_addr), fg=self.color_scheme.address)
             mnemonic = style(inst.GetMnemonic(self.hilda.target), fg=self.color_scheme.mnemonic)
             operands = style(inst.GetOperands(self.hilda.target), fg=self.color_scheme.operands)
-            fmt = f'{base_name}[{addr}]: {mnemonic} {operands}'
+            fmt = f'{base_name}[{load_addr}][{file_addr}]: {mnemonic} {operands}'
             if load_addr == self.hilda.frame.pc:
                 fmt += f'{"<-- $pc":^50}'
             fmt_parts.append(fmt)

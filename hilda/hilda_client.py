@@ -1030,6 +1030,7 @@ class HildaClient:
             """IPython.get_ipython().events.register('pre_run_cell', self._ipython_run_cell_hook)""",
             MAGIC_FUNCTIONS,
         ]
+        config.BaseIPythonApplication.profile = 'hilda'
         namespace = globals()
         namespace.update(locals())
         namespace['p'] = self

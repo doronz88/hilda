@@ -140,10 +140,15 @@ class SymbolsJar(dict):
         :param args: given arguments for monitor command
         """
         for name, address in self.items():
+            args_c = args.copy()
             if name == '_client':
                 continue
-            name = args.get('name', name)
-            address.monitor(name=name, **args)
+            if self.__dict__['_client'].configs.objc_verbose_monitor:
+                arg_count = name.count(':')
+                if arg_count > 0:
+                    args_c['regs'] = {f'x{i + 2}': 'po' for i in range(arg_count)}
+            name = args_c.get('name', name)
+            address.monitor(name=name, **args_c)
 
     def startswith(self, exp, case_sensitive=True):
         """

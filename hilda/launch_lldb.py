@@ -1,85 +1,195 @@
 import logging
 import os
-from pathlib import Path
-from typing import Optional
+from threading import Thread
+from typing import List, Mapping, Optional
 
-import click
 import coloredlogs
+import lldb
+
+from hilda.exceptions import LLDBException
+from hilda.hilda_client import HildaClient
 
 coloredlogs.install(level=logging.DEBUG)
 
+lldb.hilda_client = None
 
-def disable_logs() -> None:
-    logging.getLogger('asyncio').disabled = True
-    logging.getLogger('parso.cache').disabled = True
-    logging.getLogger('parso.cache.pickle').disabled = True
-    logging.getLogger('parso.python.diff').disabled = True
-    logging.getLogger('humanfriendly.prompts').disabled = True
-    logging.getLogger('blib2to3.pgen2.driver').disabled = True
+logger = logging.getLogger(__name__)
 
 
-def execute(cmd: str) -> None:
+def hilda(debugger, startup_files: Optional[List[str]] = None):
+    if lldb.hilda_client is None:
+        lldb.hilda_client = HildaClient(debugger)
+
+    additional_namespace = {'ui': lldb.hilda_client.ui_manager, 'cfg': lldb.hilda_client.configs}
+    lldb.hilda_client.interact(additional_namespace=additional_namespace, startup_files=startup_files)
+
+
+def execute(cmd: str) -> int:
     logging.debug(f'executing: {cmd}')
     return os.system(cmd)
 
 
-@click.group()
-def cli():
-    pass
+class LLDBListenerThread(Thread):
+
+    def __init__(self):
+        super().__init__()
+        lldb.SBDebugger.Initialize()
+        self.debugger: lldb.SBDebugger = lldb.SBDebugger.Create()
+        self.listener: lldb.SBListener = self.debugger.GetListener()
+        self.error: lldb.SBError = lldb.SBError()
+        self.debugger.SetAsync(True)
+        self.target: lldb.SBTarget = self._create_target()
+        self.process: lldb.SBProcess = self._create_process()
+        self.should_quit = False
+
+    def _create_target(self) -> lldb.SBTarget:
+        raise NotImplementedError()
+
+    def _create_process(self) -> lldb.SBProcess:
+        raise NotImplementedError()
+
+    def run(self):
+        event = lldb.SBEvent()
+        last_state = lldb.eStateStopped
+        while not self.should_quit:
+            if self.listener.WaitForEvent(1, event):
+                if not lldb.SBProcess.EventIsProcessEvent(event):
+                    continue
+                state = self.process.GetStateFromEvent(event)
+                if state == lldb.eStateDetached:
+                    logger.debug('Process Detached')
+                    self.should_quit = True
+                elif state == lldb.eStateExited:
+                    logger.debug(f'Process Exited with status {self.process.GetExitStatus()}')
+                    self.should_quit = True
+                elif state == lldb.eStateRunning and last_state == lldb.eStateStopped:
+                    logger.debug("Process Continued")
+                elif state == lldb.eStateStopped and last_state == lldb.eStateRunning:
+                    logger.debug('Process Stopped')
+                last_state = state
 
 
-def start_remote(hostname: str, port: int, rc_script: str) -> None:
-    # connect local LLDB client
-    commands = [f'process connect connect://{hostname}:{port}',
-                f'command script import {rc_script}']
-    commands = '\n'.join(commands)
-    execute(f'lldb --one-line "{commands}"')
+class LLDBRemote(LLDBListenerThread):
+    def __init__(self, address: str, port: int = 1234):
+        self.url_connect = f'connect://{address}:{port}'
+        super().__init__()
+
+    def _create_target(self) -> lldb.SBTarget:
+        return self.debugger.CreateTarget('')
+
+    def _create_process(self) -> lldb.SBProcess:
+        logger.debug(f'Connecting to "{self.url_connect}"')
+        process = self.target.ConnectRemote(self.listener, self.url_connect, None, self.error)
+        if not self.error.Success():
+            raise LLDBException(self.error.description)
+        return process
 
 
-def attach(name: Optional[str] = None, pid: Optional[int] = None, rc_script: Optional[str] = None) -> None:
-    """ Attach to given process and start an lldb shell """
-    commands = []
-    if name is not None:
-        commands.append(f'process attach -n {name}')
-    elif pid is not None:
-        commands.append(f'process attach -p {pid}')
-    else:
-        print('missing either process name or pid for attaching')
-        return
+class LLDBAttachPid(LLDBListenerThread):
 
-    commands.append(f'command script import {os.path.join(Path(__file__).resolve().parent, "lldb_entrypoint.py")}')
-    if rc_script is not None:
-        commands.append(f'command script import {rc_script}')
-    commands = '\n'.join(commands)
+    def __init__(self, pid: int):
+        self.pid = pid
+        super().__init__()
 
-    execute(f'lldb --one-line "{commands}"')
+    def _create_target(self) -> lldb.SBTarget:
+        return self.debugger.CreateTargetWithFileAndArch(None, None)
+
+    def _create_process(self) -> lldb.SBProcess:
+        logger.debug(f'Attaching to {self.pid}')
+        process = self.target.AttachToProcessWithID(self.listener, self.pid, self.error)
+        if not self.error.Success():
+            raise LLDBException(self.error.description)
+        return process
 
 
-@cli.command('remote')
-@click.argument('hostname', default='localhost')
-@click.argument('port', type=click.INT, default=1234)
-def remote(hostname: str, port: int) -> None:
-    """ Connect to remote debugserver at given address """
-    start_remote(hostname, port, Path(__file__).resolve().parent / 'lldb_entrypoint.py')
+class LLDBAttachName(LLDBListenerThread):
+
+    def __init__(self, proc_name: str, wait_for: bool = False):
+        self.proc_name = proc_name
+        self.wait_for = wait_for
+        super().__init__()
+
+    def _create_target(self) -> lldb.SBTarget:
+        return self.debugger.CreateTargetWithFileAndArch(None, None)
+
+    def _create_process(self) -> lldb.SBProcess:
+        logger.debug(f'Attaching to {self.name}')
+        process = self.target.AttachToProcessWithName(self.listener, self.proc_name, self.wait_for, self.error)
+        if not self.error.Success():
+            raise LLDBException(self.error.description)
+        return process
 
 
-@cli.command('bare')
-def cli_bare():
-    """ Just start an lldb shell """
-    # connect local LLDB client
-    commands = [f'command script import {Path(__file__).resolve().parent / "lldb_entrypoint.py"}']
-    commands = '\n'.join(commands)
-    execute(f'lldb --one-line "{commands}"')
+class LLDBLaunch(LLDBListenerThread):
+
+    def __init__(self, exec_path: str, argv: Optional[List[str]] = None, envp: Optional[List[str]] = None,
+                 stdin: Optional[str] = None,
+                 stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
+                 flags: Optional[int] = 0, stop_at_entry: Optional[bool] = False):
+        self.exec_path = exec_path
+        self.stdout = stdout
+        self.stdin = stdin
+        self.stderr = stderr
+        self.flags = flags
+        self.stop_at_entry = stop_at_entry
+        self.argv = argv
+        self.envp = envp
+        self.working_directory = wd
+        super().__init__()
+
+    def _create_target(self) -> lldb.SBTarget:
+        return self.debugger.CreateTargetWithFileAndArch(self.exec_path, lldb.LLDB_ARCH_DEFAULT)
+
+    def _create_process(self) -> lldb.SBProcess:
+        # Launch(SBTarget self, SBListener listener, char const ** argv, char const ** envp,
+        # char const * stdin_path, char const * stdout_path, char const * stderr_path, char const * working_directory,
+        # uint32_t launch_flags, bool stop_at_entry, SBError error) -> SBProcess
+        logger.debug(f'Lunching process  {self.exec_path}')
+        process = self.target.Launch(self.listener, self.argv, self.envp,
+                                     self.stdin, self.stdout, self.stderr, self.working_directory,
+                                     self.flags, self.stop_at_entry,
+                                     self.error)
+        if not self.error.Success():
+            raise LLDBException(self.error.description)
+        return process
 
 
-@cli.command('attach')
-@click.option('-n', '--name', help='process name to attach')
-@click.option('-p', '--pid', type=click.INT, help='pid to attach')
-def cli_attach(name: str, pid: int):
-    """ Attach to given process and start an lldb shell """
-    attach(name=name, pid=pid)
+def remote(hostname: str, port: int, startup_files: Optional[List[str]] = None) -> None:
+    """ Connect to remote process """
+    try:
+        lldb_t = LLDBRemote(hostname, port)
+        lldb_t.start()
+        hilda(lldb_t.debugger, startup_files)
+    except LLDBException as e:
+        logger.warning(e.message)
 
 
-if __name__ == '__main__':
-    disable_logs()
-    cli()
+def attach(name: Optional[str] = None, pid: Optional[int] = None, wait_for=False,
+           startup_files: Optional[List[str]] = None) -> None:
+    """ Attach to given process and start a lldb shell """
+    if (name is not None and pid is not None) or (name is None and pid is None):
+        raise ValueError('Provide either a process name or a PID, but not both.')
+
+    try:
+        if name is not None:
+            lldb_t = LLDBAttachName(name, wait_for)
+        else:
+            lldb_t = LLDBAttachPid(pid)
+        lldb_t.start()
+        hilda(lldb_t.debugger, startup_files)
+    except LLDBException as e:
+        logger.warning(e.message)
+
+
+def launch(exec_path: str, argv: Optional[List] = None, envp: Optional[Mapping] = None,
+           stdin: Optional[str] = None,
+           stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
+           flags: Optional[int] = 0, stop_at_entry: Optional[bool] = False,
+           startup_files: Optional[List[str]] = None) -> None:
+    """ Launch to given process and start a lldb shell """
+    try:
+        lldb_t = LLDBLaunch(exec_path, argv, envp, stdin, stdout, stderr, wd, flags, stop_at_entry)
+        lldb_t.start()
+        hilda(lldb_t.debugger, startup_files)
+    except LLDBException as e:
+        logger.warning(e.message)

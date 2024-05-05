@@ -66,7 +66,21 @@ Use the attach sub-command in order to start an LLDB shell attached to given pro
 hilda attach [-p pid] [-n process-name]
 ```
 
-After attaching, simply execute `hilda` command to enter the hilda shell.
+### Launch mode
+
+Use the attach sub-command in order to launch given process.
+
+```shell
+hilda launch /path/to/executable \
+    --argv arg1 --argv arg2 \
+    --envp NAME=Alice --envp AGE=30 \
+    --stdin /path/to/input.txt \
+    --stdout /path/to/output.txt \
+    --stderr /path/to/error.txt \
+    --wd /path/to/working/directory \
+    --flags 0x01 \
+    --stop-at-entry
+  ```
 
 ### Bare mode
 
@@ -119,6 +133,23 @@ Run the following command:
 ```shell
 hilda remote HOSTNAME PORT
 ``` 
+
+### Startup Files
+
+Each command can accept startup files to execute on start. As opposed to snippets, the startup files can accept Hilda
+syntax.
+
+#### Startup File Example
+
+```python
+cfg.objc_verbose_monitor = True
+p.bp(ADDRESS)
+p.cont()
+```
+
+```shell
+hilda remote HOSTNAME PORT -f startupfile1 -f startupfile2
+```
 
 ## Usage
 
@@ -292,6 +323,32 @@ Sometimes accessing the python API can be tiring, so we added some magic functio
     - Equivalent to: `className = p.objc_get_class(className)`
 - `%fbp <filename> <addressInHex>`
     - Equivalent to: `p.file_symbol(addressInHex, filename).bp()`
+
+## Shortcuts
+
+- **F7**: Step Into
+- **F8**: Step Over
+- **F9**: Continue
+- **F10**: Stop
+
+## Configurables
+
+The global `cfg` used to configure various settings for evaluation and monitoring.
+
+### Attributes
+
+- `evaluation_unwind_on_error`: Whether to unwind on error during evaluation. (Default: `False`)
+- `evaluation_ignore_breakpoints`: Whether to ignore breakpoints during evaluation. (Default: `False`)
+- `nsobject_exclusion`: Whether to exclude `NSObject` during evaluation, reducing IPython autocomplete results. (
+  Default: `False`)
+- `objc_verbose_monitor`: When set to `True`, using `monitor()` will automatically print Objective-C method arguments. (
+  Default: `False`)
+
+### Example Usage
+
+```python
+cfg.objc_verbose_monitor = True
+```
 
 ## UI Configuration
 
@@ -650,9 +707,5 @@ This will monitor all XPC related traffic in the given process.
 Please run the tests as follows before submitting a PR:
 
 ```shell
-xcrun python3 -m tests aggregated
-
-# wait for lldb shell prompt
-
-run_tests
+xcrun python3 -m pytest
 ```

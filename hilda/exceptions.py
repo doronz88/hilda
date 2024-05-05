@@ -1,12 +1,20 @@
 __all__ = ['HildaException', 'SymbolAbsentError', 'EvaluatingExpressionError', 'CreatingObjectiveCSymbolError',
            'ConvertingToNsObjectError', 'ConvertingFromNSObjectError', 'DisableJetsamMemoryChecksError',
            'GettingObjectiveCClassError', 'AccessingRegisterError', 'AccessingMemoryError',
-           'BrokenLocalSymbolsJarError', 'AddingLldbSymbolError']
+           'BrokenLocalSymbolsJarError', 'AddingLldbSymbolError', 'LLDBException']
 
 
 class HildaException(Exception):
     """ A domain exception for hilda errors. """
     pass
+
+
+class LLDBException(Exception):
+    """ A domain exception for lldb errors. """
+
+    def __init__(self, message: str):
+        super().__init__()
+        self.message = message
 
 
 class SymbolAbsentError(HildaException):

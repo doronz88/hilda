@@ -240,7 +240,8 @@ class Class(object):
         self.name = data['name']
         self.protocols = data['protocols']
         self.ivars = [
-            Ivar(name=ivar['name'], type_=decode_type(ivar['type']), offset=ivar['offset'])
+            Ivar(name=ivar['name'], type_=decode_type(ivar['type']) if ivar['type'] else 'unknown_type_t',
+                 offset=ivar['offset'])
             for ivar in data['ivars']
         ]
         self.properties = [

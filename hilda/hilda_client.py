@@ -91,6 +91,33 @@ def fbp(line, local_ns=None):
 SerializableSymbol = namedtuple('SerializableSymbol', 'address type_ filename')
 
 
+@dataclass
+class Configs:
+    """ Configuration settings for evaluation and monitoring. """
+    evaluation_unwind_on_error: bool = field(default=False,
+                                             metadata={'doc': 'Whether to unwind on error during evaluation.'})
+    evaluation_ignore_breakpoints: bool = field(default=False,
+                                                metadata={'doc': 'Whether to ignore breakpoints during evaluation.'})
+    nsobject_exclusion: bool = field(default=False, metadata={
+        'doc': 'Whether to exclude NSObject during evaluation - reduce ipython autocomplete results.'})
+    objc_verbose_monitor: bool = field(default=False, metadata={
+        'doc': 'When set to True, using monitor() will automatically print objc methods arguments.'})
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        config_str = 'Configuration settings:\n'
+        max_len = max(len(field_name) for field_name in self.__dataclass_fields__) + 2
+
+        for field_name, field_info in self.__dataclass_fields__.items():
+            value = getattr(self, field_name)
+            doc = field_info.metadata.get('doc', 'No docstring available')
+            config_str += f'\t{field_name.ljust(max_len)}: {str(value).ljust(5)} | {doc}\n'
+
+        return config_str
+
+
 class HildaClient:
     Breakpoint = namedtuple('Breakpoint', 'address options forced callback')
 
@@ -108,13 +135,7 @@ class HildaClient:
         self.registers = Registers(self)
         self.arch = self.target.GetTriple().split('-')[0]
         self.ui_manager = UiManager(self)
-        # should unwind the stack on errors. change this to False in order to debug self-made calls
-        # within hilda
-        self._evaluation_unwind_on_error = True
-
-        # should ignore breakpoints while evaluation
-        self._evaluation_ignore_breakpoints = True
-
+        self.configs = Configs()
         self._dynamic_env_loaded = False
         self._symbols_loaded = False
 
@@ -821,9 +842,9 @@ class HildaClient:
             formatted_expression = str(expression)
 
         options = lldb.SBExpressionOptions()
-        options.SetIgnoreBreakpoints(self._evaluation_ignore_breakpoints)
+        options.SetIgnoreBreakpoints(self.configs.evaluation_ignore_breakpoints)
         options.SetTryAllThreads(True)
-        options.SetUnwindOnError(self._evaluation_unwind_on_error)
+        options.SetUnwindOnError(self.configs.evaluation_unwind_on_error)
 
         e = self.frame.EvaluateExpression(formatted_expression, options)
 
@@ -846,35 +867,6 @@ class HildaClient:
         m = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(m)
         return m
-
-    def set_evaluation_unwind(self, value: bool):
-        """
-        Set whether LLDB will attempt to unwind the stack whenever an expression evaluation error occurs.
-
-        Use unwind() to restore when an error is raised in this case.
-        """
-        self._evaluation_unwind_on_error = value
-
-    def get_evaluation_unwind(self) -> bool:
-        """
-        Get evaluation unwind state.
-
-        When this value is True, LLDB will attempt unwinding the stack on evaluation errors.
-        Otherwise, the stack frame will remain the same on errors to help you investigate the error.
-        """
-        return self._evaluation_unwind_on_error
-
-    def set_evaluation_ignore_breakpoints(self, value: bool):
-        """
-        Set whether to ignore breakpoints while evaluating expressions
-        """
-        self._evaluation_ignore_breakpoints = value
-
-    def get_evaluation_ignore_breakpoints(self) -> bool:
-        """
-        Get evaluation "ignore-breakpoints" state.
-        """
-        return self._evaluation_ignore_breakpoints
 
     def unwind(self) -> bool:
         """ Unwind the stack (useful when get_evaluation_unwind() == False) """

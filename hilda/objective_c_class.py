@@ -268,6 +268,8 @@ class Class(object):
                 result.add(method.name.replace(':', '_'))
 
         for sup in self.iter_supers():
+            if self._client.configs.nsobject_exclusion and sup.name == 'NSObject':
+                continue
             for method in sup.methods:
                 if method.is_class:
                     result.add(method.name.replace(':', '_'))

@@ -1,6 +1,6 @@
 import json
 
-import lldb
+from hilda.lldb_importer import lldb
 
 
 def dirlist(path: str):

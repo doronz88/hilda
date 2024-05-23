@@ -1,7 +1,7 @@
-import lldb
 import pytest
 
 from hilda.hilda_client import HildaClient
+from hilda.lldb_importer import lldb
 
 
 @pytest.fixture(scope='function')

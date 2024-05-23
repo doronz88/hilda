@@ -1,9 +1,9 @@
 import logging
 
-import lldb
 from construct import Array, CString, Hex, If, Int32ub, Int32ul, Int64ul, Pointer, Struct, Tell, this
 from humanfriendly import prompts
 
+from hilda.lldb_importer import lldb
 from hilda.snippets.macho.image_info import ImageInfo, dyld_image_info_t
 from hilda.snippets.macho.macho import mach_header_t
 from hilda.snippets.uuid import uuid_t

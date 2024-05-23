@@ -1,4 +1,4 @@
-import lldb
+from hilda.lldb_importer import lldb
 
 TLV_MAP = {
     0x00: 'METHOD',

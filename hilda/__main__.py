@@ -1,4 +1,4 @@
-from hilda.launch_lldb import cli
+from hilda.cli import cli
 
 
 def main():

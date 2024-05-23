@@ -34,7 +34,7 @@ from hilda.common import CfSerializable
 from hilda.exceptions import AccessingMemoryError, AccessingRegisterError, AddingLldbSymbolError, \
     BrokenLocalSymbolsJarError, ConvertingFromNSObjectError, ConvertingToNsObjectError, CreatingObjectiveCSymbolError, \
     DisableJetsamMemoryChecksError, EvaluatingExpressionError, HildaException, SymbolAbsentError
-from hilda.launch_lldb import disable_logs  # noqa: F401
+from hilda.lldb_importer import lldb
 from hilda.objective_c_symbol import ObjectiveCSymbol
 from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks

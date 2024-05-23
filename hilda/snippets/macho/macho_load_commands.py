@@ -1,9 +1,9 @@
 from typing import List
 
-import lldb
 from construct import Array, Bytes, Enum, Hex, Int8ul, Int32ul, Int64ul, PaddedString, Pointer, Seek, Struct, Switch, \
     Tell, this
 
+from hilda.lldb_importer import lldb
 from hilda.snippets.macho.apple_version import version_t
 from hilda.symbol import SymbolFormatField
 

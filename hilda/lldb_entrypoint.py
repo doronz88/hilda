@@ -7,12 +7,12 @@ import lldb
 
 from hilda.hilda_client import HildaClient
 
-coloredlogs.install(level=logging.DEBUG)
-
 lldb.hilda_client = None
 
 
 def hilda(debugger, command, result, internal_dict):
+    coloredlogs.install(level=logging.DEBUG)
+
     if lldb.hilda_client is None:
         lldb.hilda_client = HildaClient(debugger)
 

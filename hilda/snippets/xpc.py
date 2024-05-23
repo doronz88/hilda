@@ -1,11 +1,11 @@
 from pprint import pformat
 
-import lldb
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import PythonLexer
 
 from hilda.exceptions import ConvertingFromNSObjectError
+from hilda.lldb_importer import lldb
 
 # module global for storing all active xpc connections
 active_xpc_connections = {}

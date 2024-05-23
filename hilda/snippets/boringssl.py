@@ -1,4 +1,4 @@
-import lldb
+from hilda.lldb_importer import lldb
 
 _FILENAME = '/tmp/hilda-keylog.txt'
 

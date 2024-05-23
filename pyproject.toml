@@ -16,6 +16,7 @@ maintainers = [
     { name = "netanel cohen", email = "netanelc305@protonmail.com" }
 ]
 classifiers = [
+    "Operating System :: MacOS",
     "Development Status :: 5 - Production/Stable",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -46,7 +47,7 @@ exclude = ["docs*", "tests*"]
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
-version = {attr = "hilda._version.__version__"}
+version = { attr = "hilda._version.__version__" }
 
 [tool.setuptools_scm]
 version_file = "hilda/_version.py"

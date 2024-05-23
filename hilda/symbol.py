@@ -3,10 +3,10 @@ import struct
 from contextlib import contextmanager
 from typing import Any, Optional
 
-import lldb
 from construct import FormatField
 
 from hilda.common import CfSerializable
+from hilda.lldb_importer import lldb
 from hilda.objective_c_class import Class
 
 ADDRESS_SIZE_TO_STRUCT_FORMAT = {1: 'B', 2: 'H', 4: 'I', 8: 'Q'}

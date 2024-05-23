@@ -1,6 +1,6 @@
-import lldb
 from construct import CString, If, Int64ul, Pointer, Struct, this
 
+from hilda.lldb_importer import lldb
 from hilda.snippets.macho.macho import mach_header_t
 from hilda.snippets.macho.macho_load_commands import LoadCommands
 from hilda.snippets.uuid import uuid_t

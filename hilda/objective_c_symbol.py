@@ -175,6 +175,8 @@ class ObjectiveCSymbol(Symbol):
             result.add(method.name.replace(':', '_'))
 
         for sup in self.class_.iter_supers():
+            if self._client.configs.nsobject_exclusion and sup.name == 'NSObject':
+                continue
             for method in sup.methods:
                 result.add(method.name.replace(':', '_'))
 

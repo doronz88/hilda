@@ -1,18 +1,29 @@
 - [Description](#description)
 - [Installation](#installation)
 - [How to use](#how-to-use)
-    * [Starting a Hilda shell](#starting-a-hilda-shell)
-        + [Bare mode](#bare-mode)
-        + [Remote mode](#remote-mode)
-    * [Usage](#usage)
-    * [Symbol objects](#symbol-objects)
-    * [Globalized symbols](#globalized-symbols)
+    - [Starting a Hilda shell](#starting-a-hilda-shell)
+        - [Attach mode](#attach-mode)
+        - [Launch mode](#launch-mode)
+        - [Bare mode](#bare-mode)
+        - [Remote mode](#remote-mode)
+            - [The connected device is connected via network](#the-connected-device-is-connected-via-network)
+        - [Startup Files](#startup-files)
+    - [Usage](#usage)
+    - [Magic functions](#magic-functions)
+    - [Shortcuts](#shortcuts)
+    - [Configurables](#configurables)
+        - [Attributes](#attributes)
+        - [Example Usage](#example-usage)
+    - [UI Configuration](#ui-configuration)
+    - [Symbol objects](#symbol-objects)
+    - [Globalized symbols](#globalized-symbols)
         - [Searching for the right symbol](#searching-for-the-right-symbol)
+        - [Objective-C Classes](#objective-c-classes)
+    - [Objective-C Objects](#objective-c-objects)
+    - [Using snippets](#using-snippets)
+- [Contributing](#contributing)
 
-        + [Objective-C Classes](#objective-c-classes)
-    * [Objective-C Objects](#objective-c-objects)
-    * [Using snippets](#using-snippets)
-    * [Contributing](#contributing)
+Would you like any further adjustments?
 
 # Description
 
@@ -66,7 +77,21 @@ Use the attach sub-command in order to start an LLDB shell attached to given pro
 hilda attach [-p pid] [-n process-name]
 ```
 
-After attaching, simply execute `hilda` command to enter the hilda shell.
+### Launch mode
+
+Use the attach sub-command in order to launch given process.
+
+```shell
+hilda launch /path/to/executable \
+    --argv arg1 --argv arg2 \
+    --envp NAME=Alice --envp AGE=30 \
+    --stdin /path/to/input.txt \
+    --stdout /path/to/output.txt \
+    --stderr /path/to/error.txt \
+    --wd /path/to/working/directory \
+    --flags 0x01 \
+    --stop-at-entry
+  ```
 
 ### Bare mode
 
@@ -119,6 +144,23 @@ Run the following command:
 ```shell
 hilda remote HOSTNAME PORT
 ``` 
+
+## Startup Files
+
+Each command can accept startup files to execute on start. As opposed to snippets, the startup files can accept Hilda
+syntax.
+
+#### Startup File Example
+
+```python
+cfg.objc_verbose_monitor = True
+p.bp(ADDRESS)
+p.cont()
+```
+
+```shell
+hilda remote HOSTNAME PORT -f startupfile1 -f startupfile2
+```
 
 ## Usage
 
@@ -270,17 +312,6 @@ Here is a gist of methods you can access from `p`:
       evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
 - `import_module`
     - Import & reload given python module (intended mainly for external snippets)
-- `set_evaluation_unwind`
-    - Set whether LLDB will attempt to unwind the stack whenever an expression evaluation error occurs.
-      Use unwind() to restore when an error is raised in this case.
-- `get_evaluation_unwind`
-    - Get evaluation unwind state.
-      When this value is True, LLDB will attempt unwinding the stack on evaluation errors.
-      Otherwise, the stack frame will remain the same on errors to help you investigate the error.
-- `set_evaluation_ignore_breakpoints`
-    - Set whether to ignore breakpoints while evaluating expressions
-- `get_evaluation_ignore_breakpoints`
-    - Get evaluation "ignore-breakpoints" state.
 - `unwind`
     - Unwind the stack (useful when get_evaluation_unwind() == False)
 
@@ -292,6 +323,32 @@ Sometimes accessing the python API can be tiring, so we added some magic functio
     - Equivalent to: `className = p.objc_get_class(className)`
 - `%fbp <filename> <addressInHex>`
     - Equivalent to: `p.file_symbol(addressInHex, filename).bp()`
+
+## Shortcuts
+
+- **F7**: Step Into
+- **F8**: Step Over
+- **F9**: Continue
+- **F10**: Stop
+
+## Configurables
+
+The global `cfg` used to configure various settings for evaluation and monitoring.
+
+### Attributes
+
+- `evaluation_unwind_on_error`: Whether to unwind on error during evaluation. (Default: `False`)
+- `evaluation_ignore_breakpoints`: Whether to ignore breakpoints during evaluation. (Default: `False`)
+- `nsobject_exclusion`: Whether to exclude `NSObject` during evaluation, reducing IPython autocomplete results. (
+  Default: `False`)
+- `objc_verbose_monitor`: When set to `True`, using `monitor()` will automatically print Objective-C method arguments. (
+  Default: `False`)
+
+### Example Usage
+
+```python
+cfg.objc_verbose_monitor = True
+```
 
 ## UI Configuration
 
@@ -650,9 +707,5 @@ This will monitor all XPC related traffic in the given process.
 Please run the tests as follows before submitting a PR:
 
 ```shell
-xcrun python3 -m tests aggregated
-
-# wait for lldb shell prompt
-
-run_tests
+xcrun python3 -m pytest
 ```

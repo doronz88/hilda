@@ -1,4 +1,3 @@
-import ast
 import base64
 import builtins
 import importlib
@@ -8,18 +7,19 @@ import logging
 import os
 import pickle
 import struct
+import sys
 import time
 import typing
 from collections import namedtuple
 from contextlib import contextmanager, suppress
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from functools import cached_property
+from functools import cached_property, wraps
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
 import hexdump
 import IPython
-import lldb
 from humanfriendly import prompts
 from humanfriendly.terminal.html import html_to_ansi
 from IPython.core.magic import register_line_magic  # noqa: F401
@@ -49,44 +49,32 @@ except ImportError:
     lldb.KEYSTONE_SUPPORT = False
     print('failed to import keystone. disabling some features')
 
-with open(os.path.join(Path(__file__).resolve().parent, 'hilda_ascii_art.html'), 'r') as f:
-    hilda_art = f.read()
+hilda_art = Path(__file__).resolve().parent.joinpath('hilda_ascii_art.html').read_text()
 
 GREETING = f"""
 {hilda_art}
 
 <b>Hilda has been successfully loaded! 😎
-Use the <span style="color: magenta">p</span> global to access all features.
+Usage:
+ <span style="color: magenta">p</span>   Global to access all features.
+ <span style="color: magenta">F7</span>  Step Into.
+ <span style="color: magenta">F8</span>  Step Over.
+ <span style="color: magenta">F9</span>  Continue.
+ <span style="color: magenta">F10</span> Stop.
+
 Have a nice flight ✈️! Starting an IPython shell...
 """
 
-MAGIC_FUNCTIONS = """
-import shlex
-from IPython.core.magic import register_line_magic, needs_local_scope
 
-@register_line_magic
-@needs_local_scope
-def objc(line, local_ns=None):
-    p = local_ns['p']
-    className = line.strip()
-    if not className:
-        p.log_error("Error: className is required.")
-        return
-    try:
-        local_ns[className] = p.objc_get_class(className)
-        p.log_info(f'{className} class loaded successfully')
-    except Exception:
-        p.log_error(f'Error loading class {className}')
+def disable_logs() -> None:
+    logging.getLogger('asyncio').disabled = True
+    logging.getLogger('parso.cache').disabled = True
+    logging.getLogger('parso.cache.pickle').disabled = True
+    logging.getLogger('parso.python.diff').disabled = True
+    logging.getLogger('humanfriendly.prompts').disabled = True
+    logging.getLogger('blib2to3.pgen2.driver').disabled = True
+    logging.getLogger('hilda.launch_lldb').disabled = True
 
-
-@register_line_magic
-@needs_local_scope
-def fbp(line, local_ns=None):
-    p = local_ns['p']
-    module_name, address = shlex.split(line.strip())
-    address = int(address, 16)
-    p.file_symbol(address, module_name).bp()
-"""
 
 SerializableSymbol = namedtuple('SerializableSymbol', 'address type_ filename')
 
@@ -116,6 +104,20 @@ class Configs:
             config_str += f'\t{field_name.ljust(max_len)}: {str(value).ljust(5)} | {doc}\n'
 
         return config_str
+
+
+def stop_is_needed(func: Callable):
+    """Decorator to check if the process must be stopped before proceeding."""
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        is_running = self.process.GetState() == lldb.eStateRunning
+        if is_running:
+            self.logger.error(f'Cannot {func.__name__.replace("_", "-")}: Process must be stopped first.')
+            return
+        return func(self, *args, **kwargs)
+
+    return wrapper
 
 
 class HildaClient:
@@ -165,7 +167,7 @@ class HildaClient:
         # convert FDs into int
         return {int(k): v for k, v in result.items()}
 
-    def bt(self, should_print=True, depth: Optional[int] = None) -> List:
+    def bt(self, should_print: bool = False, depth: Optional[int] = None) -> List[Union[str, lldb.SBFrame]]:
         """ Print an improved backtrace. """
         backtrace = []
         for i, frame in enumerate(self.thread.frames):
@@ -272,6 +274,7 @@ class HildaClient:
         globals()['symbols'] = self.symbols
         self._symbols_loaded = True
 
+    @stop_is_needed
     def poke(self, address, buf: bytes):
         """
         Write data at given address
@@ -286,6 +289,7 @@ class HildaClient:
 
         return retval
 
+    @stop_is_needed
     def poke_text(self, address: int, code: str) -> int:
         """
         Write instructions to address.
@@ -297,6 +301,7 @@ class HildaClient:
         bytecode, count = self._ks.asm(code, as_bytes=True)
         return self.poke(address, bytecode)
 
+    @stop_is_needed
     def peek(self, address, size: int) -> bytes:
         """
         Read data at given address
@@ -315,6 +320,7 @@ class HildaClient:
 
         return retval
 
+    @stop_is_needed
     def peek_str(self, address: Symbol) -> str:
         """
         Peek a buffer till null termination
@@ -323,7 +329,7 @@ class HildaClient:
         """
         return address.po('char *')[1:-1]  # strip the ""
 
-    def stop(self):
+    def stop(self, *args) -> None:
         """ Stop process. """
         self.debugger.SetAsync(False)
 
@@ -334,8 +340,10 @@ class HildaClient:
 
         if not self.process.Stop().Success():
             self.log_critical('failed to stop process')
+        else:
+            self.log_info('Process Stopped')
 
-    def cont(self):
+    def cont(self, *args) -> None:
         """ Continue process. """
         is_running = self.process.GetState() == lldb.eStateRunning
 
@@ -349,6 +357,8 @@ class HildaClient:
 
         if not self.process.Continue().Success():
             self.log_critical('failed to continue process')
+        else:
+            self.log_info('Process Continued')
 
     def detach(self):
         """
@@ -359,8 +369,12 @@ class HildaClient:
         """
         if not self.process.Detach().Success():
             self.log_critical('failed to detach')
+        else:
+            self.log_info('Process Detached')
 
-    def disass(self, address, buf, flavor='intel', should_print=True) -> lldb.SBInstructionList:
+    @stop_is_needed
+    def disass(self, address: int, buf: bytes, flavor: str = 'intel',
+               should_print: bool = False) -> lldb.SBInstructionList:
         """
         Print disassembly from a given address
         :param flavor:
@@ -549,14 +563,16 @@ class HildaClient:
             self.thread.StepOutOfFrame(self.frame)
             self._bp_frame = None
 
-    def step_into(self):
+    @stop_is_needed
+    def step_into(self, *args):
         """ Step into current instruction. """
         with self.sync_mode():
             self.thread.StepInto()
         if self.ui_manager.active:
             self.ui_manager.show()
 
-    def step_over(self):
+    @stop_is_needed
+    def step_over(self, *args):
         """ Step over current instruction. """
         with self.sync_mode():
             self.thread.StepOver()
@@ -1008,28 +1024,32 @@ class HildaClient:
 
         return value
 
-    def interact(self, additional_namespace: typing.Mapping = None) -> None:
+    def interact(self, additional_namespace: Optional[typing.Mapping] = None,
+                 startup_files: Optional[List[str]] = None) -> None:
         """ Start an interactive Hilda shell """
         if not self._dynamic_env_loaded:
             self.init_dynamic_environment()
         print('\n')
         self.log_info(html_to_ansi(GREETING))
+        ipython_config = Config()
+        ipython_config.IPCompleter.use_jedi = True
+        ipython_config.BaseIPythonApplication.profile = 'hilda'
+        ipython_config.InteractiveShellApp.extensions = ['hilda.ipython_extensions.magics',
+                                                         'hilda.ipython_extensions.events',
+                                                         'hilda.ipython_extensions.keybindings']
+        ipython_config.InteractiveShellApp.exec_lines = ["disable_logs()"]
+        if startup_files is not None:
+            ipython_config.InteractiveShellApp.exec_files = startup_files
+            self.log_debug(f'Startup files - {startup_files}')
 
-        config = Config()
-        config.IPCompleter.use_jedi = True
-        config.InteractiveShellApp.exec_lines = [
-            """disable_logs()""",
-            """IPython.get_ipython().events.register('pre_run_cell', self._ipython_run_cell_hook)""",
-            MAGIC_FUNCTIONS,
-        ]
-        config.BaseIPythonApplication.profile = 'hilda'
         namespace = globals()
         namespace.update(locals())
         namespace['p'] = self
         if additional_namespace is not None:
             namespace.update(additional_namespace)
-
-        IPython.start_ipython(config=config, user_ns=namespace)
+        sys.argv = ['a']
+        IPython.start_ipython(config=ipython_config, user_ns=namespace)
+        self.detach()
 
     @staticmethod
     def _add_global(name: str, value: Any, reserved_names=None):
@@ -1099,35 +1119,6 @@ class HildaClient:
             address = f'ptrauth_sign_unauthenticated((void *){address}, ptrauth_key_asia, 0)'
 
         return f'((intptr_t(*)({args_type}))({address}))({args_conv})'
-
-    def _ipython_run_cell_hook(self, info):
-        """
-        Enable lazy loading for symbols
-        :param info: IPython's CellInfo object
-        """
-        if info.raw_cell[0] in ['!', '%'] or info.raw_cell.endswith('?'):
-            return
-
-        for node in ast.walk(ast.parse(info.raw_cell)):
-            if not isinstance(node, ast.Name):
-                # we are only interested in names
-                continue
-
-            if node.id in locals() or node.id in globals() or node.id in dir(builtins):
-                # That are undefined
-                continue
-
-            if not hasattr(SymbolsJar, node.id):
-                # ignore SymbolsJar properties
-                try:
-                    symbol = getattr(self.symbols, node.id)
-                except SymbolAbsentError:
-                    pass
-                else:
-                    self._add_global(
-                        node.id,
-                        symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.objc_get_class(node.id)
-                    )
 
     @staticmethod
     def _std_string(value):

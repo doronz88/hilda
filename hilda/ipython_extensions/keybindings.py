@@ -8,8 +8,8 @@ def load_ipython_extension(ipython):
         hilda = ipython.user_ns['p']
         keys_mapping = {Keys.F7: hilda.step_into,
                         Keys.F8: hilda.step_over,
-                        Keys.F9: hilda.cont,
-                        Keys.F10: hilda.stop}
+                        Keys.F9: lambda _: (hilda.log_info('Sending continue'), hilda.cont()),
+                        Keys.F10: lambda _: (hilda.log_info('Sending stop'), hilda.stop())}
 
         insert_mode = ViInsertMode() | EmacsInsertMode()
         registry = ipython.pt_app.key_bindings

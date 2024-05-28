@@ -340,8 +340,6 @@ class HildaClient:
 
         if not self.process.Stop().Success():
             self.log_critical('failed to stop process')
-        else:
-            self.log_info('Process Stopped')
 
     def cont(self, *args) -> None:
         """ Continue process. """
@@ -357,8 +355,6 @@ class HildaClient:
 
         if not self.process.Continue().Success():
             self.log_critical('failed to continue process')
-        else:
-            self.log_info('Process Continued')
 
     def detach(self):
         """

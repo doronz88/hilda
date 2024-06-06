@@ -9,3 +9,4 @@ construct
 pymobiledevice3
 keystone-engine
 tabulate
+inquirer3

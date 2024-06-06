@@ -314,6 +314,10 @@ Here is a gist of methods you can access from `p`:
     - Import & reload given python module (intended mainly for external snippets)
 - `unwind`
     - Unwind the stack (useful when get_evaluation_unwind() == False)
+- `set_selected_thread`
+    - sets the currently selected thread, which is used in other parts of the program, such as displaying disassembly or
+      checking registers.
+      This ensures the application focuses on the specified thread for these operations.
 
 ## Magic functions
 

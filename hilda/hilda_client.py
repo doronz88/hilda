@@ -524,7 +524,7 @@ class HildaClient:
                     value = hilda.symbol(hilda.evaluate_expression(name))
                     log_message += f'\n\t{name} = {hilda._monitor_format_value(fmt, value)}'
 
-            if options.get('force_return', False):
+            if options.get('force_return', None) is not None:
                 hilda.force_return(options['force_return'])
                 log_message += f'\nforced return: {options["force_return"]}'
 
@@ -533,7 +533,7 @@ class HildaClient:
                 hilda.finish()
                 hilda.bt()
 
-            if options.get('retval', False):
+            if options.get('retval', None) is not None:
                 # return from function
                 hilda.finish()
                 value = hilda.evaluate_expression('$arg1')

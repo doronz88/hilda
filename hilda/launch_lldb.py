@@ -70,9 +70,22 @@ class LLDBListenerThread(Thread, ABC):
                 logger.debug(f'Process Exited with status {self.process.GetExitStatus()}')
                 self.should_quit = True
             elif state == lldb.eStateRunning and last_state == lldb.eStateStopped:
-                logger.debug("Process Continued")
+                logger.debug('Process Continued')
             elif state == lldb.eStateStopped and last_state == lldb.eStateRunning:
                 logger.debug('Process Stopped')
+                for thread in self.process:
+                    frame = thread.GetFrameAtIndex(0)
+                    stop_reason = thread.GetStopReason()
+                    logger.debug(f'tid = {hex(thread.GetThreadID())} pc = {frame.GetPC()}')
+                    if stop_reason not in [lldb.eStopReasonSignal, lldb.eStopReasonException,
+                                           lldb.eStopReasonBreakpoint,
+                                           lldb.eStopReasonWatchpoint, lldb.eStopReasonPlanComplete,
+                                           lldb.eStopReasonTrace,
+                                           lldb.eStopReasonSignal]:
+                        continue
+                    self.process.SetSelectedThread(thread)
+                    break
+
             last_state = state
 
 

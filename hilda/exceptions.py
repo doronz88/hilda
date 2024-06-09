@@ -1,7 +1,7 @@
 __all__ = ['HildaException', 'SymbolAbsentError', 'EvaluatingExpressionError', 'CreatingObjectiveCSymbolError',
            'ConvertingToNsObjectError', 'ConvertingFromNSObjectError', 'DisableJetsamMemoryChecksError',
            'GettingObjectiveCClassError', 'AccessingRegisterError', 'AccessingMemoryError',
-           'BrokenLocalSymbolsJarError', 'AddingLldbSymbolError', 'LLDBException']
+           'BrokenLocalSymbolsJarError', 'AddingLldbSymbolError', 'LLDBException', 'InvalidThreadIndexError']
 
 
 class HildaException(Exception):
@@ -69,4 +69,9 @@ class BrokenLocalSymbolsJarError(HildaException):
 
 class AddingLldbSymbolError(HildaException):
     """ Raise when failing to convert a LLDB symbol to Hilda's symbol. """
+    pass
+
+
+class InvalidThreadIndexError(HildaException):
+    """ Raise when thread idx invalid """
     pass

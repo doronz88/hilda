@@ -30,10 +30,11 @@ from tqdm import tqdm
 from traitlets.config import Config
 
 from hilda import objective_c_class
-from hilda.common import CfSerializable
+from hilda.common import CfSerializable, selection_prompt
 from hilda.exceptions import AccessingMemoryError, AccessingRegisterError, AddingLldbSymbolError, \
     BrokenLocalSymbolsJarError, ConvertingFromNSObjectError, ConvertingToNsObjectError, CreatingObjectiveCSymbolError, \
-    DisableJetsamMemoryChecksError, EvaluatingExpressionError, HildaException, SymbolAbsentError
+    DisableJetsamMemoryChecksError, EvaluatingExpressionError, HildaException, InvalidThreadIndexError, \
+    SymbolAbsentError
 from hilda.lldb_importer import lldb
 from hilda.objective_c_symbol import ObjectiveCSymbol
 from hilda.registers import Registers
@@ -510,7 +511,7 @@ class HildaClient:
             if options.get('name', False):
                 name = options['name']
 
-            log_message = f'🚨 #{bp.id} 0x{symbol:x} {name}'
+            log_message = f'🚨 #{bp.id} 0x{symbol:x} {name} - Thread #{self.thread.idx}:{hex(self.thread.id)}'
 
             if 'regs' in options:
                 log_message += '\nregs:'
@@ -524,7 +525,7 @@ class HildaClient:
                     value = hilda.symbol(hilda.evaluate_expression(name))
                     log_message += f'\n\t{name} = {hilda._monitor_format_value(fmt, value)}'
 
-            if options.get('force_return', False):
+            if options.get('force_return', None) is not None:
                 hilda.force_return(options['force_return'])
                 log_message += f'\nforced return: {options["force_return"]}'
 
@@ -533,7 +534,7 @@ class HildaClient:
                 hilda.finish()
                 hilda.bt()
 
-            if options.get('retval', False):
+            if options.get('retval', None) is not None:
                 # return from function
                 hilda.finish()
                 value = hilda.evaluate_expression('$arg1')
@@ -879,6 +880,16 @@ class HildaClient:
         m = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(m)
         return m
+
+    def set_selected_thread(self, idx: Optional[int] = None) -> None:
+        if idx is None:
+            thread = selection_prompt(self.process.threads)
+        else:
+            try:
+                thread = [t for t in self.process.threads if t.idx == idx][0]
+            except IndexError:
+                raise InvalidThreadIndexError()
+        self.process.SetSelectedThread(thread)
 
     def unwind(self) -> bool:
         """ Unwind the stack (useful when get_evaluation_unwind() == False) """

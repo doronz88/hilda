@@ -127,7 +127,7 @@ class LLDBAttachName(LLDBListenerThread):
         return self.debugger.CreateTargetWithFileAndArch(None, None)
 
     def _create_process(self) -> lldb.SBProcess:
-        logger.debug(f'Attaching to {self.name}')
+        logger.debug(f'Attaching to {self.proc_name}')
         return self.target.AttachToProcessWithName(self.listener, self.proc_name, self.wait_for, self.error)
 
 

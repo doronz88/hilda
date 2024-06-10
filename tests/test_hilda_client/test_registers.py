@@ -16,7 +16,15 @@ def test_register_get(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    assert hilda_client.registers.x0 == hilda_client.registers['x0'] == hilda_client.evaluate_expression('$x0')
+    for i in range(29):
+        register_name = f'x{i}'
+        assert hilda_client.registers[register_name] == hilda_client.evaluate_expression(f'${register_name}')
+        assert getattr(hilda_client.registers, register_name) == hilda_client.registers[register_name]
+
+    for i in range(32):
+        register_name = f'd{i}'
+        assert hilda_client.registers[register_name] == hilda_client.evaluate_expression(f'${register_name}')
+        assert getattr(hilda_client.registers, register_name) == hilda_client.registers[register_name]
 
 
 def test_register_get_uppercase(hilda_client):
@@ -37,6 +45,8 @@ def test_register_set(hilda_client):
     hilda_client.registers['x0'] = 1338
     assert hilda_client.registers.x0 == 1338
     hilda_client.registers.x0 = original_x0
+    hilda_client.registers.d0 = 133.7
+    assert hilda_client.registers.d0 == 133.7
 
 
 def test_register_set_uppercase(hilda_client):

@@ -398,30 +398,33 @@ class HildaClient:
 
         return self.symbol(module.ResolveFileAddress(address).GetLoadAddress(self.target))
 
-    def get_register(self, name) -> Symbol:
+    def get_register(self, name: str) -> Union[float, Symbol]:
         """
-        Get value for register by its name
-        :param name:
-        :return:
-        """
-        register = self.frame.register[name.lower()]
-        if register is None:
-            raise AccessingRegisterError()
-        return self.symbol(register.unsigned)
+        Get value for register by its name. Value can either be an Symbol (int) or a float.
 
-    def set_register(self, name, value):
+        :param name: Register name
+        :return: Register value
+        """
+        register_value = self.frame.register[name.lower()]
+        if register_value is None:
+            raise AccessingRegisterError()
+        return self._get_symbol_or_float_from_sbvalue(register_value)
+
+    def set_register(self, name: str, value: Union[float, int]) -> None:
         """
         Set value for register by its name
-        :param name:
-        :param value:
-        :return:
+        :param name: Register name
+        :param value: Register value
         """
         register = self.frame.register[name.lower()]
         if register is None:
             raise AccessingRegisterError()
-        register.value = hex(value)
+        if isinstance(value, int):
+            register.value = hex(value)
+        else:
+            register.value = str(value)
 
-    def objc_call(self, obj, selector, *params):
+    def objc_call(self, obj: int, selector: str, *params):
         """
         Simulate a call to an objc selector
         :param obj: obj to pass into `objc_msgSend`
@@ -525,27 +528,32 @@ class HildaClient:
                     value = hilda.symbol(hilda.evaluate_expression(name))
                     log_message += f'\n\t{name} = {hilda._monitor_format_value(fmt, value)}'
 
-            if options.get('force_return', None) is not None:
-                hilda.force_return(options['force_return'])
-                log_message += f'\nforced return: {options["force_return"]}'
+            force_return = options.get('force_return')
+            if force_return is not None:
+                hilda.force_return(force_return)
+                log_message += f'\nforced return: {force_return}'
 
-            if options.get('bt', False):
+            if options.get('bt'):
                 # bugfix: for callstacks from xpc events
                 hilda.finish()
-                hilda.bt()
+                for frame in hilda.bt():
+                    log_message += f'\n\t{frame[0]} {frame[1]}'
 
-            if options.get('retval', None) is not None:
+            retval = options.get('retval')
+            if retval is not None:
                 # return from function
                 hilda.finish()
                 value = hilda.evaluate_expression('$arg1')
-                log_message += f'\nreturned: {hilda._monitor_format_value(options["retval"], value)}'
+                log_message += f'\nreturned: {hilda._monitor_format_value(retval, value)}'
 
             hilda.log_info(log_message)
 
             for cmd in options.get('cmd', []):
                 hilda.lldb_handle_command(cmd)
 
-            if not options.get('stop', False):
+            if options.get('stop', False):
+                hilda.log_info('Process remains stopped and focused on current thread')
+            else:
                 hilda.cont()
 
         return self.bp(address, callback, condition=condition, **options)
@@ -835,7 +843,7 @@ class HildaClient:
             raise ConvertingFromNSObjectError from e
         return json.loads(json_dump, object_hook=self._from_ns_json_object_hook)['root']
 
-    def evaluate_expression(self, expression) -> Symbol:
+    def evaluate_expression(self, expression: str) -> Union[float, Symbol]:
         """
         Wrapper for LLDB's EvaluateExpression.
         Used for quick code snippets.
@@ -845,8 +853,8 @@ class HildaClient:
             currentDevice = objc_get_class('UIDevice').currentDevice
             evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
 
-        :param expression:
-        :return: returned symbol
+        :param expression: Expression to evaluate
+        :return: Returned value (either float or a Symbol)
         """
         # prepending a prefix so LLDB knows to return an int type
         if isinstance(expression, int):
@@ -859,12 +867,12 @@ class HildaClient:
         options.SetTryAllThreads(True)
         options.SetUnwindOnError(self.configs.evaluation_unwind_on_error)
 
-        e = self.frame.EvaluateExpression(formatted_expression, options)
+        sbvalue = self.frame.EvaluateExpression(formatted_expression, options)
 
-        if not e.error.Success():
-            raise EvaluatingExpressionError(str(e.error))
+        if not sbvalue.error.Success():
+            raise EvaluatingExpressionError(str(sbvalue.error))
 
-        return self.symbol(e.unsigned)
+        return self._get_symbol_or_float_from_sbvalue(sbvalue)
 
     def import_module(self, filename: str, name: Optional[str] = None) -> Any:
         """
@@ -1169,3 +1177,11 @@ class HildaClient:
                 '__objc_class_list',
                 f'{objc_classlist_addr}')
             return json.loads(self.po(obj_c_code))
+
+    def _get_symbol_or_float_from_sbvalue(self, value: lldb.SBValue) -> Union[float, Symbol]:
+        # The `value` attribute of an SBValue stores a string representation of the actual value
+        # in a python-compatible format, so we can eval it to get the native python value
+        value = eval(value.value)
+        if isinstance(value, float):
+            return value
+        return self.symbol(value)

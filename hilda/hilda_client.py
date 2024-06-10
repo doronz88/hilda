@@ -551,7 +551,9 @@ class HildaClient:
             for cmd in options.get('cmd', []):
                 hilda.lldb_handle_command(cmd)
 
-            if not options.get('stop', False):
+            if options.get('stop', False):
+                hilda.log_info('Process remains stopped and focused on current thread')
+            else:
                 hilda.cont()
 
         return self.bp(address, callback, condition=condition, **options)

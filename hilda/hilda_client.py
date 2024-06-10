@@ -536,7 +536,8 @@ class HildaClient:
             if options.get('bt'):
                 # bugfix: for callstacks from xpc events
                 hilda.finish()
-                hilda.bt()
+                for frame in hilda.bt():
+                    log_message += f'\n\t{frame[0]} {frame[1]}'
 
             retval = options.get('retval')
             if retval is not None:

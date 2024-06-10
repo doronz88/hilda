@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from threading import Thread
 from typing import List, Optional
 
-from hilda.exceptions import LLDBException
+from hilda.exceptions import LLDBError
 from hilda.hilda_client import HildaClient
 from hilda.lldb_importer import lldb
 
@@ -49,10 +49,10 @@ class LLDBListenerThread(Thread, ABC):
     def _create_process(self) -> lldb.SBProcess:
         pass
 
-    def _check_success(self):
+    def _check_success(self) -> None:
         if self.error.Success():
             return
-        raise LLDBException(self.error.description)
+        raise LLDBError(self.error.description)
 
     def run(self):
         event = lldb.SBEvent()

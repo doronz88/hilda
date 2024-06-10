@@ -14,14 +14,6 @@ lldb.hilda_client = None
 logger = logging.getLogger(__name__)
 
 
-def hilda(debugger, startup_files: Optional[List[str]] = None):
-    if lldb.hilda_client is None:
-        lldb.hilda_client = HildaClient(debugger)
-
-    additional_namespace = {'ui': lldb.hilda_client.ui_manager, 'cfg': lldb.hilda_client.configs}
-    lldb.hilda_client.interact(additional_namespace=additional_namespace, startup_files=startup_files)
-
-
 def execute(cmd: str) -> int:
     logging.debug(f'executing: {cmd}')
     return os.system(cmd)
@@ -67,7 +59,7 @@ class LLDBListenerThread(Thread, ABC):
                 logger.debug('Process Detached')
                 self.should_quit = True
             elif state == lldb.eStateExited:
-                logger.debug(f'Process Exited with status {self.process.GetExitStatus()}')
+                logger.info(f'Process Exited with status {self.process.GetExitStatus()}')
                 self.should_quit = True
             elif state == lldb.eStateRunning and last_state == lldb.eStateStopped:
                 logger.debug('Process Continued')
@@ -161,42 +153,36 @@ class LLDBLaunch(LLDBListenerThread):
                                   self.error)
 
 
-def remote(hostname: str, port: int, startup_files: Optional[List[str]] = None) -> None:
-    """ Connect to remote process """
-    try:
-        lldb_t = LLDBRemote(hostname, port)
-        lldb_t.start()
-        hilda(lldb_t.debugger, startup_files)
-    except LLDBException as e:
-        logger.error(e.message)
+def _get_hilda_client_from_sbdebugger(debugger: lldb.SBDebugger) -> HildaClient:
+    hilda_client = HildaClient(debugger)
+    lldb.hilda_client = hilda_client
+    hilda_client.init_dynamic_environment()
+    return hilda_client
 
 
-def attach(name: Optional[str] = None, pid: Optional[int] = None, wait_for: bool = False,
-           startup_files: Optional[List[str]] = None) -> None:
-    """ Attach to given process and start a lldb shell """
-    if (name is not None and pid is not None) or (name is None and pid is None):
-        raise ValueError('Provide either a process name or a PID, but not both.')
-
-    try:
-        if name is not None:
-            lldb_t = LLDBAttachName(name, wait_for)
-        else:
-            lldb_t = LLDBAttachPid(pid)
-        lldb_t.start()
-        hilda(lldb_t.debugger, startup_files)
-    except LLDBException as e:
-        logger.error(e.message)
+def create_hilda_client_using_remote_attach(
+        hostname: str, port: int) -> HildaClient:
+    lldb_t = LLDBRemote(hostname, port)
+    lldb_t.start()
+    return _get_hilda_client_from_sbdebugger(lldb_t.debugger)
 
 
-def launch(exec_path: str, argv: Optional[List] = None, envp: Optional[List] = None,
-           stdin: Optional[str] = None,
-           stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
-           flags: Optional[int] = 0, stop_at_entry: Optional[bool] = False,
-           startup_files: Optional[List[str]] = None) -> None:
-    """ Launch to given process and start a lldb shell """
-    try:
-        lldb_t = LLDBLaunch(exec_path, argv, envp, stdin, stdout, stderr, wd, flags, stop_at_entry)
-        lldb_t.start()
-        hilda(lldb_t.debugger, startup_files)
-    except LLDBException as e:
-        logger.error(e.message)
+def create_hilda_client_using_launch(
+        exec_path: str, argv: Optional[List] = None, envp: Optional[List] = None, stdin: Optional[str] = None,
+        stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
+        flags: Optional[int] = 0, stop_at_entry: Optional[bool] = False) -> HildaClient:
+    lldb_t = LLDBLaunch(exec_path, argv, envp, stdin, stdout, stderr, wd, flags, stop_at_entry)
+    lldb_t.start()
+    return _get_hilda_client_from_sbdebugger(lldb_t.debugger)
+
+
+def create_hilda_client_using_attach_by_pid(pid: Optional[int] = None) -> HildaClient:
+    lldb_t = LLDBAttachPid(pid)
+    lldb_t.start()
+    return _get_hilda_client_from_sbdebugger(lldb_t.debugger)
+
+
+def create_hilda_client_using_attach_by_name(name: Optional[str] = None, wait_for: bool = False) -> HildaClient:
+    lldb_t = LLDBAttachName(name, wait_for)
+    lldb_t.start()
+    return _get_hilda_client_from_sbdebugger(lldb_t.debugger)

@@ -74,7 +74,7 @@ def disable_logs() -> None:
     logging.getLogger('parso.python.diff').disabled = True
     logging.getLogger('humanfriendly.prompts').disabled = True
     logging.getLogger('blib2to3.pgen2.driver').disabled = True
-    logging.getLogger('hilda.launch_lldb').disabled = True
+    logging.getLogger('hilda.launch_lldb').setLevel(logging.INFO)
 
 
 SerializableSymbol = namedtuple('SerializableSymbol', 'address type_ filename')
@@ -357,17 +357,19 @@ class HildaClient:
         if not self.process.Continue().Success():
             self.log_critical('failed to continue process')
 
-    def detach(self):
+    def detach(self) -> None:
         """
         Detach from process.
 
         Useful in order to exit gracefully so process doesn't get killed
         while you exit
         """
+        if not self.process.is_alive:
+            return
         if not self.process.Detach().Success():
             self.log_critical('failed to detach')
-        else:
-            self.log_info('Process Detached')
+            return
+        self.log_info('Process Detached')
 
     @stop_is_needed
     def disass(self, address: int, buf: bytes, flavor: str = 'intel',
@@ -1052,7 +1054,7 @@ class HildaClient:
         ipython_config.InteractiveShellApp.extensions = ['hilda.ipython_extensions.magics',
                                                          'hilda.ipython_extensions.events',
                                                          'hilda.ipython_extensions.keybindings']
-        ipython_config.InteractiveShellApp.exec_lines = ["disable_logs()"]
+        ipython_config.InteractiveShellApp.exec_lines = ['disable_logs()']
         if startup_files is not None:
             ipython_config.InteractiveShellApp.exec_files = startup_files
             self.log_debug(f'Startup files - {startup_files}')
@@ -1060,10 +1062,17 @@ class HildaClient:
         namespace = globals()
         namespace.update(locals())
         namespace['p'] = self
+        namespace['ui'] = self.ui_manager
+        namespace['cfg'] = self.configs
         if additional_namespace is not None:
             namespace.update(additional_namespace)
         sys.argv = ['a']
         IPython.start_ipython(config=ipython_config, user_ns=namespace)
+
+    def __enter__(self) -> 'HildaClient':
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.detach()
 
     @staticmethod

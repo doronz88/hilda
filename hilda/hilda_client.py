@@ -424,7 +424,7 @@ class HildaClient:
         else:
             register.value = str(value)
 
-    def objc_call(self, obj, selector, *params):
+    def objc_call(self, obj: int, selector: str, *params):
         """
         Simulate a call to an objc selector
         :param obj: obj to pass into `objc_msgSend`

@@ -1,31 +1,25 @@
-- [Description](#description)
-- [Installation](#installation)
-- [How to use](#how-to-use)
-    - [Starting a Hilda shell](#starting-a-hilda-shell)
-        - [Attach mode](#attach-mode)
-        - [Launch mode](#launch-mode)
-        - [Bare mode](#bare-mode)
-        - [Remote mode](#remote-mode)
-            - [The connected device is connected via network](#the-connected-device-is-connected-via-network)
-        - [Startup Files](#startup-files)
-    - [Usage](#usage)
-    - [Magic functions](#magic-functions)
-    - [Shortcuts](#shortcuts)
-    - [Configurables](#configurables)
-        - [Attributes](#attributes)
-        - [Example Usage](#example-usage)
-    - [UI Configuration](#ui-configuration)
-    - [Symbol objects](#symbol-objects)
-    - [Globalized symbols](#globalized-symbols)
-        - [Searching for the right symbol](#searching-for-the-right-symbol)
-        - [Objective-C Classes](#objective-c-classes)
-    - [Objective-C Objects](#objective-c-objects)
-    - [Using snippets](#using-snippets)
-- [Contributing](#contributing)
+# Hilda
 
-Would you like any further adjustments?
+- [Hilda](#hilda)
+  - [Overview](#overview)
+  - [Installation](#installation)
+  - [How to use](#how-to-use)
+    - [Starting a Hilda interactive shell](#starting-a-hilda-interactive-shell)
+    - [Inside a Hilda shell](#inside-a-hilda-shell)
+      - [Magic functions](#magic-functions)
+      - [Key-bindings](#key-bindings)
+      - [Configurables](#configurables)
+      - [UI Configuration](#ui-configuration)
+    - [Python API](#python-api)
+      - [Symbol objects](#symbol-objects)
+      - [Globalized symbols](#globalized-symbols)
+      - [Searching for the right symbol](#searching-for-the-right-symbol)
+      - [Objective-C Classes](#objective-c-classes)
+      - [Objective-C Objects](#objective-c-objects)
+      - [Using snippets](#using-snippets)
+  - [Contributing](#contributing)
 
-# Description
+## Overview
 
 Hilda is a debugger which combines both the power of LLDB and iPython for easier debugging.
 
@@ -37,8 +31,8 @@ debugger-y" approach (based on LLDB).
 Currently, the project is intended for iOS/OSX debugging, but in the future we will possibly add support for the
 following platforms as well:
 
-* Linux
-* Android
+- Linux
+- Android
 
 Since LLDB allows abstraction for both platform and architecture, it should be possible to make the necessary changes
 without too many modifications.
@@ -48,14 +42,14 @@ Pull requests are more than welcome 😊.
 If you need help or have an amazing idea you would like to suggest, feel free
 to [start a discussion 💬](https://github.com/doronz88/hilda/discussions).
 
-# Installation
+## Installation
 
 Requirements for remote iOS device (not required for debugging a local OSX process):
 
-* Jailbroken iOS device
-* `debugserver` in device's PATH
-    * [You can use this tool in order to obtain the binary](https://github.com/doronz88/debugserver-deploy)
-    * After re-signing with new entitlements, you can put the binary in the following path: `/usr/bin/debugserver`
+- Jailbroken iOS device
+- `debugserver` in device's PATH
+  - [You can use this tool in order to obtain the binary](https://github.com/doronz88/debugserver-deploy)
+  - After re-signing with new entitlements, you can put the binary in the following path: `/usr/bin/debugserver`
 
 In order to install please run:
 
@@ -65,104 +59,40 @@ xcrun python3 -m pip install --user -U hilda
 
 *⚠️ Please note that Hilda is installed on top of XCode's python so LLDB will be able to use its features.*
 
-# How to use
+## How to use
 
-## Starting a Hilda shell
+### Starting a Hilda interactive shell
 
-### Attach mode
+You can may start a Hilda interactive shell by invoking any of the subcommand:
 
-Use the attach sub-command in order to start an LLDB shell attached to given process.
+- `hilda launch /path/to/executable`
+  - Launch given executable on current host
+- `hilda attach [-p pid] [-n process-name]`
+  - Attach to an already running process on current host (specified by either `pid` or `process-name`)
+- `hilda remote HOSTNAME PORT`
+  - Attach to an already running process on a target host (sepcified by `HOSTNAME PORT`)
+- `hilda bare`
+  - Only start an LLDB shell and load Hilda as a plugin.
+  - Please refer to the following help page if you require help on the command available to you within the lldb shell:
 
-```shell
-hilda attach [-p pid] [-n process-name]
-```
+    [lldb command map](https://lldb.llvm.org/use/map.html).
 
-### Launch mode
+    As a cheatsheet, connecting to a remote platform like so:
 
-Use the attach sub-command in order to launch given process.
+    ```shell
+    platform connect connect://ip:port
+    ```
 
-```shell
-hilda launch /path/to/executable \
-    --argv arg1 --argv arg2 \
-    --envp NAME=Alice --envp AGE=30 \
-    --stdin /path/to/input.txt \
-    --stdout /path/to/output.txt \
-    --stderr /path/to/error.txt \
-    --wd /path/to/working/directory \
-    --flags 0x01 \
-    --stop-at-entry
-  ```
+    ... and attaching to a local process:
 
-### Bare mode
+    ```shell
+    process attach -n proccess_name
+    process attach -p proccess_pid
+    ```
 
-Use "Bare mode" to get a "bare-bones" lldb shell, whereas hilda plugin is already loaded and ready to start. This mode
-is useful when you need to have custom commands for attaching to the target process (for example when debugging OSX
-processes).
+    When you are ready, just execute `hilda` to move to Hilda's iPython shell.
 
-To start this mode simply use:
-
-```shell
-hilda bare
-```
-
-Please refer to the following help page if you require help on the command available to you within the lldb shell:
-
-[lldb command map](https://lldb.llvm.org/use/map.html).
-
-As a cheatsheet, connecting to a remote platform like so:
-
-```shell
-platform connect connect://ip:port
-```
-
-... and attaching to a local process:
-
-```shell
-process attach -n proccess_name
-process attach -p proccess_pid
-```
-
-When you are ready, just execute `hilda` to move to Hilda's iPython shell.
-
-### Remote mode
-
-This mode will auto-connect to the remote device and attach to your target process assuming you are trying to debug a
-remote jailbroken iOS device.
-
-Please note the following:
-
-* script assumes the connected device already **has a running ssh server**, which doesn't require a password (you can
-  use
-  `ssh-copy-id` to achieve this).
-
-From this point the flow diverges into 2 flows:
-
-### The connected device is connected via network
-
-Run the following command:
-
-```shell
-hilda remote HOSTNAME PORT
-``` 
-
-## Startup Files
-
-Each command can accept startup files to execute on start. As opposed to snippets, the startup files can accept Hilda
-syntax.
-
-#### Startup File Example
-
-```python
-cfg.objc_verbose_monitor = True
-p.bp(ADDRESS)
-p.cont()
-```
-
-```shell
-hilda remote HOSTNAME PORT -f startupfile1 -f startupfile2
-```
-
-## Usage
+### Inside a Hilda shell
 
 Upon starting Hilda shell, you are greeted with:
 
@@ -175,52 +105,53 @@ Have a nice flight ✈️! Starting an IPython shell...
 Here is a gist of methods you can access from `p`:
 
 - `hd`
-    - Print an hexdump of given buffer
+  - Print an hexdump of given buffer
 - `lsof`
-    - Get dictionary of all open FDs
+  - Get dictionary of all open FDs
 - `bt`
-    - Print an improved backtrace.
+  - Print an improved backtrace.
 - `disable_jetsam_memory_checks`
-    - Disable jetsam memory checks, prevent raising:
+  - Disable jetsam memory checks, prevent raising:
       `error: Execution was interrupted, reason: EXC_RESOURCE RESOURCE_TYPE_MEMORY (limit=15 MB, unused=0x0).`
       when evaluating expression.
 - `symbol`
-    - Get symbol object for a given address
+  - Get symbol object for a given address
 - `objc_symbol`
-    - Get objc symbol wrapper for given address
+  - Get objc symbol wrapper for given address
 - `inject`
-    - Inject a single library into currently running process
+  - Inject a single library into currently running process
 - `rebind_symbols`
-    - Reparse all loaded images symbols
+  - Reparse all loaded images symbols
 - `poke`
-    - Write data at given address
+  - Write data at given address
 - `peek`
-    - Read data at given address
+  - Read data at given address
 - `peek_str`
-    - Peek a buffer till null termination
+  - Peek a buffer till null termination
 - `stop`
-    - Stop process.
+  - Stop process.
 - `cont`
-    - Continue process.
+  - Continue process.
 - `detach`
-    - Detach from process.
+  - Detach from process.
       Useful in order to exit gracefully so process doesn't get killed
       while you exit
 - `disass`
-    - Print disassembly from a given address
+  - Print disassembly from a given address
 - `file_symbol`
-    - Calculate symbol address without ASLR
+  - Calculate symbol address without ASLR
 - `get_register`
-    - Get value for register by its name
+  - Get value for register by its name
 - `set_register`
-    - Set value for register by its name
+  - Set value for register by its name
 - `objc_call`
-    - Simulate a call to an objc selector
+  - Simulate a call to an objc selector
 - `call`
-    - Call function at given address with given parameters
+  - Call function at given address with given parameters
 - `monitor`
-    - Monitor every time a given address is called
+  - Monitor every time a given address is called
       The following options are available:
+
       ```
       regs={reg1: format}
       will print register values
@@ -252,58 +183,57 @@ Here is a gist of methods you can access from `p`:
            override=True
                override previous break point at same location
       ```
+
 - `show_current_source`
-    - print current source code if possible
+  - print current source code if possible
 - `finish`
-    - Run current frame till its end.
+  - Run current frame till its end.
 - `step_into`
-    - Step into current instruction.
+  - Step into current instruction.
 - `step_over`
-    - Step over current instruction.
+  - Step over current instruction.
 - `remove_all_hilda_breakpoints`
-    - Remove all breakpoints created by Hilda
+  - Remove all breakpoints created by Hilda
 - `remove_hilda_breakpoint`
-    - Remove a single breakpoint placed by Hilda
+  - Remove a single breakpoint placed by Hilda
 - `force_return`
-    - Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
+  - Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
       yielding a specified value.
 - `proc_info`
-    - Print information about currently running mapped process.
+  - Print information about currently running mapped process.
 - `print_proc_entitlements`
-    - Get the plist embedded inside the process' __LINKEDIT section.
+  - Get the plist embedded inside the process' __LINKEDIT section.
 - `bp`
-    - Add a breakpoint
+  - Add a breakpoint
 - `show_hilda_breakpoints`
-    - Show existing breakpoints created by Hilda.
-- `show_commands`
-    - Show available commands.
+  - Show existing breakpoints created by Hilda.
 - `save`
-    - Save loaded symbols map (for loading later using the load() command)
+  - Save loaded symbols map (for loading later using the load() command)
 - `load`
-    - Load an existing symbols map (previously saved by the save() command)
+  - Load an existing symbols map (previously saved by the save() command)
 - `po`
-    - Print given object using LLDB's po command
+  - Print given object using LLDB's po command
       Can also run big chunks of native code:
 
       po('NSMutableString *s = [NSMutableString string]; [s appendString:@"abc"]; [s description]')
 - `globalize_symbols`
-    - Make all symbols in python's global scope
+  - Make all symbols in python's global scope
 - `jump`
-    - jump to given symbol
+  - jump to given symbol
 - `lldb_handle_command`
-    - Execute an LLDB command
+  - Execute an LLDB command
       For example:
       lldb_handle_command('register read')
 - `objc_get_class`
-    - Get ObjC class object
+  - Get ObjC class object
 - `CFSTR`
-    - Create CFStringRef object from given string
+  - Create CFStringRef object from given string
 - `ns`
-    - Create NSObject from given data
+  - Create NSObject from given data
 - `from_ns`
-    - Create python object from NS object.
+  - Create python object from NS object.
 - `evaluate_expression`
-    - Wrapper for LLDB's EvaluateExpression.
+  - Wrapper for LLDB's EvaluateExpression.
       Used for quick code snippets.
 
       Feel free to use local variables inside the expression using format string.
@@ -311,35 +241,37 @@ Here is a gist of methods you can access from `p`:
       currentDevice = objc_get_class('UIDevice').currentDevice
       evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
 - `import_module`
-    - Import & reload given python module (intended mainly for external snippets)
+  - Import & reload given python module (intended mainly for external snippets)
 - `unwind`
-    - Unwind the stack (useful when get_evaluation_unwind() == False)
+  - Unwind the stack (useful when get_evaluation_unwind() == False)
 - `set_selected_thread`
-    - sets the currently selected thread, which is used in other parts of the program, such as displaying disassembly or
+  - sets the currently selected thread, which is used in other parts of the program, such as displaying disassembly or
       checking registers.
       This ensures the application focuses on the specified thread for these operations.
 
-## Magic functions
+All these methods are available from the global `p` within the newly created IPython shell. In addition, you may invoke any of the exported APIs described in the [Python API](#python-api)
 
-Sometimes accessing the python API can be tiring, so we added some magic functions to help you out!
+#### Magic functions
+
+Sometimes accessing the [Python API](#python-api) can be tiring, so we added some magic functions to help you out!
 
 - `%objc <className>`
-    - Equivalent to: `className = p.objc_get_class(className)`
+  - Equivalent to: `className = p.objc_get_class(className)`
 - `%fbp <filename> <addressInHex>`
-    - Equivalent to: `p.file_symbol(addressInHex, filename).bp()`
+  - Equivalent to: `p.file_symbol(addressInHex, filename).bp()`
 
-## Shortcuts
+#### Key-bindings
 
 - **F7**: Step Into
 - **F8**: Step Over
 - **F9**: Continue
 - **F10**: Stop
 
-## Configurables
+#### Configurables
 
 The global `cfg` used to configure various settings for evaluation and monitoring.
 
-### Attributes
+These settings include:
 
 - `evaluation_unwind_on_error`: Whether to unwind on error during evaluation. (Default: `False`)
 - `evaluation_ignore_breakpoints`: Whether to ignore breakpoints during evaluation. (Default: `False`)
@@ -348,15 +280,9 @@ The global `cfg` used to configure various settings for evaluation and monitorin
 - `objc_verbose_monitor`: When set to `True`, using `monitor()` will automatically print Objective-C method arguments. (
   Default: `False`)
 
-### Example Usage
+#### UI Configuration
 
-```python
-cfg.objc_verbose_monitor = True
-```
-
-## UI Configuration
-
-Hilda contains minimal UI for examining the target state.
+Hilda contains a minimal UI for examining the target state.
 The UI is divided into views:
 
 - Registers
@@ -413,7 +339,31 @@ ui.colors.address = 'red'
 ui.color.title = 'green'
 ```
 
-## Symbol objects
+### Python API
+
+Hilda provides a comprehensive API wrappers to access LLDB capabilities.
+This API may be used to access process memory, trigger functions, place breakpoints and much more!
+
+Also, in addition to access this API using the [Hilda shell](#inside-a-hilda-shell), you may also use pure-python script using any of the `create_hilda_client_using_*` APIs.
+
+Consider the following snippet as an example of such usage:
+
+```python
+from hilda.launch_lldb import create_hilda_client_using_attach_by_name
+
+# attach to `sysmond`
+p = create_hilda_client_using_attach_by_name('sysmond')
+
+# allocate 10 bytes and print their address
+print(p.symbols.malloc(10))
+
+# detach
+p.detach()
+```
+
+Please note this script must be executed using `xcrun python3` in order for it to be able to access LLDB API.
+
+#### Symbol objects
 
 In Hilda, almost everything is wrapped using the `Symbol` Object. Symbol is just a nicer way for referring to addresses
 encapsulated with an object allowing to deref the memory inside, or use these addresses as functions.
@@ -520,7 +470,7 @@ p.bp('symbol_name')
 p.bp('symbol_name', module_name='ModuleName')
 ```
 
-## Globalized symbols
+#### Globalized symbols
 
 Usually you would want/need to use the symbols already mapped into the currently running process. To do so, you can
 access them using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolsJar`, which is a wrapper
@@ -565,7 +515,7 @@ jar = jar.code()
 jar.monitor(regs={'x0': 'x'}, bt=True)
 ```
 
-### Objective-C Classes
+#### Objective-C Classes
 
 The same as symbols applies to Objective-C classes name resolution. You can either:
 
@@ -618,7 +568,7 @@ dictionary = NSDictionary.capture_self(True)
 dictionary.show()
 ```
 
-## Objective-C Objects
+#### Objective-C Objects
 
 In order to work with ObjC objects, each symbol contains a property called
 `objc_symbol`. After calling, you can work better with each object:
@@ -684,7 +634,7 @@ abc_string = p.evaluate_expression('[NSString stringWithFormat:@"abc"]')
 print(abc_string.po())
 ```
 
-## Using snippets
+#### Using snippets
 
 Snippets are extensions for normal functionality used as quick cookbooks for day-to-day tasks of a debugger.
 

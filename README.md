@@ -89,8 +89,7 @@ hilda launch /path/to/executable \
     --stdout /path/to/output.txt \
     --stderr /path/to/error.txt \
     --wd /path/to/working/directory \
-    --flags 0x01 \
-    --stop-at-entry
+    --flags 0x01 
   ```
 
 ### Bare mode

@@ -59,20 +59,16 @@ def attach(name: str, pid: int, startup_files: Optional[List[str]] = None) -> No
 @click.option('--stderr', type=str, help='Redirect stderr to this file path')
 @click.option('--cwd', type=str, help='Set the working directory for the process')
 @click.option('--flags', type=click.INT, default=0, help='Launch flags (bitmask)')
-@click.option('--stop-at-entry', is_flag=True, help='Stop the process at the entry point')
 @startup_files_option
 def launch(exec_path: str, argv: Optional[List] = None, envp: Optional[Mapping] = None,
            stdin: Optional[Path] = None,
            stdout: Optional[Path] = None, stderr: Optional[Path] = None, cwd: Optional[Path] = None,
-           flags: Optional[int] = 0, stop_at_entry: Optional[bool] = False,
+           flags: Optional[int] = 0,
            startup_files: Optional[List[str]] = None) -> None:
-    """ Attach to given process and start a lldb shell """
-    if not argv:
-        argv = None
-    if not envp:
-        envp = None
-    launch_lldb.launch(exec_path, argv, envp, stdin, stdout, stderr, cwd, flags, stop_at_entry,
-                       startup_files)
+    """ Attach to a given process and start a lldb shell """
+    argv = list(argv) if argv else None
+    envp = list(envp) if envp else None
+    launch_lldb.launch(exec_path, argv, envp, stdin, stdout, stderr, cwd, flags, startup_files)
 
 
 @cli.command('bare')

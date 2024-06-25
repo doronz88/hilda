@@ -135,13 +135,12 @@ class LLDBLaunch(LLDBListenerThread):
     def __init__(self, exec_path: str, argv: Optional[List[str]] = None, envp: Optional[List[str]] = None,
                  stdin: Optional[str] = None,
                  stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
-                 flags: Optional[int] = 0, stop_at_entry: Optional[bool] = False):
+                 flags: Optional[int] = 0):
         self.exec_path = exec_path
         self.stdout = stdout
         self.stdin = stdin
         self.stderr = stderr
         self.flags = flags
-        self.stop_at_entry = stop_at_entry
         self.argv = argv
         self.envp = envp
         self.working_directory = wd
@@ -157,7 +156,7 @@ class LLDBLaunch(LLDBListenerThread):
         logger.debug(f'Lunching process  {self.exec_path}')
         return self.target.Launch(self.listener, self.argv, self.envp,
                                   self.stdin, self.stdout, self.stderr, self.working_directory,
-                                  self.flags, self.stop_at_entry,
+                                  self.flags, True,
                                   self.error)
 
 
@@ -173,7 +172,7 @@ def remote(hostname: str, port: int, startup_files: Optional[List[str]] = None) 
 
 def attach(name: Optional[str] = None, pid: Optional[int] = None, wait_for: bool = False,
            startup_files: Optional[List[str]] = None) -> None:
-    """ Attach to given process and start a lldb shell """
+    """ Attach to a given process and start a lldb shell """
     if (name is not None and pid is not None) or (name is None and pid is None):
         raise ValueError('Provide either a process name or a PID, but not both.')
 
@@ -191,11 +190,10 @@ def attach(name: Optional[str] = None, pid: Optional[int] = None, wait_for: bool
 def launch(exec_path: str, argv: Optional[List] = None, envp: Optional[List] = None,
            stdin: Optional[str] = None,
            stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
-           flags: Optional[int] = 0, stop_at_entry: Optional[bool] = False,
-           startup_files: Optional[List[str]] = None) -> None:
-    """ Launch to given process and start a lldb shell """
+           flags: Optional[int] = 0, startup_files: Optional[List[str]] = None) -> None:
+    """ Launch to a given process and start a lldb shell """
     try:
-        lldb_t = LLDBLaunch(exec_path, argv, envp, stdin, stdout, stderr, wd, flags, stop_at_entry)
+        lldb_t = LLDBLaunch(exec_path, argv, envp, stdin, stdout, stderr, wd, flags)
         lldb_t.start()
         hilda(lldb_t.debugger, startup_files)
     except LLDBException as e:

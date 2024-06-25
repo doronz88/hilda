@@ -58,6 +58,7 @@ GREETING = f"""
 <b>Hilda has been successfully loaded! 😎
 Usage:
  <span style="color: magenta">p</span>   Global to access all features.
+ <span style="color: magenta">F1</span>  UI Show.
  <span style="color: magenta">F7</span>  Step Into.
  <span style="color: magenta">F8</span>  Step Over.
  <span style="color: magenta">F9</span>  Continue.

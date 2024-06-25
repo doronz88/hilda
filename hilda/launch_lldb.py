@@ -127,13 +127,12 @@ class LLDBLaunch(LLDBListenerThread):
     def __init__(self, exec_path: str, argv: Optional[List[str]] = None, envp: Optional[List[str]] = None,
                  stdin: Optional[str] = None,
                  stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
-                 flags: Optional[int] = 0, stop_at_entry: Optional[bool] = False):
+                 flags: Optional[int] = 0):
         self.exec_path = exec_path
         self.stdout = stdout
         self.stdin = stdin
         self.stderr = stderr
         self.flags = flags
-        self.stop_at_entry = stop_at_entry
         self.argv = argv
         self.envp = envp
         self.working_directory = wd
@@ -149,7 +148,7 @@ class LLDBLaunch(LLDBListenerThread):
         logger.debug(f'Lunching process  {self.exec_path}')
         return self.target.Launch(self.listener, self.argv, self.envp,
                                   self.stdin, self.stdout, self.stderr, self.working_directory,
-                                  self.flags, self.stop_at_entry,
+                                  self.flags, True,
                                   self.error)
 
 
@@ -170,8 +169,8 @@ def create_hilda_client_using_remote_attach(
 def create_hilda_client_using_launch(
         exec_path: str, argv: Optional[List] = None, envp: Optional[List] = None, stdin: Optional[str] = None,
         stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
-        flags: Optional[int] = 0, stop_at_entry: Optional[bool] = False) -> HildaClient:
-    lldb_t = LLDBLaunch(exec_path, argv, envp, stdin, stdout, stderr, wd, flags, stop_at_entry)
+        flags: Optional[int] = 0) -> HildaClient:
+    lldb_t = LLDBLaunch(exec_path, argv, envp, stdin, stdout, stderr, wd, flags)
     lldb_t.start()
     return _get_hilda_client_from_sbdebugger(lldb_t.debugger)
 

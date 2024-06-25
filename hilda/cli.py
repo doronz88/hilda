@@ -77,16 +77,15 @@ def cli_bare() -> None:
 @click.option('--stderr', help='Redirect stderr to this file path')
 @click.option('--cwd', help='Set the working directory for the process')
 @click.option('--flags', type=click.INT, default=0, help='Launch flags (bitmask)')
-@click.option('--stop-at-entry', is_flag=True, help='Stop the process at the entry point')
 @startup_files_option
 def launch(exec_path: str, argv: List[str], envp: List[str], stdin: Optional[Path],
            stdout: Optional[Path], stderr: Optional[Path], cwd: Optional[Path], flags: Optional[int],
-           stop_at_entry: Optional[bool], startup_files: List[str]) -> None:
-    """ Attach to given process and start a lldb shell """
+           startup_files: List[str]) -> None:
+    """ Attach to a given process and start a lldb shell """
     argv = list(argv)
     envp = list(envp)
     with create_hilda_client_using_launch(
-            exec_path, argv, envp, stdin, stdout, stderr, cwd, flags, stop_at_entry) as hilda_client:
+            exec_path, argv, envp, stdin, stdout, stderr, cwd, flags) as hilda_client:
         hilda_client.interact(startup_files=startup_files)
 
 

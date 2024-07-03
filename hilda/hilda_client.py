@@ -1055,16 +1055,17 @@ class HildaClient:
         ipython_config.InteractiveShellApp.extensions = ['hilda.ipython_extensions.magics',
                                                          'hilda.ipython_extensions.events',
                                                          'hilda.ipython_extensions.keybindings']
-        ipython_config.InteractiveShellApp.exec_lines = ['disable_logs()']
+        ipython_config.InteractiveShellApp.exec_lines = ['_disable_logs()']
         if startup_files is not None:
             ipython_config.InteractiveShellApp.exec_files = startup_files
             self.log_debug(f'Startup files - {startup_files}')
 
-        namespace = globals()
-        namespace.update(locals())
+        namespace = {}
+        namespace['_disable_logs'] = disable_logs
         namespace['p'] = self
         namespace['ui'] = self.ui_manager
         namespace['cfg'] = self.configs
+
         if additional_namespace is not None:
             namespace.update(additional_namespace)
         sys.argv = ['a']

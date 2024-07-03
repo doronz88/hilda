@@ -26,7 +26,7 @@ class HIEvents:
                 # we are only interested in names
                 continue
 
-            if node.id in locals() or node.id in globals() or node.id in dir(builtins):
+            if node.id in locals() or node.id in self.hilda_client.globals or node.id in dir(builtins):
                 # That are undefined
                 continue
 

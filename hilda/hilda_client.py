@@ -142,6 +142,7 @@ class HildaClient:
         self.configs = Configs()
         self._dynamic_env_loaded = False
         self._symbols_loaded = False
+        self.globals: typing.MutableMapping[str, Any] = globals()
 
         # the frame called within the context of the hit BP
         self._bp_frame = None
@@ -1060,8 +1061,7 @@ class HildaClient:
             ipython_config.InteractiveShellApp.exec_files = startup_files
             self.log_debug(f'Startup files - {startup_files}')
 
-        namespace = globals()
-        namespace.update(locals())
+        namespace = self.globals
         namespace['p'] = self
         namespace['ui'] = self.ui_manager
         namespace['cfg'] = self.configs
@@ -1076,11 +1076,10 @@ class HildaClient:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.detach()
 
-    @staticmethod
-    def _add_global(name: str, value: Any, reserved_names=None):
+    def _add_global(self, name: str, value: Any, reserved_names=None) -> None:
         if reserved_names is None or name not in reserved_names:
             # don't override existing symbols
-            globals()[name] = value
+            self.globals[name] = value
 
     @staticmethod
     def _get_saved_state_filename():

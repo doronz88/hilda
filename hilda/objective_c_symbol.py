@@ -83,7 +83,11 @@ class ObjectiveCSymbol(Symbol):
     def _reload_ivars(self, ivars_data):
         raw_ivars = sorted(ivars_data, key=lambda ivar: ivar['offset'])
         for i, ivar in enumerate(raw_ivars):
-            ivar_type = decode_type(ivar['type'])
+            ivar_type = ivar['type']
+            if ivar_type:
+                ivar_type = decode_type(ivar_type)
+            else:
+                ivar_type = 'unknown_type_t'
             value = ivar['value']
             if i < len(raw_ivars) - 1:
                 # The .fm file returns a 64bit value, regardless of the real size.

@@ -511,7 +511,8 @@ class HildaClient:
             :param dict options: User defined options.
             """
             bp = bp_loc.GetBreakpoint()
-            symbol = hilda.breakpoints[bp.id].address  # type: Symbol
+
+            symbol = hilda.symbol(hilda.frame.addr.GetLoadAddress(hilda.target))  # type: Symbol
 
             # by default, attempt to resolve the symbol name through lldb
             name = str(symbol.lldb_symbol)
@@ -1042,6 +1043,24 @@ class HildaClient:
         self.symbols[f'{name}{{{value.filename}}}'] = value
 
         return value
+
+    def wait_for_module(self, expression: str) -> None:
+        """ Wait for a module to be loaded using `dlopen` by matching given expression """
+        self.log_info(f'Waiting for module name containing "{expression}" to be loaded')
+
+        def bp(client: HildaClient, frame, bp_loc, options) -> None:
+            loading_module_name = client.evaluate_expression('$arg1').peek_str()
+            client.log_info(f'Loading module: {loading_module_name}')
+            if expression not in loading_module_name:
+                client.cont()
+                return
+            client.finish()
+            client.log_info(f'Desired module has been loaded: {expression}. Process remains stopped')
+            bp = bp_loc.GetBreakpoint()
+            client.remove_hilda_breakpoint(bp.id)
+
+        self.bp('dlopen', bp)
+        self.cont()
 
     def interact(self, additional_namespace: Optional[typing.Mapping] = None,
                  startup_files: Optional[List[str]] = None) -> None:

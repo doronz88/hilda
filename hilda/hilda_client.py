@@ -511,7 +511,8 @@ class HildaClient:
             :param dict options: User defined options.
             """
             bp = bp_loc.GetBreakpoint()
-            symbol = hilda.breakpoints[bp.id].address  # type: Symbol
+
+            symbol = hilda.symbol(hilda.frame.addr.GetLoadAddress(hilda.target))  # type: Symbol
 
             # by default, attempt to resolve the symbol name through lldb
             name = str(symbol.lldb_symbol)

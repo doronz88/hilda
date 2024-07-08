@@ -248,6 +248,8 @@ Here is a gist of methods you can access from `p`:
   - sets the currently selected thread, which is used in other parts of the program, such as displaying disassembly or
       checking registers.
       This ensures the application focuses on the specified thread for these operations.
+- `wait_for_module`
+  - Wait for a module to be loaded (`dlopen`) by checking if given expression is contained within its filename
 
 All these methods are available from the global `p` within the newly created IPython shell. In addition, you may invoke any of the exported APIs described in the [Python API](#python-api)
 

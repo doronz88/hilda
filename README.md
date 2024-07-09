@@ -150,38 +150,39 @@ Here is a gist of methods you can access from `p`:
   - Call function at given address with given parameters
 - `monitor`
   - Monitor every time a given address is called
+
       The following options are available:
 
       ```
       regs={reg1: format}
-      will print register values
+          will print register values
   
-               Available formats:
-                   x: hex
-                   s: string
-                   cf: use CFCopyDescription() to get more informative description of the object
-                   po: use LLDB po command
-                   User defined function, will be called like `format_function(hilda_client, value)`.
+          Available formats:
+              x: hex
+              s: string
+              cf: use CFCopyDescription() to get more informative description of the object
+              po: use LLDB po command
+              User defined function, will be called like `format_function(hilda_client, value)`.
   
-               For example:
-                   regs={'x0': 'x'} -> x0 will be printed in HEX format
-           expr={lldb_expression: format}
-               lldb_expression can be for example '$x0' or '$arg1'
-               format behaves just like 'regs' option
-           retval=format
-               Print function's return value. The format is the same as regs format.
-           stop=True
-               force a stop at every hit
-           bt=True
-               print backtrace
-           cmd=[cmd1, cmd2]
-               run several LLDB commands, one by another
-           force_return=value
-               force a return from function with the specified value
-           name=some_value
-               use `some_name` instead of the symbol name automatically extracted from the calling frame
-           override=True
-               override previous break point at same location
+              For example:
+                  regs={'x0': 'x'} -> x0 will be printed in HEX format
+      expr={lldb_expression: format}
+          lldb_expression can be for example '$x0' or '$arg1'
+          format behaves just like 'regs' option
+      retval=format
+          Print function's return value. The format is the same as regs format.
+      stop=True
+          force a stop at every hit
+      bt=True
+          print backtrace
+      cmd=[cmd1, cmd2]
+          run several LLDB commands, one by another
+      force_return=value
+          force a return from function with the specified value
+      name=some_value
+          use `some_name` instead of the symbol name automatically extracted from the calling frame
+      override=True
+          override previous break point at same location
       ```
 
 - `show_current_source`

@@ -104,6 +104,13 @@ class Symbol(int):
         """
         return self._client.symbols.CFCopyDescription(self).po()
 
+    @property
+    def name(self) -> str:
+        symbol_info = int(self._client.po(f'[{self._client._object_identifier} symbolForAddress:{self}]', '__int128'))
+        arg1 = symbol_info & 0xffffffffffffffff
+        arg2 = symbol_info >> 64
+        return self._client.symbols.CSSymbolGetName(arg1, arg2).peek_str()
+
     @contextmanager
     def change_item_size(self, new_item_size: int) -> None:
         """

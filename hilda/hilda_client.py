@@ -1186,6 +1186,11 @@ class HildaClient:
             return f'{value:x} (unsupported format)'
 
     @cached_property
+    def _object_identifier(self) -> Symbol:
+        return self.symbols.objc_getClass('VMUObjectIdentifier').objc_call('alloc').objc_call(
+            'initWithTask:', self.symbols.mach_task_self())
+
+    @cached_property
     def _ks(self) -> Optional['Ks']:
         if not lldb.KEYSTONE_SUPPORT:
             return False

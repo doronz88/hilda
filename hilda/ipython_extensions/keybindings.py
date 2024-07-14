@@ -7,6 +7,7 @@ def load_ipython_extension(ipython):
     def register_keybindings():
         hilda = ipython.user_ns['p']
         keys_mapping = {Keys.F1: hilda.ui_manager.show,
+                        Keys.F2: hilda.toggle_enable_stdout_stderr,
                         Keys.F7: hilda.step_into,
                         Keys.F8: hilda.step_over,
                         Keys.F9: lambda _: (hilda.log_info('Sending continue'), hilda.cont()),

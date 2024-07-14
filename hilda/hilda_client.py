@@ -58,7 +58,8 @@ GREETING = f"""
 <b>Hilda has been successfully loaded! 😎
 Usage:
  <span style="color: magenta">p</span>   Global to access all features.
- <span style="color: magenta">F1</span>  UI Show.
+ <span style="color: magenta">F1</span>  Show UI.
+ <span style="color: magenta">F2</span>  Toggle enabling of stdout & stderr.
  <span style="color: magenta">F7</span>  Step Into.
  <span style="color: magenta">F8</span>  Step Over.
  <span style="color: magenta">F9</span>  Continue.
@@ -92,6 +93,8 @@ class Configs:
         'doc': 'Whether to exclude NSObject during evaluation - reduce ipython autocomplete results.'})
     objc_verbose_monitor: bool = field(default=False, metadata={
         'doc': 'When set to True, using monitor() will automatically print objc methods arguments.'})
+    enable_stdout_stderr: bool = field(default=True, metadata={
+        'doc': 'When set to True, will enable process stdout and stderr.'})
 
     def __repr__(self):
         return self.__str__()
@@ -1088,6 +1091,10 @@ class HildaClient:
             namespace.update(additional_namespace)
         sys.argv = ['a']
         IPython.start_ipython(config=ipython_config, user_ns=namespace)
+
+    def toggle_enable_stdout_stderr(self, *args) -> None:
+        self.configs.enable_stdout_stderr = not self.configs.enable_stdout_stderr
+        self.logger.info(f'Changed stdout and stderr status to: {self.configs.enable_stdout_stderr}')
 
     def __enter__(self) -> 'HildaClient':
         return self

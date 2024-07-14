@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from abc import ABC, abstractmethod
 from threading import Thread
 from typing import List, Optional
@@ -46,6 +47,20 @@ class LLDBListenerThread(Thread, ABC):
             return
         raise LLDBError(self.error.description)
 
+    def _process_stdout(self) -> None:
+        stdout = self.process.GetSTDOUT(1024)
+        while stdout:
+            if lldb.hilda_client is not None and lldb.hilda_client.configs.enable_stdout_stderr:
+                sys.stdout.write(stdout)
+            stdout = self.process.GetSTDOUT(1024)
+
+    def _process_stderr(self) -> None:
+        stderr = self.process.GetSTDERR(1024)
+        while stderr:
+            if lldb.hilda_client is not None and lldb.hilda_client.configs.enable_stdout_stderr:
+                sys.stderr.write(stderr)
+            stderr = self.process.GetSTDERR(1024)
+
     def run(self):
         event = lldb.SBEvent()
         last_state = lldb.eStateStopped
@@ -54,6 +69,13 @@ class LLDBListenerThread(Thread, ABC):
                 continue
             if not lldb.SBProcess.EventIsProcessEvent(event):
                 continue
+
+            event_type = event.GetType()
+            if event_type & lldb.SBProcess.eBroadcastBitSTDOUT:
+                self._process_stdout()
+            if event_type & lldb.SBProcess.eBroadcastBitSTDERR:
+                self._process_stderr()
+
             state = self.process.GetStateFromEvent(event)
             if state == lldb.eStateDetached:
                 logger.debug('Process Detached')

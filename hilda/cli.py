@@ -53,7 +53,7 @@ def attach(name: Optional[str], pid: Optional[int], startup_files: List[str]) ->
     if name is not None:
         hilda_client = create_hilda_client_using_attach_by_name(name)
     elif pid is not None:
-        hilda_client = create_hilda_client_using_attach_by_pid(name)
+        hilda_client = create_hilda_client_using_attach_by_pid(pid)
     else:
         raise click.UsageError('You must specify a process name or pid')
     hilda_client.interact(startup_files=startup_files)

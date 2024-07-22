@@ -145,6 +145,7 @@ class SymbolsJar(dict):
             if self.__dict__['_client'].configs.objc_verbose_monitor:
                 arg_count = name.count(':')
                 if arg_count > 0:
+                    arg_count = min(6, arg_count)
                     options['expr'] = {f'$arg{i + 3}': 'po' for i in range(arg_count)}
             name = options.get('name', name)
             address.monitor(name=name, **options)

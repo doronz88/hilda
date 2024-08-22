@@ -348,6 +348,16 @@ class HildaClient:
         if not self.process.Stop().Success():
             self.log_critical('failed to stop process')
 
+    def run_for(self, seconds: float) -> None:
+        """
+        Run the process for a given time
+        :return:
+        """
+        self.cont()
+        self.logger.info(f'Running for {seconds} seconds')
+        time.sleep(seconds)
+        self.stop()
+
     def cont(self, *args) -> None:
         """ Continue process. """
         is_running = self.process.GetState() == lldb.eStateRunning

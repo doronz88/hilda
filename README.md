@@ -132,6 +132,8 @@ Here is a gist of methods you can access from `p`:
   - Stop process.
 - `cont`
   - Continue process.
+- `run_for`
+  - Run the process for given interval.
 - `detach`
   - Detach from process.
       Useful in order to exit gracefully so process doesn't get killed

@@ -2,7 +2,6 @@ import json
 from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
-from pathlib import Path
 
 from objc_types_decoder.decode import decode as decode_type
 from pygments import highlight
@@ -60,7 +59,7 @@ class ObjectiveCSymbol(Symbol):
         self.methods.clear()
         self.class_ = None
 
-        obj_c_code = (Path(__file__).parent / 'objective_c' / 'get_objectivec_symbol_data.m').read_text()
+        obj_c_code = (self._client._hilda_root / 'objective_c' / 'get_objectivec_symbol_data.m').read_text()
         obj_c_code = obj_c_code.replace('__symbol_address__', f'{self:d}')
         data = json.loads(self._client.po(obj_c_code))
 

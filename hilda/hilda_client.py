@@ -146,6 +146,7 @@ class HildaClient:
         self._dynamic_env_loaded = False
         self._symbols_loaded = False
         self.globals: typing.MutableMapping[str, Any] = globals()
+        self._hilda_root = Path(__file__).parent
 
         # the frame called within the context of the hit BP
         self._bp_frame = None
@@ -168,7 +169,7 @@ class HildaClient:
         Get dictionary of all open FDs
         :return: Mapping between open FDs and their paths
         """
-        data = (Path(__file__).parent / 'objective_c' / 'lsof.m').read_text()
+        data = (self._hilda_root / 'objective_c' / 'lsof.m').read_text()
         result = json.loads(self.po(data))
         # convert FDs into int
         return {int(k): v for k, v in result.items()}
@@ -828,8 +829,7 @@ class HildaClient:
             json_data = json.dumps({'root': data}, default=self._to_ns_json_default)
         except TypeError as e:
             raise ConvertingToNsObjectError from e
-
-        obj_c_code = (Path(__file__).parent / 'objective_c' / 'to_ns_from_json.m').read_text()
+        obj_c_code = (self._hilda_root / 'objective_c' / 'to_ns_from_json.m').read_text()
         expression = obj_c_code.replace('__json_object_dump__', json_data.replace('"', r'\"'))
         try:
             return self.evaluate_expression(expression)
@@ -842,7 +842,7 @@ class HildaClient:
         :param address: NS object.
         :return: Python object.
         """
-        obj_c_code = (Path(__file__).parent / 'objective_c' / 'from_ns_to_json.m').read_text()
+        obj_c_code = (self._hilda_root / 'objective_c' / 'from_ns_to_json.m').read_text()
         address = f'0x{address:x}' if isinstance(address, int) else address
         expression = obj_c_code.replace('__ns_object_address__', address)
         try:
@@ -1212,7 +1212,7 @@ class HildaClient:
                 continue
             objc_classlist = m.FindSection('__DATA').FindSubSection('__objc_classlist')
             objc_classlist_addr = self.symbol(objc_classlist.GetLoadAddress(self.target))
-            obj_c_code = (Path(__file__).parent / 'objective_c' / 'get_objectivec_class_by_module.m').read_text()
+            obj_c_code = (self._hilda_root / 'objective_c' / 'get_objectivec_class_by_module.m').read_text()
             obj_c_code = obj_c_code.replace('__count_objc_class', f'{objc_classlist.size // 8}').replace(
                 '__objc_class_list',
                 f'{objc_classlist_addr}')

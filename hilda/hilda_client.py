@@ -125,9 +125,29 @@ def stop_is_needed(func: Callable):
     return wrapper
 
 
-class HildaClient:
-    Breakpoint = namedtuple('Breakpoint', 'address options forced callback')
+class HildaBreakpoint:
+    def __init__(self, hilda_client: 'HildaClient', lldb_breakpoint: lldb.SBBreakpoint,
+                 address: Union[str, int], forced: bool = False, options: Optional[typing.Mapping] = None,
+                 callback: Optional[Callable] = None) -> None:
+        self._hilda_client = hilda_client
+        self.address = address
+        self.forced = forced
+        self.options = options
+        self.callback = callback
+        self.lldb_breakpoint = lldb_breakpoint
 
+    def __repr__(self) -> str:
+        return (f'<{self.__class__.__name__} LLDB:{self.lldb_breakpoint} FORCED:{self.forced} OPTIONS:{self.options} '
+                f'CALLBACK:{self.callback}>')
+
+    def __str__(self) -> str:
+        return repr(self)
+
+    def remove(self) -> None:
+        self._hilda_client.remove_hilda_breakpoint(self.lldb_breakpoint.id)
+
+
+class HildaClient:
     RETVAL_BIT_COUNT = 64
 
     def __init__(self, debugger: lldb.SBDebugger):
@@ -473,7 +493,7 @@ class HildaClient:
         with self.stopped():
             return self.evaluate_expression(call_expression)
 
-    def monitor(self, address, condition: str = None, **options) -> lldb.SBBreakpoint:
+    def monitor(self, address, condition: str = None, **options) -> HildaBreakpoint:
         """
         Monitor every time a given address is called
 
@@ -613,7 +633,7 @@ class HildaClient:
             if remove_forced or not bp.forced:
                 self.remove_hilda_breakpoint(bp_id)
 
-    def remove_hilda_breakpoint(self, bp_id):
+    def remove_hilda_breakpoint(self, bp_id: int) -> None:
         """
         Remove a single breakpoint placed by Hilda
         :param bp_id: Breakpoint's ID
@@ -647,7 +667,7 @@ class HildaClient:
         print(highlight(entitlements, XmlLexer(), TerminalTrueColorFormatter()))
 
     def bp(self, address_or_name: Union[int, str], callback: Optional[Callable] = None, condition: str = None,
-           forced=False, module_name: Optional[str] = None, **options) -> lldb.SBBreakpoint:
+           forced=False, module_name: Optional[str] = None, **options) -> HildaBreakpoint:
         """
         Add a breakpoint
         :param address_or_name:
@@ -676,15 +696,14 @@ class HildaClient:
             bp.SetCondition(condition)
 
         # add into Hilda's internal list of breakpoints
-        self.breakpoints[bp.id] = HildaClient.Breakpoint(
-            address=address_or_name, options=options, forced=forced, callback=callback
-        )
+        self.breakpoints[bp.id] = HildaBreakpoint(self, bp, address=address_or_name, forced=forced, options=options,
+                                                  callback=callback)
 
         if callback is not None:
             bp.SetScriptCallbackFunction('lldb.hilda_client.bp_callback_router')
 
         self.log_info(f'Breakpoint #{bp.id} has been set')
-        return bp
+        return self.breakpoints[bp.id]
 
     def bp_callback_router(self, frame, bp_loc, *_):
         """

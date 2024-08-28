@@ -139,10 +139,10 @@ class Symbol(int):
     def peek_str(self) -> str:
         return self._client.peek_str(self)
 
-    def monitor(self, **args) -> lldb.SBBreakpoint:
+    def monitor(self, **args):
         return self._client.monitor(self, **args)
 
-    def bp(self, callback=None, **args) -> lldb.SBBreakpoint:
+    def bp(self, callback=None, **args):
         return self._client.bp(self, callback, **args)
 
     def disass(self, size, **args) -> lldb.SBInstructionList:

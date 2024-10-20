@@ -47,7 +47,7 @@ all_image_infos_t = Struct(
 )
 
 
-class AllImageInfos(object):
+class AllImageInfos:
     def reload(self):
         with lldb.hilda_client.stopped(1):
             all_image_infos_symbol = lldb.hilda_client.symbol(lldb.hilda_client.symbols.dyld_all_image_infos)
@@ -98,7 +98,7 @@ class AllImageInfos(object):
         if len(unique_images) > 1:
             image = AllImageInfos.__select_specific_image(unique_images)
 
-        dependencies = set([image_name.path for image_name in image.load_commands.dylib_commands])
+        dependencies = {image_name.path for image_name in image.load_commands.dylib_commands}
 
         return dependencies
 

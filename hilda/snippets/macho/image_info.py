@@ -22,7 +22,7 @@ dyld_uuid_info_t = Struct(
 )
 
 
-class ImageInfo(object):
+class ImageInfo:
     def __init__(self, image_info_data):
         self.__image_info_data = image_info_data
         self.__file_path = image_info_data.imageFilePath

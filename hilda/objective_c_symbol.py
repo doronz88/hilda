@@ -42,7 +42,7 @@ class ObjectiveCSymbol(Symbol):
         :return: ObjectiveCSymbol object.
         :rtype: ObjectiveCSymbol
         """
-        symbol = super(ObjectiveCSymbol, cls).create(value, client)
+        symbol = super().create(value, client)
         symbol.ivars = []  # type: List[Ivar]
         symbol.properties = []  # type: List[Property]
         symbol.methods = []  # type: List[Method]
@@ -183,12 +183,12 @@ class ObjectiveCSymbol(Symbol):
             for method in sup.methods:
                 result.add(method.name.replace(':', '_'))
 
-        result.update(list(super(ObjectiveCSymbol, self).__dir__()))
+        result.update(list(super().__dir__()))
         return list(result)
 
     def __getitem__(self, item):
         if isinstance(item, int):
-            return super(ObjectiveCSymbol, self).__getitem__(item)
+            return super().__getitem__(item)
 
         # Ivars
         for ivar in self.ivars:
@@ -217,7 +217,7 @@ class ObjectiveCSymbol(Symbol):
 
     def __setitem__(self, key, value):
         if isinstance(key, int):
-            super(ObjectiveCSymbol, self).__setitem__(key, value)
+            super().__setitem__(key, value)
             return
 
         with suppress(SettingIvarError):
@@ -232,7 +232,7 @@ class ObjectiveCSymbol(Symbol):
         try:
             self._set_ivar(key, value)
         except SettingIvarError:
-            super(ObjectiveCSymbol, self).__setattr__(key, value)
+            super().__setattr__(key, value)
 
     def __str__(self):
         return self._to_str(False)

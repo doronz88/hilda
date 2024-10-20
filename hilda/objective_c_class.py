@@ -89,7 +89,7 @@ class Method:
         return f'{prefix} {name}; // 0x{self.address:x} (returns: {self.return_type})\n'
 
 
-class Class(object):
+class Class:
     """
     Wrapper for ObjectiveC Class object.
     """
@@ -273,7 +273,7 @@ class Class(object):
                 if method.is_class:
                     result.add(method.name.replace(':', '_'))
 
-        result.update(list(super(Class, self).__dir__()))
+        result.update(list(super().__dir__()))
         return list(result)
 
     def __str__(self):

@@ -1,6 +1,5 @@
 import shutil
 from abc import abstractmethod
-from typing import List, Mapping
 
 from click import style
 from lldb import SBAddress
@@ -9,7 +8,7 @@ from tabulate import tabulate
 WORD_SIZE = 8
 
 
-def dict_diff(d1: Mapping, d2: Mapping) -> List[str]:
+def dict_diff(d1: dict, d2: dict) -> list[str]:
     """ Returns a list of keys whose values have changed """
     changed_keys = []
     if d1 is None or d2 is None:
@@ -59,7 +58,7 @@ class StackView(View):
         """
         super().__init__(hilda_client, 'Stack', color_scheme)
         self.depth = depth
-        self.prev: Mapping[int, str] = None
+        self.prev: dict[int, str] = None
 
     def __str__(self) -> str:
         """ Format stack view for printing """
@@ -80,7 +79,7 @@ class StackView(View):
 
         return super().__str__() + '\n'.join(fmt_parts)
 
-    def _create_mapping(self) -> Mapping[int, str]:
+    def _create_mapping(self) -> dict[int, str]:
         """ Generate mapping of stack address:data"""
         base_addr = self.hilda.frame.sp
         stack_mapping = {}
@@ -103,7 +102,7 @@ class RegistersView(View):
         `prev` saves the last registers stats inorder to perform diff check.
         """
         super().__init__(hilda_client, 'Registers', color_scheme)
-        self.prev: Mapping[str, str] = None
+        self.prev: dict[str, str] = None
         self.rtype = rtype
 
     def __str__(self) -> str:
@@ -133,7 +132,7 @@ class RegistersView(View):
 
         return super().__str__() + tabulate(list(zip(*list_of_lists)), tablefmt='plain', numalign='left')
 
-    def _create_mapping(self) -> Mapping[str, str]:
+    def _create_mapping(self) -> dict[str, str]:
         """ Generate mapping of registers name:data"""
         regs = self._get_registers()
         regs_mapping = {}

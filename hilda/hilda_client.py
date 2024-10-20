@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import cached_property, wraps
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import hexdump
 import IPython
@@ -194,7 +194,7 @@ class HildaClient:
         # convert FDs into int
         return {int(k): v for k, v in result.items()}
 
-    def bt(self, should_print: bool = False, depth: Optional[int] = None) -> List[Union[str, lldb.SBFrame]]:
+    def bt(self, should_print: bool = False, depth: Optional[int] = None) -> list[Union[str, lldb.SBFrame]]:
         """ Print an improved backtrace. """
         backtrace = []
         for i, frame in enumerate(self.thread.frames):
@@ -987,7 +987,7 @@ class HildaClient:
         """
         block = self.symbols.malloc(size)
         if block == 0:
-            raise IOError(f'failed to allocate memory of size: {size} bytes')
+            raise OSError(f'failed to allocate memory of size: {size} bytes')
 
         try:
             yield block
@@ -1095,7 +1095,7 @@ class HildaClient:
         self.cont()
 
     def interact(self, additional_namespace: Optional[typing.Mapping] = None,
-                 startup_files: Optional[List[str]] = None) -> None:
+                 startup_files: Optional[list[str]] = None) -> None:
         """ Start an interactive Hilda shell """
         if not self._dynamic_env_loaded:
             self.init_dynamic_environment()

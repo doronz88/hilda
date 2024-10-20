@@ -1,4 +1,4 @@
-class Registers(object):
+class Registers:
     """
     Wrapper for more convenient access to modify current frame's registers
     """

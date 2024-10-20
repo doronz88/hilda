@@ -18,7 +18,7 @@ class SymbolFormatField(FormatField):
     """
 
     def __init__(self, client):
-        super(SymbolFormatField, self).__init__('<', 'Q')
+        super().__init__('<', 'Q')
         self._client = client
 
     def _parse(self, stream, context, path):
@@ -165,7 +165,7 @@ class Symbol(int):
         elif whence == os.SEEK_SET:
             self._offset = offset - self
         else:
-            raise IOError('Unsupported whence')
+            raise OSError('Unsupported whence')
 
     def read(self, count: int) -> bytes:
         """ Construct compliance. """

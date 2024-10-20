@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import click
 import coloredlogs
@@ -23,7 +23,7 @@ def cli():
 startup_files_option = click.option('-f', '--startup_files', multiple=True, help='Files to run on start')
 
 
-def parse_envp(ctx: click.Context, param: click.Parameter, value: List[str]) -> List[str]:
+def parse_envp(ctx: click.Context, param: click.Parameter, value: list[str]) -> list[str]:
     env_list = []
     for item in value:
         try:
@@ -38,7 +38,7 @@ def parse_envp(ctx: click.Context, param: click.Parameter, value: List[str]) -> 
 @click.argument('hostname', default='localhost')
 @click.argument('port', type=click.INT, default=DEFAULT_HILDA_PORT)
 @startup_files_option
-def remote(hostname: str, port: int, startup_files: List[str]) -> None:
+def remote(hostname: str, port: int, startup_files: list[str]) -> None:
     """ Connect to remote debugserver at given address """
     with create_hilda_client_using_remote_attach(hostname, port) as hilda_client:
         hilda_client.interact(startup_files=startup_files)
@@ -48,7 +48,7 @@ def remote(hostname: str, port: int, startup_files: List[str]) -> None:
 @click.option('-n', '--name', help='process name to attach')
 @click.option('-p', '--pid', type=click.INT, help='pid to attach')
 @startup_files_option
-def attach(name: Optional[str], pid: Optional[int], startup_files: List[str]) -> None:
+def attach(name: Optional[str], pid: Optional[int], startup_files: list[str]) -> None:
     """ Attach to given process and start a lldb shell """
     if name is not None:
         hilda_client = create_hilda_client_using_attach_by_name(name)
@@ -78,9 +78,9 @@ def cli_bare() -> None:
 @click.option('--cwd', help='Set the working directory for the process')
 @click.option('--flags', type=click.INT, default=0, help='Launch flags (bitmask)')
 @startup_files_option
-def launch(exec_path: str, argv: List[str], envp: List[str], stdin: Optional[Path],
+def launch(exec_path: str, argv: list[str], envp: list[str], stdin: Optional[Path],
            stdout: Optional[Path], stderr: Optional[Path], cwd: Optional[Path], flags: Optional[int],
-           startup_files: List[str]) -> None:
+           startup_files: list[str]) -> None:
     """ Attach to a given process and start a lldb shell """
     argv = list(argv)
     envp = list(envp)

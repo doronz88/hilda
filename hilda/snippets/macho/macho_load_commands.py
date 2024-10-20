@@ -1,5 +1,3 @@
-from typing import List
-
 from construct import Array, Bytes, Enum, Hex, Int8ul, Int32ul, Int64ul, PaddedString, Pointer, Seek, Struct, Switch, \
     Tell, this
 
@@ -142,7 +140,7 @@ load_command_t = Struct(
 )
 
 
-class LoadCommand(object):
+class LoadCommand:
     def __init__(self, load_command_data):
         self.__load_command_data = load_command_data
         self.__cmd = load_command_data.cmd
@@ -160,7 +158,7 @@ class LoadCommand(object):
 
 class DylibCommand(LoadCommand):
     def __init__(self, load_command_data):
-        super(DylibCommand, self).__init__(load_command_data)
+        super().__init__(load_command_data)
         dylib_data = load_command_data.data.dylib
 
         self.__path = dylib_data.lc_str.name
@@ -181,7 +179,7 @@ class DylibCommand(LoadCommand):
 
 class Segment64Command(LoadCommand):
     def __init__(self, load_command_data):
-        super(Segment64Command, self).__init__(load_command_data)
+        super().__init__(load_command_data)
 
         self.__segname = load_command_data.data.segname
         self.__vmaddr = load_command_data.data.vmaddr
@@ -210,7 +208,7 @@ class Segment64Command(LoadCommand):
 
 class UUIDCommand(LoadCommand):
     def __init__(self, load_command_data):
-        super(UUIDCommand, self).__init__(load_command_data)
+        super().__init__(load_command_data)
 
         self.__uuid = load_command_data.data.uuid
 
@@ -223,7 +221,7 @@ class UUIDCommand(LoadCommand):
 
 class BuildVersionCommand(LoadCommand):
     def __init__(self, load_command_data):
-        super(BuildVersionCommand, self).__init__(load_command_data)
+        super().__init__(load_command_data)
 
         self.__platform = load_command_data.data.platform
         self.__minos = load_command_data.data.platform
@@ -252,7 +250,7 @@ class BuildVersionCommand(LoadCommand):
 
 class UnimplementedCommand(LoadCommand):
     def __init__(self, load_command_data):
-        super(UnimplementedCommand, self).__init__(load_command_data)
+        super().__init__(load_command_data)
 
         self.__bytes = load_command_data.data
 
@@ -287,15 +285,15 @@ class LoadCommands:
         return self.__load_commands
 
     @property
-    def segment_commands(self) -> List[Segment64Command]:
+    def segment_commands(self) -> list[Segment64Command]:
         return [segment_command for segment_command in self.__load_commands if
                 isinstance(segment_command, Segment64Command)]
 
     @property
-    def dylib_commands(self) -> List[DylibCommand]:
+    def dylib_commands(self) -> list[DylibCommand]:
         return [dylib_command for dylib_command in self.__load_commands if isinstance(dylib_command, DylibCommand)]
 
-    def find(self, predicate=None) -> List[LoadCommand]:
+    def find(self, predicate=None) -> list[LoadCommand]:
         if predicate is None:
             return self.__load_commands
 

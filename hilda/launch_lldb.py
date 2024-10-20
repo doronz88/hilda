@@ -3,7 +3,7 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from threading import Thread
-from typing import List, Optional
+from typing import Optional
 
 from hilda.exceptions import LLDBError
 from hilda.hilda_client import HildaClient
@@ -146,7 +146,7 @@ class LLDBAttachName(LLDBListenerThread):
 
 
 class LLDBLaunch(LLDBListenerThread):
-    def __init__(self, exec_path: str, argv: Optional[List[str]] = None, envp: Optional[List[str]] = None,
+    def __init__(self, exec_path: str, argv: Optional[list[str]] = None, envp: Optional[list[str]] = None,
                  stdin: Optional[str] = None,
                  stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
                  flags: Optional[int] = 0):
@@ -189,7 +189,7 @@ def create_hilda_client_using_remote_attach(
 
 
 def create_hilda_client_using_launch(
-        exec_path: str, argv: Optional[List] = None, envp: Optional[List] = None, stdin: Optional[str] = None,
+        exec_path: str, argv: Optional[list] = None, envp: Optional[list] = None, stdin: Optional[str] = None,
         stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
         flags: Optional[int] = 0) -> HildaClient:
     lldb_t = LLDBLaunch(exec_path, argv, envp, stdin, stdout, stderr, wd, flags)

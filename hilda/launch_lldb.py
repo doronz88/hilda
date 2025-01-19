@@ -167,7 +167,7 @@ class LLDBLaunch(LLDBListenerThread):
         # Launch(SBTarget self, SBListener listener, char const ** argv, char const ** envp,
         # char const * stdin_path, char const * stdout_path, char const * stderr_path, char const * working_directory,
         # uint32_t launch_flags, bool stop_at_entry, SBError error) -> SBProcess
-        logger.debug(f'Lunching process  {self.exec_path}')
+        logger.debug(f'Launching process  {self.exec_path}')
         return self.target.Launch(self.listener, self.argv, self.envp,
                                   self.stdin, self.stdout, self.stderr, self.working_directory,
                                   self.flags, True,

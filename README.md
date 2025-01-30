@@ -128,6 +128,8 @@ Here is a gist of methods you can access from `p`:
   - Read data at given address
 - `peek_str`
   - Peek a buffer till null termination
+- `peek_std_str`
+  - Peek a `std::string`
 - `stop`
   - Stop process.
 - `cont`

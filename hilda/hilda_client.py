@@ -356,6 +356,15 @@ class HildaClient:
         """
         return address.po('char *')[1:-1]  # strip the ""
 
+    @stop_is_needed
+    def peek_std_str(self, address: Symbol) -> str:
+        """
+        Peek a std::string
+        :param address: Address to read the std::string from
+        :return: Python string
+        """
+        return self._std_string(address)
+
     def stop(self, *args) -> None:
         """ Stop process. """
         self.debugger.SetAsync(False)
@@ -1200,7 +1209,7 @@ class HildaClient:
         return f'((intptr_t(*)({args_type}))({address}))({args_conv})'
 
     @staticmethod
-    def _std_string(value):
+    def _std_string(value: Symbol) -> str:
         if struct.unpack("b", (value + 23).peek(1))[0] >= 0:
             return value.peek_str()
         else:

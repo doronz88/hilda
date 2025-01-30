@@ -139,6 +139,9 @@ class Symbol(int):
     def peek_str(self) -> str:
         return self._client.peek_str(self)
 
+    def peek_std_str(self) -> str:
+        return self._client.peek_std_str(self)
+
     def monitor(self, **args):
         return self._client.monitor(self, **args)
 

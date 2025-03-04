@@ -61,6 +61,33 @@ class LLDBListenerThread(Thread, ABC):
                 sys.stderr.write(stderr)
             stderr = self.process.GetSTDERR(1024)
 
+    def _process_potential_watchpoint_event(self) -> None:
+        stopped_threads = self._get_stopped_threads(lldb.eStopReasonWatchpoint)
+        for thread in stopped_threads:
+            watchpoint_id = thread.GetStopReasonDataAtIndex(0)
+            frame = thread.GetFrameAtIndex(0)
+            if lldb.hilda_client is not None:
+                lldb.hilda_client.watchpoints._dispatch_watchpoint_callback(watchpoint_id, thread, frame)
+
+    def _get_stopped_threads(self, reason: Optional[int] = None) -> list[lldb.SBThread]:
+        if reason is None:
+            stop_reasons = [
+                lldb.eStopReasonSignal, lldb.eStopReasonException,
+                lldb.eStopReasonBreakpoint, lldb.eStopReasonWatchpoint,
+                lldb.eStopReasonPlanComplete, lldb.eStopReasonTrace,
+            ]
+        else:
+            stop_reasons = [reason]
+
+        return [thread for thread in self.process if thread.GetStopReason() in stop_reasons]
+
+    def _set_selected_thread_to_stopped_thread(self) -> None:
+        stopped_threads = self._get_stopped_threads()
+        if len(stopped_threads) < 1:
+            return
+        thread = stopped_threads[0]
+        self.process.SetSelectedThread(thread)
+
     def run(self):
         event = lldb.SBEvent()
         last_state = lldb.eStateStopped
@@ -87,18 +114,8 @@ class LLDBListenerThread(Thread, ABC):
                 logger.debug('Process Continued')
             elif state == lldb.eStateStopped and last_state == lldb.eStateRunning:
                 logger.debug('Process Stopped')
-                for thread in self.process:
-                    frame = thread.GetFrameAtIndex(0)
-                    stop_reason = thread.GetStopReason()
-                    logger.debug(f'tid = {hex(thread.GetThreadID())} pc = {frame.GetPC()}')
-                    if stop_reason not in [lldb.eStopReasonSignal, lldb.eStopReasonException,
-                                           lldb.eStopReasonBreakpoint,
-                                           lldb.eStopReasonWatchpoint, lldb.eStopReasonPlanComplete,
-                                           lldb.eStopReasonTrace,
-                                           lldb.eStopReasonSignal]:
-                        continue
-                    self.process.SetSelectedThread(thread)
-                    break
+                self._set_selected_thread_to_stopped_thread()
+                self._process_potential_watchpoint_event()
 
             last_state = state
 

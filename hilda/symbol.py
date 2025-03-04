@@ -145,6 +145,9 @@ class Symbol(int):
     def monitor(self, **args):
         return self._client.monitor(self, **args)
 
+    def watch(self, **args):
+        return self._client.watchpoints.add(self, **args)
+
     def bp(self, callback=None, **args):
         return self._client.bp(self, callback, **args)
 

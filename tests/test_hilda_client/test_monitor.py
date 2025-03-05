@@ -30,5 +30,5 @@ def test_monitor_register_formats(hilda_client, fmt: str, representation: str):
     ''')
     hilda_client.cont()
     output = logs_queue.get(timeout=10)
-    hilda_client.remove_hilda_breakpoint(bp.id)
+    hilda_client.breakpoints.remove(bp)
     assert representation in output

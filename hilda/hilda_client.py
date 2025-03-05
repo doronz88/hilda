@@ -28,9 +28,10 @@ from tqdm import tqdm
 from traitlets.config import Config
 
 from hilda import objective_c_class
+from hilda.breakpoints import BreakpointList, HildaBreakpoint, WhereType
 from hilda.common import CfSerializable, selection_prompt
 from hilda.exceptions import AccessingMemoryError, AccessingRegisterError, AddingLldbSymbolError, \
-    BrokenLocalSymbolsJarError, ConvertingFromNSObjectError, ConvertingToNsObjectError, CreatingObjectiveCSymbolError, \
+    ConvertingFromNSObjectError, ConvertingToNsObjectError, CreatingObjectiveCSymbolError, \
     DisableJetsamMemoryChecksError, EvaluatingExpressionError, HildaException, InvalidThreadIndexError, \
     SymbolAbsentError
 from hilda.ipython_extensions.keybindings import get_keybindings
@@ -116,39 +117,17 @@ def stop_is_needed(func: Callable):
     return wrapper
 
 
-class HildaBreakpoint:
-    def __init__(self, hilda_client: 'HildaClient', lldb_breakpoint: lldb.SBBreakpoint,
-                 address: Union[str, int], forced: bool = False, options: Optional[typing.Mapping] = None,
-                 callback: Optional[Callable] = None) -> None:
-        self._hilda_client = hilda_client
-        self.address = address
-        self.forced = forced
-        self.options = options
-        self.callback = callback
-        self.lldb_breakpoint = lldb_breakpoint
-
-    def __repr__(self) -> str:
-        return (f'<{self.__class__.__name__} LLDB:{self.lldb_breakpoint} FORCED:{self.forced} OPTIONS:{self.options} '
-                f'CALLBACK:{self.callback}>')
-
-    def __str__(self) -> str:
-        return repr(self)
-
-    def remove(self) -> None:
-        self._hilda_client.remove_hilda_breakpoint(self.lldb_breakpoint.id)
-
-
 class HildaClient:
     RETVAL_BIT_COUNT = 64
 
-    def __init__(self, debugger: lldb.SBDebugger):
+    def __init__(self, debugger: lldb.SBDebugger) -> None:
         self.logger = logging.getLogger(__name__)
         self.endianness = '<'
         self.debugger = debugger
         self.target = debugger.GetSelectedTarget()
         self.process = self.target.GetProcess()
         self.symbols = SymbolsJar.create(self)
-        self.breakpoints = {}
+        self.breakpoints = BreakpointList(self)
         self.captured_objects = {}
         self.registers = Registers(self)
         self.arch = self.target.GetTriple().split('-')[0]
@@ -501,107 +480,11 @@ class HildaClient:
         """
         Monitor every time a given address is called
 
-        The following options are available:
-            regs={reg1: format}
-                will print register values
-
-                Available formats:
-                    x: hex
-                    s: string
-                    cf: use CFCopyDescription() to get more informative description of the object
-                    po: use LLDB po command
-                    std::string: for std::string
-
-                    User defined function, will be called like `format_function(hilda_client, value)`.
-
-                For example:
-                    regs={'x0': 'x'} -> x0 will be printed in HEX format
-            expr={lldb_expression: format}
-                lldb_expression can be for example '$x0' or '$arg1'
-                format behaves just like 'regs' option
-            retval=format
-                Print function's return value. The format is the same as regs format.
-            stop=True
-                force a stop at every hit
-            bt=True
-                print backtrace
-            cmd=[cmd1, cmd2]
-                run several LLDB commands, one by another
-            force_return=value
-                force a return from function with the specified value
-            name=some_value
-                use `some_name` instead of the symbol name automatically extracted from the calling frame
-            override=True
-                override previous break point at same location
-
-
-        :param address:
-        :param condition: set as a conditional breakpoint using an lldb expression
-        :param options:
-        :return:
+        Alias of self.breakpoints.add_monitor()
         """
+        return self.breakpoints.add_monitor(address, condition, **options)
 
-        def callback(hilda, frame, bp_loc, options):
-            """
-            :param HildaClient hilda: Hilda client.
-            :param lldb.SBFrame frame: LLDB Frame object.
-            :param lldb.SBBreakpointLocation bp_loc: LLDB Breakpoint location object.
-            :param dict options: User defined options.
-            """
-            bp = bp_loc.GetBreakpoint()
-
-            symbol = hilda.symbol(hilda.frame.addr.GetLoadAddress(hilda.target))  # type: Symbol
-
-            # by default, attempt to resolve the symbol name through lldb
-            name = str(symbol.lldb_symbol)
-            if options.get('name', False):
-                name = options['name']
-
-            log_message = f'🚨 #{bp.id} 0x{symbol:x} {name} - Thread #{self.thread.idx}:{hex(self.thread.id)}'
-
-            if 'regs' in options:
-                log_message += '\nregs:'
-                for name, fmt in options['regs'].items():
-                    value = hilda.symbol(frame.FindRegister(name).unsigned)
-                    log_message += f'\n\t{name} = {hilda._monitor_format_value(fmt, value)}'
-
-            if 'expr' in options:
-                log_message += '\nexpr:'
-                for name, fmt in options['expr'].items():
-                    value = hilda.symbol(hilda.evaluate_expression(name))
-                    log_message += f'\n\t{name} = {hilda._monitor_format_value(fmt, value)}'
-
-            force_return = options.get('force_return')
-            if force_return is not None:
-                hilda.force_return(force_return)
-                log_message += f'\nforced return: {force_return}'
-
-            if options.get('bt'):
-                # bugfix: for callstacks from xpc events
-                hilda.finish()
-                for frame in hilda.bt():
-                    log_message += f'\n\t{frame[0]} {frame[1]}'
-
-            retval = options.get('retval')
-            if retval is not None:
-                # return from function
-                hilda.finish()
-                value = hilda.evaluate_expression('$arg1')
-                log_message += f'\nreturned: {hilda._monitor_format_value(retval, value)}'
-
-            hilda.log_info(log_message)
-
-            for cmd in options.get('cmd', []):
-                hilda.lldb_handle_command(cmd)
-
-            if options.get('stop', False):
-                hilda.log_info('Process remains stopped and focused on current thread')
-            else:
-                hilda.cont()
-
-        return self.bp(address, callback, condition=condition, **options)
-
-    def show_current_source(self):
+    def show_current_source(self) -> None:
         """ print current source code if possible """
         self.lldb_handle_command('f')
 
@@ -627,26 +510,7 @@ class HildaClient:
         if self.ui_manager.active:
             self.ui_manager.show()
 
-    def remove_all_hilda_breakpoints(self, remove_forced=False):
-        """
-        Remove all breakpoints created by Hilda
-        :param remove_forced: include removed of "forced" breakpoints
-        """
-        breakpoints = list(self.breakpoints.items())
-        for bp_id, bp in breakpoints:
-            if remove_forced or not bp.forced:
-                self.remove_hilda_breakpoint(bp_id)
-
-    def remove_hilda_breakpoint(self, bp_id: int) -> None:
-        """
-        Remove a single breakpoint placed by Hilda
-        :param bp_id: Breakpoint's ID
-        """
-        self.target.BreakpointDelete(bp_id)
-        del self.breakpoints[bp_id]
-        self.log_info(f'BP #{bp_id} has been removed')
-
-    def force_return(self, value=0):
+    def force_return(self, value: int = 0) -> None:
         """
         Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
         yielding a specified value.
@@ -670,67 +534,22 @@ class HildaClient:
         entitlements = str(linkedit_data[linkedit_data.find(b'<?xml'):].split(b'\xfa', 1)[0], 'utf8')
         print(highlight(entitlements, XmlLexer(), TerminalTrueColorFormatter()))
 
-    def bp(self, address_or_name: Union[int, str], callback: Optional[Callable] = None, condition: str = None,
-           forced=False, module_name: Optional[str] = None, **options) -> HildaBreakpoint:
+    def bp(self, address_or_name: WhereType, callback: Optional[Callable] = None, condition: Optional[str] = None,
+           guarded: bool = False, description: Optional[str] = None, **options) -> HildaBreakpoint:
         """
         Add a breakpoint
-        :param address_or_name:
+
+        Alias of self.breakpoints.add()
+
+        :param address_or_name: Where to place the breakpoint
         :param condition: set as a conditional breakpoint using lldb expression
         :param callback: callback(hilda, *args) to be called
-        :param forced: whether the breakpoint should be protected frm usual removal.
-        :param module_name: Specify module name to place the BP in (used with `address_or_name` when using a name)
+        :param guarded: whether the breakpoint should be protected frm usual removal.
+        :param description: Attach a breakpoint description
         :param options: can contain an `override` keyword to specify if to override an existing BP
         :return: native LLDB breakpoint
         """
-        if address_or_name in [bp.address for bp in self.breakpoints.values()]:
-            override = True if options.get('override', True) else False
-            if override or prompts.prompt_for_confirmation('A breakpoint already exist in given location. '
-                                                           'Would you like to delete the previous one?', True):
-                breakpoints = list(self.breakpoints.items())
-                for bp_id, bp in breakpoints:
-                    if address_or_name == bp.address:
-                        self.remove_hilda_breakpoint(bp_id)
-
-        if isinstance(address_or_name, int):
-            bp = self.target.BreakpointCreateByAddress(address_or_name)
-        elif isinstance(address_or_name, str):
-            bp = self.target.BreakpointCreateByName(address_or_name)
-
-        if condition is not None:
-            bp.SetCondition(condition)
-
-        # add into Hilda's internal list of breakpoints
-        self.breakpoints[bp.id] = HildaBreakpoint(self, bp, address=address_or_name, forced=forced, options=options,
-                                                  callback=callback)
-
-        if callback is not None:
-            bp.SetScriptCallbackFunction('lldb.hilda_client.bp_callback_router')
-
-        self.log_info(f'Breakpoint #{bp.id} has been set')
-        return self.breakpoints[bp.id]
-
-    def bp_callback_router(self, frame, bp_loc, *_):
-        """
-        Route the breakpoint callback the specific breakpoint callback.
-        :param lldb.SBFrame frame: LLDB Frame object.
-        :param lldb.SBBreakpointLocation bp_loc: LLDB Breakpoint location object.
-        """
-        bp_id = bp_loc.GetBreakpoint().GetID()
-        self._bp_frame = frame
-        try:
-            self.breakpoints[bp_id].callback(self, frame, bp_loc, self.breakpoints[bp_id].options)
-        finally:
-            self._bp_frame = None
-
-    def show_hilda_breakpoints(self):
-        """ Show existing breakpoints created by Hilda. """
-        for bp_id, bp in self.breakpoints.items():
-            print(f'🚨 Breakpoint #{bp_id}: Forced: {bp.forced}')
-            if isinstance(bp.address, int):
-                print(f'\tAddress: 0x{bp.address:x}')
-            elif isinstance(bp.address, str):
-                print(f'\tName: {bp.address}')
-            print(f'\tOptions: {bp.options}')
+        return self.breakpoints.add(address_or_name, callback, condition, guarded, description=description, **options)
 
     def po(self, expression: str, cast: Optional[str] = None) -> str:
         """
@@ -1049,8 +868,8 @@ class HildaClient:
                 return
             client.finish()
             client.log_info(f'Desired module has been loaded: {expression}. Process remains stopped')
-            bp = bp_loc.GetBreakpoint()
-            client.remove_hilda_breakpoint(bp.id)
+            bp_id = bp_loc.GetBreakpoint().GetID()
+            client.breakpoints.remove(bp_id)
 
         self.bp('dlopen', bp)
         self.cont()
@@ -1183,21 +1002,6 @@ class HildaClient:
             return value.peek_str()
         else:
             return value[0].peek_str()
-
-    def _monitor_format_value(self, fmt, value):
-        if callable(fmt):
-            return fmt(self, value)
-        formatters = {
-            'x': lambda val: f'0x{int(val):x}',
-            's': lambda val: val.peek_str() if val else None,
-            'cf': lambda val: val.cf_description,
-            'po': lambda val: val.po(),
-            'std::string': self._std_string
-        }
-        if fmt in formatters:
-            return formatters[fmt](value)
-        else:
-            return f'{value:x} (unsupported format)'
 
     @cached_property
     def _object_identifier(self) -> Symbol:

@@ -152,7 +152,7 @@ Here is a gist of methods you can access from `p`:
   - Simulate a call to an objc selector
 - `call`
   - Call function at given address with given parameters
-- `monitor`
+- `monitor` or `breakpoints.add_monitor`
   - Monitor every time a given address is called
 
       The following options are available:
@@ -197,10 +197,10 @@ Here is a gist of methods you can access from `p`:
   - Step into current instruction.
 - `step_over`
   - Step over current instruction.
-- `remove_all_hilda_breakpoints`
-  - Remove all breakpoints created by Hilda
-- `remove_hilda_breakpoint`
-  - Remove a single breakpoint placed by Hilda
+- `breakpoints.clear`
+  - Remove all breakpoints
+- `breakpoints.remove`
+  - Remove a single breakpoint
 - `force_return`
   - Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
       yielding a specified value.
@@ -208,14 +208,10 @@ Here is a gist of methods you can access from `p`:
   - Print information about currently running mapped process.
 - `print_proc_entitlements`
   - Get the plist embedded inside the process' __LINKEDIT section.
-- `bp`
+- `bp` or `breakpoints.add`
   - Add a breakpoint
-- `show_hilda_breakpoints`
-  - Show existing breakpoints created by Hilda.
-- `save`
-  - Save loaded symbols map (for loading later using the load() command)
-- `load`
-  - Load an existing symbols map (previously saved by the save() command)
+- `breakpoints.show`
+  - Show existing breakpoints
 - `po`
   - Print given object using LLDB's po command
       Can also run big chunks of native code:
@@ -477,7 +473,7 @@ s.bp(scripted_breakpoint)
 p.bp('symbol_name')
 
 # In case you need to specify a specific library it's loaded from
-p.bp('symbol_name', module_name='ModuleName')
+p.bp(('symbol_name', 'ModuleName'))
 ```
 
 #### Globalized symbols

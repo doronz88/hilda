@@ -22,11 +22,8 @@ def _disable_internal_error_handling() -> None:
                 hilda.CFRunLoopServiceMachPort_while_ea = int(hilda.file_symbol(eval(while_ea)))
             elif instruction.GetMnemonic(hilda.target) in ('brk', 'ud2'):
                 symbol = hilda.symbol(instruction.addr.GetLoadAddress(hilda.target))
-                symbol.bp(
-                    _CFRunLoopServiceMachPort_hook,
-                    forced=True,
-                    name=f'__CFRunLoopServiceMachPort-brk-{int(symbol - hilda.symbols.__CFRunLoopServiceMachPort)}'
-                )
+                description = f'__CFRunLoopServiceMachPort-brk-{int(symbol - hilda.symbols.__CFRunLoopServiceMachPort)}'
+                symbol.bp(_CFRunLoopServiceMachPort_hook, guarded=True, description=description)
 
     if hilda.arch == 'x86_64h':
         return

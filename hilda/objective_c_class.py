@@ -4,7 +4,6 @@ from collections import namedtuple
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any
-from uuid import uuid4
 
 from objc_types_decoder.decode import decode as decode_type
 from objc_types_decoder.decode import decode_with_tail
@@ -188,19 +187,16 @@ class Class:
             hilda.log_info('removing breakpoints')
             for bp_id, bp in list(hilda.breakpoints.items()):
                 if 'group_uuid' in bp.options and bp.options.get('group_uuid', '') == options['group_uuid']:
-                    hilda.remove_hilda_breakpoint(bp_id)
+                    hilda.breakpoints.remove(bp_id)
             captured = hilda.evaluate_expression('$arg1')
             captured = captured.objc_symbol
             hilda.captured_objects[options['name'].split(' ')[0].split('[')[1]] = captured
             hilda.cont()
 
-        group_uuid = str(uuid4())
-
         for method in self.methods:
             if not method.is_class:
                 # only instance methods are relevant for capturing self
-                method.imp.bp(hook, group_uuid=group_uuid,
-                              name=f'-[{class_name} {method.name}]')
+                method.imp.bp(hook)
 
         if sync:
             self._client.cont()

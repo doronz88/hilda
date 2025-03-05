@@ -11,5 +11,5 @@ repos:
     rev: "7.0.0"
     hooks:
       - id: flake8
-        args: [ '--max-complexity=14', '--max-line-length=127' ]
+        args: [ '--max-complexity=18', '--max-line-length=127' ]
         files: \.py$

@@ -5,7 +5,6 @@ import importlib.util
 import json
 import logging
 import os
-import pickle
 import struct
 import sys
 import time
@@ -18,10 +17,9 @@ from functools import cached_property, wraps
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 
+import click
 import hexdump
 import IPython
-from humanfriendly import prompts
-from humanfriendly.terminal.html import html_to_ansi
 from IPython.core.magic import register_line_magic  # noqa: F401
 from pygments import highlight
 from pygments.formatters import TerminalTrueColorFormatter
@@ -35,6 +33,7 @@ from hilda.exceptions import AccessingMemoryError, AccessingRegisterError, Addin
     BrokenLocalSymbolsJarError, ConvertingFromNSObjectError, ConvertingToNsObjectError, CreatingObjectiveCSymbolError, \
     DisableJetsamMemoryChecksError, EvaluatingExpressionError, HildaException, InvalidThreadIndexError, \
     SymbolAbsentError
+from hilda.ipython_extensions.keybindings import get_keybindings
 from hilda.lldb_importer import lldb
 from hilda.objective_c_symbol import ObjectiveCSymbol
 from hilda.registers import Registers
@@ -50,36 +49,28 @@ except ImportError:
     lldb.KEYSTONE_SUPPORT = False
     print('failed to import keystone. disabling some features')
 
-hilda_art = Path(__file__).resolve().parent.joinpath('hilda_ascii_art.html').read_text()
-
-GREETING = f"""
-{hilda_art}
-
-<b>Hilda has been successfully loaded! 😎
-Usage:
- <span style="color: magenta">p</span>   Global to access all features.
- <span style="color: magenta">F1</span>  Show UI.
- <span style="color: magenta">F2</span>  Toggle enabling of stdout & stderr.
- <span style="color: magenta">F7</span>  Step Into.
- <span style="color: magenta">F8</span>  Step Over.
- <span style="color: magenta">F9</span>  Continue.
- <span style="color: magenta">F10</span> Stop.
-
-Have a nice flight ✈️! Starting an IPython shell...
-"""
-
 
 def disable_logs() -> None:
     logging.getLogger('asyncio').disabled = True
     logging.getLogger('parso.cache').disabled = True
     logging.getLogger('parso.cache.pickle').disabled = True
     logging.getLogger('parso.python.diff').disabled = True
-    logging.getLogger('humanfriendly.prompts').disabled = True
     logging.getLogger('blib2to3.pgen2.driver').disabled = True
     logging.getLogger('hilda.launch_lldb').setLevel(logging.INFO)
 
 
 SerializableSymbol = namedtuple('SerializableSymbol', 'address type_ filename')
+
+
+@dataclass
+class HelpSnippet:
+    """ Small snippet line to occur from `HildaClient.show_help()` """
+
+    key: str
+    description: str
+
+    def __str__(self) -> str:
+        return click.style(self.key.ljust(8), bold=True, fg='magenta') + click.style(self.description, bold=True)
 
 
 @dataclass
@@ -177,14 +168,15 @@ class HildaClient:
         self.log_info(f'Target: {self.target}')
         self.log_info(f'Process: {self.process}')
 
-    def hd(self, buf):
+    def hd(self, buf: bytes) -> None:
         """
-        Print an hexdump of given buffer
+        Print hexdump representation for given buffer.
+
         :param buf: buffer to print in hexdump form
         """
-        print(hexdump.hexdump(buf))
+        hexdump.hexdump(buf)
 
-    def lsof(self) -> dict:
+    def lsof(self) -> dict[int, Any]:
         """
         Get dictionary of all open FDs
         :return: Mapping between open FDs and their paths
@@ -201,7 +193,7 @@ class HildaClient:
             if i == depth:
                 break
             row = ''
-            row += html_to_ansi(f'<span style="color: cyan">0x{frame.addr.GetFileAddress():x}</span> ')
+            row += click.style(f'0x{frame.addr.GetFileAddress():x} ', fg='cyan')
             row += str(frame)
             if i == 0:
                 # first line
@@ -222,7 +214,7 @@ class HildaClient:
         if result:
             raise DisableJetsamMemoryChecksError()
 
-    def symbol(self, address):
+    def symbol(self, address: int) -> Symbol:
         """
         Get symbol object for a given address
         :param address:
@@ -230,7 +222,7 @@ class HildaClient:
         """
         return Symbol.create(address, self)
 
-    def objc_symbol(self, address) -> ObjectiveCSymbol:
+    def objc_symbol(self, address: int) -> ObjectiveCSymbol:
         """
         Get objc symbol wrapper for given address
         :param address:
@@ -241,11 +233,12 @@ class HildaClient:
         except HildaException as e:
             raise CreatingObjectiveCSymbolError from e
 
-    def inject(self, filename):
+    def inject(self, filename: str) -> SymbolsJar:
         """
-        Inject a single library into currently running process
-        :param filename:
-        :return: module object
+        Inject a single library into currently running process.
+
+        :param filename: library to inject (dylib)
+        :return: SymbolsJar
         """
         module = self.target.FindModule(lldb.SBFileSpec(os.path.basename(filename), False))
         if module.file.basename is not None:
@@ -459,7 +452,8 @@ class HildaClient:
 
     def set_register(self, name: str, value: Union[float, int]) -> None:
         """
-        Set value for register by its name
+        Set value for register by its name.
+
         :param name: Register name
         :param value: Register value
         """
@@ -473,7 +467,8 @@ class HildaClient:
 
     def objc_call(self, obj: int, selector: str, *params):
         """
-        Simulate a call to an objc selector
+        Simulate a call to an objc selector.
+
         :param obj: obj to pass into `objc_msgSend`
         :param selector: selector to execute
         :param params: any other additional parameters the selector requires
@@ -489,7 +484,7 @@ class HildaClient:
         with self.stopped():
             return self.evaluate_expression(call_expression)
 
-    def call(self, address, argv: list = None):
+    def call(self, address, argv: Optional[list] = None):
         """
         Call function at given address with given parameters
         :param address:
@@ -661,11 +656,11 @@ class HildaClient:
         self.finish()
         self.set_register('x0', value)
 
-    def proc_info(self):
+    def proc_info(self) -> None:
         """ Print information about currently running mapped process. """
         print(self.process)
 
-    def print_proc_entitlements(self):
+    def print_proc_entitlements(self) -> None:
         """ Get the plist embedded inside the process' __LINKEDIT section. """
         linkedit_section = self.target.modules[0].FindSection('__LINKEDIT')
         linkedit_data = self.symbol(linkedit_section.GetLoadAddress(self.target)).peek(linkedit_section.size)
@@ -737,50 +732,7 @@ class HildaClient:
                 print(f'\tName: {bp.address}')
             print(f'\tOptions: {bp.options}')
 
-    def save(self, filename=None):
-        """
-        Save loaded symbols map (for loading later using the load() command)
-        :param filename: optional filename for where to store
-        """
-        if filename is None:
-            filename = self._get_saved_state_filename()
-
-        self.log_info(f'saving current state info: {filename}')
-        with open(filename, 'wb') as f:
-            symbols_copy = {}
-            for k, v in self.symbols.items():
-                # converting the symbols into serializable objects
-                symbols_copy[k] = SerializableSymbol(address=int(v),
-                                                     type_=v.type_,
-                                                     filename=v.filename)
-            pickle.dump(symbols_copy, f)
-
-    def load(self, filename=None):
-        """
-        Load an existing symbols map (previously saved by the save() command)
-        :param filename: filename to load from
-        """
-        if filename is None:
-            filename = self._get_saved_state_filename()
-
-        self.log_info(f'loading current state from: {filename}')
-        with open(filename, 'rb') as f:
-            symbols_copy = pickle.load(f)
-
-            for k, v in tqdm(symbols_copy.items()):
-                self.symbols[k] = self.symbol(v.address)
-
-            # perform sanity test for symbol rand
-            if self.symbols.rand() == 0 and self.symbols.rand() == 0:
-                # rand returning 0 twice means the loaded file is probably outdated
-                raise BrokenLocalSymbolsJarError()
-
-            # assuming the first main image will always change
-            self.rebind_symbols(image_range=[0, 0])
-            self.init_dynamic_environment()
-            self._symbols_loaded = True
-
-    def po(self, expression, cast=None):
+    def po(self, expression: str, cast: Optional[str] = None) -> str:
         """
         Print given object using LLDB's po command
 
@@ -804,7 +756,7 @@ class HildaClient:
             raise EvaluatingExpressionError(res.GetError())
         return res.GetOutput().strip()
 
-    def globalize_symbols(self):
+    def globalize_symbols(self) -> None:
         """
         Make all symbols in python's global scope
         """
@@ -817,18 +769,18 @@ class HildaClient:
                     and '.' not in name:
                 self._add_global(name, value, reserved_names)
 
-    def jump(self, symbol: int):
+    def jump(self, symbol: int) -> None:
         """ jump to given symbol """
         self.lldb_handle_command(f'j *{symbol}')
 
-    def lldb_handle_command(self, cmd):
+    def lldb_handle_command(self, cmd: str) -> None:
         """
         Execute an LLDB command
 
         For example:
             lldb_handle_command('register read')
 
-        :param cmd:
+        :param cmd: LLDB command
         """
         self.debugger.HandleCommand(cmd)
 
@@ -968,7 +920,7 @@ class HildaClient:
         return self.thread.GetSelectedFrame()
 
     @contextmanager
-    def stopped(self, interval=0):
+    def stopped(self, interval: int = 0):
         """
         Context-Manager for execution while process is stopped.
         If interval is supplied, then if the device is in running state, it will sleep for the interval
@@ -988,7 +940,7 @@ class HildaClient:
                 self.cont()
 
     @contextmanager
-    def safe_malloc(self, size):
+    def safe_malloc(self, size: int):
         """
         Context-Manager for allocating a block of memory which is freed afterwards
         :param size:
@@ -1103,13 +1055,30 @@ class HildaClient:
         self.bp('dlopen', bp)
         self.cont()
 
+    def show_help(self, *_) -> None:
+        """
+        Show banner help message
+        """
+        help_snippets = [HelpSnippet(key='p', description='Global to access all features')]
+        for keybinding in get_keybindings(self):
+            help_snippets.append(HelpSnippet(key=keybinding.key.upper(), description=keybinding.description))
+
+        for help_snippet in help_snippets:
+            click.echo(help_snippet)
+
     def interact(self, additional_namespace: Optional[typing.Mapping] = None,
                  startup_files: Optional[list[str]] = None) -> None:
         """ Start an interactive Hilda shell """
         if not self._dynamic_env_loaded:
             self.init_dynamic_environment()
-        print('\n')
-        self.log_info(html_to_ansi(GREETING))
+
+        # Show greeting
+        click.secho('Hilda has been successfully loaded! 😎', bold=True)
+        click.secho('Usage:', bold=True)
+        self.show_help()
+        click.echo(click.style('Have a nice flight ✈️! Starting an IPython shell...', bold=True))
+
+        # Configure and start IPython shell
         ipython_config = Config()
         ipython_config.IPCompleter.use_jedi = True
         ipython_config.BaseIPythonApplication.profile = 'hilda'

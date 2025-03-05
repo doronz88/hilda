@@ -1,7 +1,8 @@
 import logging
 
+import inquirer3
 from construct import Array, CString, Hex, If, Int32ub, Int32ul, Int64ul, Pointer, Struct, Tell, this
-from humanfriendly import prompts
+from inquirer3 import List
 
 from hilda.lldb_importer import lldb
 from hilda.snippets.macho.image_info import ImageInfo, dyld_image_info_t
@@ -104,9 +105,11 @@ class AllImageInfos:
 
     @staticmethod
     def __select_specific_image(images):
-        logging.info('Multiple images were found with that prefix.\nPlease select one')
-        print([f"{image.file_path}" for image in images])
-        selected_image_path = prompts.prompt_for_choice([f"{image.file_path}" for image in images])
+        image_list = [image.file_path for image in images]
+        logging.info('Multiple images were found with that prefix.\n'
+                     'Please select one:\n'
+                     f'{image_list}')
+        selected_image_path = inquirer3.prompt(List('selected_image_path', image_list))['selected_image_path']
         for image in images:
             if image.file_path == selected_image_path:
                 return image

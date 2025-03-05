@@ -105,7 +105,7 @@ Have a nice flight ✈️! Starting an IPython shell...
 Here is a gist of methods you can access from `p`:
 
 - `hd`
-  - Print an hexdump of given buffer
+  - Print a hexdump of given buffer
 - `lsof`
   - Get dictionary of all open FDs
 - `bt`
@@ -269,6 +269,9 @@ Sometimes accessing the [Python API](#python-api) can be tiring, so we added som
 
 #### Key-bindings
 
+- **F1**: Show banner help message
+- **F2**: Show process state UI
+- **F3**: Toggle stdout/stderr enablement
 - **F7**: Step Into
 - **F8**: Step Over
 - **F9**: Continue

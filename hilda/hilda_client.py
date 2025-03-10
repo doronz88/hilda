@@ -42,6 +42,7 @@ from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
 from hilda.symbols_jar import SymbolsJar
 from hilda.ui.ui_manager import UiManager
+from hilda.watchpoints import WatchpointList
 
 lldb.KEYSTONE_SUPPORT = True
 try:
@@ -128,6 +129,7 @@ class HildaClient:
         self.process = self.target.GetProcess()
         self.symbols = SymbolsJar.create(self)
         self.breakpoints = BreakpointList(self)
+        self.watchpoints = WatchpointList(self)
         self.captured_objects = {}
         self.registers = Registers(self)
         self.arch = self.target.GetTriple().split('-')[0]

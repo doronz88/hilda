@@ -25,8 +25,7 @@ Hilda is a debugger which combines both the power of LLDB and iPython for easier
 
 The name originates from the TV show "Hilda", which is the best friend of
 [Frida](https://frida.re/). Both Frida and Hilda are meant for pretty much the same purpose, except Hilda takes the
-more "
-debugger-y" approach (based on LLDB).
+more "debugger-y" approach (based on LLDB).
 
 Currently, the project is intended for iOS/OSX debugging, but in the future we will possibly add support for the
 following platforms as well:
@@ -94,165 +93,94 @@ You can may start a Hilda interactive shell by invoking any of the subcommand:
 
 ### Inside a Hilda shell
 
-Upon starting Hilda shell, you are greeted with:
+Upon starting Hilda, you are welcomed into an IPython shell.
+You can access following methods via the variable `p`.
 
-```
-Hilda has been successfully loaded! 😎
-Use the p global to access all features.
-Have a nice flight ✈️! Starting an IPython shell...
-```
+Basic flow control:
 
-Here is a gist of methods you can access from `p`:
+- `stop` - Stop process
+- `cont` - Continue process
+- `finish` - Run current function until return
+- `step_into` - Step into current instruction
+- `step_over` - Step over current instruction.
+- `run_for` - Run the process for given interval
+- `force_return` - Prematurely return from a stack frame, short-circuiting exection of inner
+  frames and optionally yielding a specified value.
+- `jump` - Jump to given symbol
+- `wait_for_module` - Wait for a module to be loaded (`dlopen`) by checking if given expression is contained within its filename
+- `detach` - Detach from process (useful for exiting gracefully so the
+  process doesn't get killed when you exit)
 
-- `hd`
-  - Print a hexdump of given buffer
-- `lsof`
-  - Get dictionary of all open FDs
-- `bt`
-  - Print an improved backtrace.
-- `disable_jetsam_memory_checks`
-  - Disable jetsam memory checks, prevent raising:
-      `error: Execution was interrupted, reason: EXC_RESOURCE RESOURCE_TYPE_MEMORY (limit=15 MB, unused=0x0).`
-      when evaluating expression.
-- `symbol`
-  - Get symbol object for a given address
-- `objc_symbol`
-  - Get objc symbol wrapper for given address
-- `inject`
-  - Inject a single library into currently running process
-- `rebind_symbols`
-  - Reparse all loaded images symbols
-- `poke`
-  - Write data at given address
-- `peek`
-  - Read data at given address
-- `peek_str`
-  - Peek a buffer till null termination
-- `peek_std_str`
-  - Peek a `std::string`
-- `stop`
-  - Stop process.
-- `cont`
-  - Continue process.
-- `run_for`
-  - Run the process for given interval.
-- `detach`
-  - Detach from process.
-      Useful in order to exit gracefully so process doesn't get killed
-      while you exit
-- `disass`
-  - Print disassembly from a given address
-- `file_symbol`
-  - Calculate symbol address without ASLR
-- `get_register`
-  - Get value for register by its name
-- `set_register`
-  - Set value for register by its name
-- `objc_call`
-  - Simulate a call to an objc selector
-- `call`
-  - Call function at given address with given parameters
-- `monitor` or `breakpoints.add_monitor`
-  - Monitor every time a given address is called
+Breakpoints:
+- `bp` or `breakpoints.add` - Add a breakpoint
+- `breakpoints.show` - Show existing breakpoints
+- `breakpoints.remove` - Remove a single breakpoint
+- `breakpoints.clear` - Remove all breakpoints
+- `monitor` or `breakpoints.add_monitor` - Creates a breakpoint whose callback implements the requested features (print register vallues, execute commands, mock return value, etc.)
 
-      The following options are available:
+Basic read/write:
 
-      ```
-      regs={reg1: format}
-          will print register values
-  
-          Available formats:
-              x: hex
-              s: string
-              cf: use CFCopyDescription() to get more informative description of the object
-              po: use LLDB po command
-              User defined function, will be called like `format_function(hilda_client, value)`.
-  
-              For example:
-                  regs={'x0': 'x'} -> x0 will be printed in HEX format
-      expr={lldb_expression: format}
-          lldb_expression can be for example '$x0' or '$arg1'
-          format behaves just like 'regs' option
-      retval=format
-          Print function's return value. The format is the same as regs format.
-      stop=True
-          force a stop at every hit
-      bt=True
-          print backtrace
-      cmd=[cmd1, cmd2]
-          run several LLDB commands, one by another
-      force_return=value
-          force a return from function with the specified value
-      name=some_value
-          use `some_name` instead of the symbol name automatically extracted from the calling frame
-      override=True
-          override previous break point at same location
-      ```
+- `get_register` - Get register value
+- `set_register` - Set register value
+- `poke` - Write data at address
+- `peek[_str,_std_str]` - Read buffer/C-string/`std::string` at address
+- `po` - Print object using LLDB's `po` command
+  Can also run arbitrary native code:
 
-- `show_current_source`
-  - print current source code if possible
-- `finish`
-  - Run current frame till its end.
-- `step_into`
-  - Step into current instruction.
-- `step_over`
-  - Step over current instruction.
-- `breakpoints.clear`
-  - Remove all breakpoints
-- `breakpoints.remove`
-  - Remove a single breakpoint
-- `force_return`
-  - Prematurely return from a stack frame, short-circuiting exection of newer frames and optionally
-      yielding a specified value.
-- `proc_info`
-  - Print information about currently running mapped process.
-- `print_proc_entitlements`
-  - Get the plist embedded inside the process' __LINKEDIT section.
-- `bp` or `breakpoints.add`
-  - Add a breakpoint
-- `breakpoints.show`
-  - Show existing breakpoints
-- `po`
-  - Print given object using LLDB's po command
-      Can also run big chunks of native code:
+  ```python
+  p.po('NSMutableString *s = [NSMutableString string]; [s appendString:@"abc"]; [s description]')
+  ```
+- `disass` - Print disassembly at address
+- `show_current_source` - Print current source code (if possible)
+- `bt` - Get backtrace
+- `lsof` - Get all open FDs
+- `hd` - Hexdump a buffer
+- `proc_info` - Print information about currently running mapped process
+- `print_proc_entitlements` - Get the plist embedded inside the process' __LINKEDIT section.
 
-      po('NSMutableString *s = [NSMutableString string]; [s appendString:@"abc"]; [s description]')
-- `globalize_symbols`
-  - Make all symbols in python's global scope
-- `jump`
-  - jump to given symbol
-- `lldb_handle_command`
-  - Execute an LLDB command
-      For example:
-      lldb_handle_command('register read')
-- `objc_get_class`
-  - Get ObjC class object
-- `CFSTR`
-  - Create CFStringRef object from given string
-- `ns`
-  - Create NSObject from given data
-- `from_ns`
-  - Create python object from NS object.
-- `evaluate_expression`
-  - Wrapper for LLDB's EvaluateExpression.
-      Used for quick code snippets.
+Execute code:
 
-      Feel free to use local variables inside the expression using format string.
-      For example:
-      currentDevice = objc_get_class('UIDevice').currentDevice
-      evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
-- `import_module`
-  - Import & reload given python module (intended mainly for external snippets)
-- `unwind`
-  - Unwind the stack (useful when get_evaluation_unwind() == False)
-- `set_selected_thread`
-  - sets the currently selected thread, which is used in other parts of the program, such as displaying disassembly or
-      checking registers.
-      This ensures the application focuses on the specified thread for these operations.
-- `wait_for_module`
-  - Wait for a module to be loaded (`dlopen`) by checking if given expression is contained within its filename
+- `call` - Call function at given address with given parameters
+- `objc_call` - Simulate a call to an objc selector
+- `inject` - Inject a single library into currently running process
+- `disable_jetsam_memory_checks` -
+   Disable jetsam memory checks (to prevent raising
+   `error: Execution was interrupted, reason: EXC_RESOURCE RESOURCE_TYPE_MEMORY (limit=15 MB, unused=0x0).`
+   when evaluating expressions).
 
-All these methods are available from the global `p` within the newly created IPython shell. In addition, you may invoke any of the exported APIs described in the [Python API](#python-api)
+Hilda symbols:
+
+- `symbol` - Get symbol object for a given address
+- `objc_symbol` - Get objc symbol wrapper for given address
+- `rebind_symbols` - Reparse all loaded images symbols
+- `file_symbol` - Calculate symbol address without ASLR
+- `save` - Save loaded symbols map (for loading later using the load() command)
+- `load` - Load an existing symbols map (previously saved by the save() command)
+- `globalize_symbols` - Make all symbols in python's global scope
+
+Advanced:
+
+- `lldb_handle_command` - Execute an LLDB command (e.g., `p.lldb_handle_command('register read')`)
+- `evaluate_expression` - Use for quick code snippets (wrapper for LLDB's `EvaluateExpression`)
+
+  Take advantage of local variables inside the expression using format string, e.g.,
+
+  ```python
+  currentDevice = p.objc_get_class('UIDevice').currentDevice
+  p.evaluate_expression(f'[[{currentDevice} systemName] hasPrefix:@"2"]')
+  ```
+- `import_module` - Import & reload given python module (intended mainly for external snippets)
+- `unwind` - Unwind the stack (useful when get_evaluation_unwind() == False)
+- `set_selected_thread` - sets the currently selected thread, which is used in other parts of the program, such as displaying disassembly or
+  checking registers.
+  This ensures the application focuses on the specified thread for these operations.
+
+Objective-C related:
+
+- `objc_get_class` - Get ObjC class object
+- `CFSTR` - Create CFStringRef object from given string
+- `ns` - Create NSObject from given data
+- `from_ns` - Create python object from NS object.
 
 #### Magic functions
 

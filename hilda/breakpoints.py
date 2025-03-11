@@ -124,12 +124,30 @@ class HildaBreakpoint:
         for name in names_to_add:
             self.lldb_breakpoint.AddName(name)
 
+    @property
+    def enabled(self) -> bool:
+        """
+        Configures whether this breakpoint is enabled or not.
+        """
+        return self.lldb_breakpoint.IsEnabled()
+
+    @enabled.setter
+    def enabled(self, value: bool) -> None:
+        self.lldb_breakpoint.SetEnabled(value)
+
     def __repr__(self) -> str:
-        return (f'<{self.__class__.__name__} LLDB:{self.lldb_breakpoint} GUARDED:{self.guarded} '
+        enabled_repr = 'ENABLED' if self.enabled else 'DISABLED'
+        guarded_repr = 'GUARDED' if self.guarded else 'NOT-GUARDED'
+        return (f'<{self.__class__.__name__} LLDB:{self.lldb_breakpoint} {enabled_repr} {guarded_repr} '
                 f'CALLBACK:{self.callback}>')
 
     def __str__(self) -> str:
-        result = f'🚨 Breakpoint #{self.id} (guarded: {self.guarded}):\n'
+        emoji = '🚨' if self.enabled else '🔕'
+        enabled_str = 'enabled' if self.enabled else 'disabled'
+        guarded_str = 'guarded' if self.guarded else 'not-guarded'
+
+        result = f'{emoji} Breakpoint #{self.id} ({enabled_str}, {guarded_str})\n'
+
         if self.description is not None:
             result += f'\tDescription: {self.description}\n'
 
@@ -137,10 +155,13 @@ class HildaBreakpoint:
             result += f'\tWhere: {self.where}\n'
 
         # A single breakpoint may be related to several locations (addresses)
+        locations = self.locations
+        if len(locations) == 0:
+            result += f'\tNo locations\n'
         for location in self.locations:
             result += f'\tLocation {location}\n'
 
-        return result
+        return result.strip('\n')
 
     def remove(self, remove_guarded: bool = False) -> None:
         """
@@ -441,6 +462,8 @@ class BreakpointList:
 
     def show(self) -> None:
         """ Show existing breakpoints. """
+        if len(self) == 0:
+            print('No breakpoints')
         for bp in self:
             print(bp)
 

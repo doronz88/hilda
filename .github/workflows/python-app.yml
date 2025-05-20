@@ -39,4 +39,4 @@ jobs:
           xcrun python3 -m pip install -e ".[test]"
       - name: Run pytest
         run: |
-          sudo xcrun python3 -m pytest -k "not set_implementation"
+          sudo xcrun python3 -m pytest -k "not set_implementation" -vvv

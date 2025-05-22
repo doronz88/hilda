@@ -614,7 +614,7 @@ commands so you are able to use complicated types when parsing values and passin
 import datetime
 
 # using the `ns` command we can just pass a python-native dictionary
-function_requiring_a_specfic_dictionary(ns({
+function_requiring_a_specfic_dictionary(p.cf({
     'key1': 'string',  # will convert to NSString
     'key2': True,  # will convert to NSNumber
     'key3': b'1234',  # will convert to NSData

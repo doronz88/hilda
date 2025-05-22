@@ -234,9 +234,9 @@ class WatchpointList:
     def show(self) -> None:
         """ Show existing watchpoints. """
         if len(self) == 0:
-            print('No watchpoints')
+            self._hilda.log_info('No watchpoints')
         for wp in self:
-            print(wp)
+            self._hilda.log_info(wp)
 
     def items(self) -> Generator[tuple[int, HildaWatchpoint], None, None]:
         """

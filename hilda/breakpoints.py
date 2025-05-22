@@ -463,9 +463,9 @@ class BreakpointList:
     def show(self) -> None:
         """ Show existing breakpoints. """
         if len(self) == 0:
-            print('No breakpoints')
+            self._hilda.log_info('No breakpoints')
         for bp in self:
-            print(bp)
+            self._hilda.log_info(bp)
 
     def items(self):
         """

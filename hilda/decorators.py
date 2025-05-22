@@ -1,5 +1,6 @@
 from hilda.breakpoints import WhereType
-from hilda.hilda_client import p
+from hilda.lldb_importer import lldb
+p = lldb.hilda_client
 
 
 def breakpoint(where: WhereType, enable: bool = False):

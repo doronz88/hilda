@@ -27,6 +27,9 @@ class HildaWatchpoint:
         A value identifying where the watchpoint was set (when it was created).
 
         It could be either an address (int) or a Hilda symbol object (Symbol, that inherits from int).
+        Note that self.address is similar, but self.where is where the watchpoit was set when it was
+        created (using Hilda API), and self.address is the actual address. They should have the same
+        value, although self.where may be a Hilda Symbol.
         """
         return self._where
 
@@ -60,11 +63,43 @@ class HildaWatchpoint:
     def condition(self, condition: Optional[str]) -> None:
         self.lldb_watchpoint.SetCondition(condition)
 
+    @property
+    def address(self) -> int:
+        """
+        Get the address this wathpoint watches (also see self.where).
+        """
+        return self.lldb_watchpoint.GetWatchAddress()
+
+    @property
+    def size(self) -> int:
+        """
+        Get the size this wathpoint watches.
+        """
+        return self.lldb_watchpoint.GetWatchSize()
+
+    @property
+    def enabled(self) -> bool:
+        """
+        Configures whether this watchpoint is enabled or not.
+        """
+        return self.lldb_watchpoint.IsEnabled()
+
+    @enabled.setter
+    def enabled(self, value: bool) -> None:
+        self.lldb_watchpoint.SetEnabled(value)
+
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} LLDB:{self.lldb_watchpoint} CALLBACK:{self.callback}>'
 
     def __str__(self) -> str:
-        return repr(self)
+        emoji = '🚨' if self.enabled else '🔕'
+        enabled_str = 'enabled' if self.enabled else 'disabled'
+        result = f'{emoji} Watchpoint #{self.id} ({enabled_str})\n'
+
+        if self.where is not None:
+            result += f'\tWhere: {self.where}\n'
+
+        return result.strip('\n')
 
     def remove(self) -> None:
         """
@@ -198,13 +233,10 @@ class WatchpointList:
 
     def show(self) -> None:
         """ Show existing watchpoints. """
+        if len(self) == 0:
+            self._hilda.log_info('No watchpoints')
         for wp in self:
-            message = f'🚨 Watchpoint #{wp.id}'
-
-            if wp.where is not None:
-                message += f'\n\tWhere: {wp.where}'
-
-            self._hilda.log_info(message)
+            self._hilda.log_info(wp)
 
     def items(self) -> Generator[tuple[int, HildaWatchpoint], None, None]:
         """

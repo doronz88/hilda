@@ -70,7 +70,7 @@ You can may start a Hilda interactive shell by invoking any of the subcommand:
 - `hilda attach [-p pid] [-n process-name]`
   - Attach to an already running process on current host (specified by either `pid` or `process-name`)
 - `hilda remote HOSTNAME PORT`
-  - Attach to an already running process on a target host (sepcified by `HOSTNAME PORT`)
+  - Attach to an already running process on a target host (specified by `HOSTNAME PORT`)
 - `hilda bare`
   - Only start an LLDB shell and load Hilda as a plugin.
   - Please refer to the following help page if you require help on the command available to you within the lldb shell:
@@ -86,8 +86,8 @@ You can may start a Hilda interactive shell by invoking any of the subcommand:
     ... and attaching to a local process:
 
     ```shell
-    process attach -n proccess_name
-    process attach -p proccess_pid
+    process attach -n process_name
+    process attach -p process_pid
     ```
 
     When you are ready, just execute `hilda` to move to Hilda's iPython shell.
@@ -105,7 +105,7 @@ Basic flow control:
 - `step_into` - Step into current instruction
 - `step_over` - Step over current instruction.
 - `run_for` - Run the process for given interval
-- `force_return` - Prematurely return from a stack frame, short-circuiting exection of inner
+- `force_return` - Prematurely return from a stack frame, short-circuiting execution of inner
   frames and optionally yielding a specified value.
 - `jump` - Jump to given symbol
 - `wait_for_module` - Wait for a module to be loaded (`dlopen`) by checking if given expression is contained within its filename
@@ -117,7 +117,7 @@ Breakpoints:
 - `breakpoints.show` - Show existing breakpoints
 - `breakpoints.remove` - Remove a single breakpoint
 - `breakpoints.clear` - Remove all breakpoints
-- `monitor` or `breakpoints.add_monitor` - Creates a breakpoint whose callback implements the requested features (print register vallues, execute commands, mock return value, etc.)
+- `monitor` or `breakpoints.add_monitor` - Creates a breakpoint whose callback implements the requested features (print register values, execute commands, mock return value, etc.)
 
 Basic read/write:
 
@@ -234,7 +234,7 @@ ui.show()
 ```
 
 By default `step_into` and `step_over` will show this UI automatically.
-You may disable this behaviour by executing:
+You may disable this behavior by executing:
 
 ```python
 ui.active = False
@@ -408,8 +408,8 @@ p.bp(('symbol_name', 'ModuleName'))
 #### Globalized symbols
 
 Usually you would want/need to use the symbols already mapped into the currently running process. To do so, you can
-access them using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolsJar`, which is a wrapper
-to `dict` for accessing all exported symbols. For example, the following will generate a call to the exported
+access them using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolsJar`, which acts like
+`dict` for accessing all exported symbols. For example, the following will generate a call to the exported
 `malloc` function with `20` as its only argument:
 
 ```python
@@ -479,7 +479,7 @@ print(NSDictionary.ivars)
 # show the class' methods
 print(NSDictionary.methods)
 
-# show the class' proprties
+# show the class' properties
 print(NSDictionary.properties)
 
 # view class' selectors which are prefixed with 'init'
@@ -487,7 +487,7 @@ print(NSDictionary.symbols_jar.startswith('-[NSDictionary init'))
 
 # you can of course use any of `SymbolsJar` over them, for example:
 # this will `po` (print object) all those selectors returned value
-NSDictionary.symbols_jar.startswith('-[NSDictionary init').monitior(retval='po')
+NSDictionary.symbols_jar.startswith('-[NSDictionary init').monitor(retval='po')
 
 # monitor each time any selector in NSDictionary is called
 NSDictionary.monitor()
@@ -578,7 +578,7 @@ They all use the following concept to use:
 ```python
 from hilda.snippets import snippet_name
 
-snippet_name.do_domething()  
+snippet_name.do_something()
 ```
 
 For example, XPC sniffing can be done using:

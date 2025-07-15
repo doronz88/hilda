@@ -10,7 +10,7 @@ class HildaWatchpoint:
 
     def __init__(self, hilda, lldb_watchpoint: lldb.SBWatchpoint, where: Optional[int] = None) -> None:
         """
-        Initialize a watchpoint list.
+        Initialize a watchpoint.
 
         :param hilda.hilda_client.HildaClient hilda: Hilda client
         """
@@ -27,7 +27,7 @@ class HildaWatchpoint:
         A value identifying where the watchpoint was set (when it was created).
 
         It could be either an address (int) or a Hilda symbol object (Symbol, that inherits from int).
-        Note that self.address is similar, but self.where is where the watchpoit was set when it was
+        Note that self.address is similar, but self.where is where the watchpoint was set when it was
         created (using Hilda API), and self.address is the actual address. They should have the same
         value, although self.where may be a Hilda Symbol.
         """
@@ -66,14 +66,14 @@ class HildaWatchpoint:
     @property
     def address(self) -> int:
         """
-        Get the address this wathpoint watches (also see self.where).
+        Get the address this watchpoint watches (also see self.where).
         """
         return self.lldb_watchpoint.GetWatchAddress()
 
     @property
     def size(self) -> int:
         """
-        Get the size this wathpoint watches.
+        Get the size this watchpoint watches.
         """
         return self.lldb_watchpoint.GetWatchSize()
 
@@ -163,7 +163,7 @@ class WatchpointList:
         Get a watchpoint by ID or the watchpoint itself.
 
         :param id_or_wp: Watchpoint's ID (or the watchpoint itself)
-        :return: `HildaWatchpoint` is one exists, or `None` otherwise
+        :return: `HildaWatchpoint` if one exists, or `None` otherwise
         """
 
         if isinstance(id_or_wp, int):

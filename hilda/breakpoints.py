@@ -227,6 +227,7 @@ class BreakpointList:
         if it does not exist.
 
         :param id_or_name_or_bp: Breakpoint's ID or name (or the breakpoint itself)
+        :return: `HildaBreakpoint` if one exists, or `None` otherwise
         """
 
         if isinstance(id_or_name_or_bp, int):

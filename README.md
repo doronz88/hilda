@@ -358,7 +358,7 @@ s[0] = 1
 s[0] = p.symbol(0x11223344)()  # calling symbols also returns symbols 
 
 # attempt to resolve symbol's name
-print(p.symbol(0x11223344).lldb_symbol)
+print(p.symbol(0x11223344).lldb_address)
 
 # monitor each time a symbol is called into console and print its backtrace (`bt` option)
 # this will create a scripted breakpoint which prints your desired data and continue

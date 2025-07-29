@@ -56,15 +56,15 @@ class Symbol(int):
         symbol._file_address = None
 
         # getting more data out from lldb
-        lldb_symbol = client.target.ResolveLoadAddress(int(symbol) & 0xFFFFFFFFFFFFFFFF)
-        file_address = lldb_symbol.file_addr
-        type_ = lldb_symbol.symbol.type
-        filename = lldb_symbol.module.file.basename
+        lldb_address = client.target.ResolveLoadAddress(int(symbol) & 0xFFFFFFFFFFFFFFFF)
+        file_address = lldb_address.file_addr
+        type_ = lldb_address.symbol.type
+        filename = lldb_address.module.file.basename
 
         symbol._file_address = file_address
         symbol.type_ = type_
         symbol.filename = filename
-        symbol.lldb_symbol = lldb_symbol
+        symbol.lldb_address = lldb_address
 
         for method_name in Symbol.PROXY_METHODS:
             getattr(symbol.__class__, method_name).__doc__ = \

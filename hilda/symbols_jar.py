@@ -38,6 +38,13 @@ class SymbolsJar:
         return self._symbols[item]
 
     def __getattr__(self, name):
+        symbol = self.get(name)
+        if symbol is None:
+            raise SymbolAbsentError(f'no such symbol: {name}')
+
+        return symbol
+
+    def get(self, name):
         if name in self._symbols:
             return self._symbols.get(name)
 
@@ -45,7 +52,7 @@ class SymbolsJar:
         for s in client.target.FindSymbols(name):
             with suppress(AddingLldbSymbolError):
                 return client.add_lldb_symbol(s.symbol)
-        raise SymbolAbsentError(f'no such symbol: {name}')
+        return None
 
     def add(self, key, value):
         self._symbols[key] = value

@@ -161,10 +161,10 @@ class ObjectiveCSymbol(Symbol):
     @property
     def symbols_jar(self) -> SymbolsJar:
         """ Get a SymbolsJar object for quick operations on all methods """
-        jar = SymbolsJar.create(self._client)
+        jar = SymbolsJar(self._client)
 
         for m in self.methods:
-            jar[m.name] = m.address
+            jar.add(m.name, m.address)
 
         return jar
 

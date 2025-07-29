@@ -248,10 +248,10 @@ class Class:
     @property
     def symbols_jar(self) -> SymbolsJar:
         """ Get a SymbolsJar object for quick operations on all methods """
-        jar = SymbolsJar.create(self._client)
+        jar = SymbolsJar(self._client)
 
         for m in self.methods:
-            jar[f'[{self.name} {m.name}]'] = m.imp
+            jar.add(f'[{self.name} {m.name}]', m.imp)
 
         return jar
 

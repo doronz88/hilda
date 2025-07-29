@@ -127,7 +127,7 @@ class HildaClient:
         self.debugger = debugger
         self.target = debugger.GetSelectedTarget()
         self.process = self.target.GetProcess()
-        self.symbols = SymbolsJar.create(self)
+        self.symbols = SymbolsJar(self)
         self.breakpoints = BreakpointList(self)
         self.watchpoints = WatchpointList(self)
         self.captured_objects = {}
@@ -225,7 +225,7 @@ class HildaClient:
         if module.file.basename is not None:
             self.log_warning(f'file {filename} has already been loaded')
 
-        injected = SymbolsJar.create(self)
+        injected = SymbolsJar(self)
         handle = self.symbols.dlopen(filename, 10)  # RTLD_GLOBAL|RTLD_NOW
 
         if handle == 0:
@@ -247,7 +247,7 @@ class HildaClient:
                 # ignore unnamed symbols and those which are not: data, code or objc classes
                 continue
 
-            injected[name] = self.symbol(load_addr)
+            injected.add(name, self.symbol(load_addr))
         return injected
 
     def rebind_symbols(self, image_range=None, filename_expr=''):
@@ -853,8 +853,8 @@ class HildaClient:
         value = self.symbol(load_addr)
 
         # add it into symbols global
-        self.symbols[name] = value
-        self.symbols[f'{name}{{{value.filename}}}'] = value
+        self.symbols.add(name, value)
+        self.symbols.add(f'{name}{{{value.filename}}}', value)
 
         return value
 

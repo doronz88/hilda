@@ -164,7 +164,7 @@ class ObjectiveCSymbol(Symbol):
         jar = SymbolsJar(self._client)
 
         for m in self.methods:
-            jar.add(m.name, m.address)
+            jar.add(m.address, m.name)
 
         return jar
 

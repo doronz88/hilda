@@ -12,7 +12,6 @@ from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import ObjectiveCLexer
 
 from hilda.exceptions import GettingObjectiveCClassError
-from hilda.symbols_jar import SymbolsJar
 
 Ivar = namedtuple('Ivar', 'name type_ offset')
 Property = namedtuple('Property', 'name attributes')
@@ -246,12 +245,13 @@ class Class:
         self.methods = [Method.from_data(method, self._client) for method in data['methods']]
 
     @property
-    def symbols_jar(self) -> SymbolsJar:
+    def symbols_jar(self) -> 'SymbolsJar':
         """ Get a SymbolsJar object for quick operations on all methods """
+        from hilda.symbols_jar import SymbolsJar
         jar = SymbolsJar(self._client)
 
         for m in self.methods:
-            jar.add(f'[{self.name} {m.name}]', m.imp)
+            jar.add(m.imp, f'[{self.name} {m.name}]')
 
         return jar
 

@@ -153,7 +153,6 @@ Hilda symbols:
 
 - `symbol` - Get symbol object for a given address
 - `objc_symbol` - Get objc symbol wrapper for given address
-- `rebind_symbols` - Reparse all loaded images symbols
 - `file_symbol` - Calculate symbol address without ASLR
 - `save` - Save loaded symbols map (for loading later using the load() command)
 - `load` - Load an existing symbols map (previously saved by the save() command)
@@ -432,18 +431,13 @@ x = malloc(20)
 Sometimes you don't really know where to start your research. All you have is just theories of how your desired exported
 symbol should be called (if any).
 
-For that reason alone, we have the `rebind_symbols()`
-command - to help you find the symbol you are looking for.
-
 ```python
-p.rebind_symbols()  # this might take some time
-
 # find all symbols prefixed as `mem*` AND don't have `cpy`
 # in their name
 jar = p.symbols.startswith('mem') - p.symbols.find('cpy')
 
 # filter only symbols of type "code" (removing data global for example)
-jar = jar.code()
+jar = jar.filter_code_symbols()
 
 # monitor every time each one is called, print its `x0` in HEX
 # form and show the backtrace

@@ -201,7 +201,7 @@ class HildaClient:
         :param address:
         :return: Hilda's symbol object
         """
-        return Symbol.create(address, self)
+        return self.symbols.add(address)
 
     def objc_symbol(self, address: int) -> ObjectiveCSymbol:
         """

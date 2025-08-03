@@ -151,6 +151,6 @@ def test_symbol_str_recursive(hilda_client):
 def test_set_implementation(hilda_client):
     pid = hilda_client.symbols.getpid()
 
-    hilda_client.objc_get_class('NSJSONSerialization').get_method('isValidJSONObject:').set_implementation(
+    hilda_client.objc_get_class('NSJSONSerialization').methods.get('isValidJSONObject:').set_implementation(
         hilda_client.symbols.getpid)
     assert hilda_client.objc_get_class('NSJSONSerialization').isValidJSONObject_() == pid

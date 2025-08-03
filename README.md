@@ -477,17 +477,17 @@ print(NSDictionary.methods)
 print(NSDictionary.properties)
 
 # view class' selectors which are prefixed with 'init'
-print(NSDictionary.symbols_jar.startswith('-[NSDictionary init'))
+print(NSDictionary.methods.filter_startswith('init'))
 
 # you can of course use any of `SymbolsJar` over them, for example:
 # this will `po` (print object) all those selectors returned value
-NSDictionary.symbols_jar.startswith('-[NSDictionary init').monitor(retval='po')
+NSDictionary.methods.filter_startswith('init').monitor(retval='po')
 
 # monitor each time any selector in NSDictionary is called
 NSDictionary.monitor()
 
 # `force_return` for some specific selector with a hard-coded value (4)
-NSDictionary.get_method('valueForKey:').address.monitor(force_return=4)
+NSDictionary.methods.get('valueForKey:').address.monitor(force_return=4)
 
 # capture the `self` object at the first hit of any selector
 # `True` for busy-wait for object to be captured

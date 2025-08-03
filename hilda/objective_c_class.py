@@ -1,9 +1,9 @@
 import json
 import time
-from collections import namedtuple
+from collections import UserList, namedtuple
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any
+from typing import Any, Iterator, Optional
 
 from objc_types_decoder.decode import decode as decode_type
 from objc_types_decoder.decode import decode_with_tail
@@ -87,6 +87,86 @@ class Method:
         return f'{prefix} {name}; // 0x{self.address:x} (returns: {self.return_type})\n'
 
 
+class MethodList(UserList):
+    def __init__(self, class_name: str, methods: list[Method]) -> None:
+        super().__init__()
+        self._class_name = class_name
+        self.data = methods
+
+    def get(self, name: str) -> Optional[Method]:
+        """
+        Get a specific method implementation.
+        :param name: Method name.
+        :return: Method.
+        """
+        for method in self.data:
+            if method.name == name:
+                return method
+        return None
+
+    # Actions
+
+    def bp(self, callback=None, **kwargs):
+        """
+        Place a breakpoint on all symbols in the method list.
+        Look for the bp command for more details.
+        :param callback:  callback function to be executed upon an hit
+        :param kwargs: optional kwargs for the bp command
+        """
+        for method in self.data:
+            kwargs['name'] = f'[{self._class_name} {method.name}]'
+            method.imp.bp(callback, **kwargs)
+
+    def monitor(self, **kwargs):
+        """
+        Perform monitor for all symbols in the method list.
+        See monitor command for more details.
+        :param args: given arguments for monitor command
+        """
+        for method in self.data:
+            method.imp.monitor(**kwargs)
+
+    # Filters
+
+    def filter_startswith(self, exp, case_sensitive=True):
+        """
+        Filter only methods with given prefix
+        :param exp: prefix
+        :param case_sensitive: is case sensitive
+        :return: reduced method list
+        """
+        if not case_sensitive:
+            exp = exp.lower()
+
+        retval = []
+        for v in self.data:
+            name = v.name
+            if not case_sensitive:
+                name = name.lower()
+            if name.startswith(exp):
+                retval.append(v)
+        return MethodList(self._class_name, retval)
+
+    def filter_name_contains(self, exp, case_sensitive=True):
+        """
+        Filter methods containing a given expression
+        :param exp: given expression
+        :param case_sensitive: is case sensitive
+        :return: reduced method list
+        """
+        if not case_sensitive:
+            exp = exp.lower()
+
+        retval = []
+        for v in self.data:
+            name = v.name
+            if not case_sensitive:
+                name = name.lower()
+            if exp in name:
+                retval.append(v)
+        return MethodList(self._class_name, retval)
+
+
 class Class:
     """
     Wrapper for ObjectiveC Class object.
@@ -102,8 +182,8 @@ class Class:
         self.protocols = []
         self.ivars = []
         self.properties = []
-        self.methods = []
         self.name = ''
+        self.methods = MethodList(self.name, [])
         self.super = None
         if class_data is None:
             self.reload()
@@ -159,16 +239,6 @@ class Class:
         """
         return self._class_object.objc_call(sel, *args)
 
-    def get_method(self, name: str):
-        """
-        Get a specific method implementation.
-        :param name: Method name.
-        :return: Method.
-        """
-        for method in self.methods:
-            if method.name == name:
-                return method
-
     def capture_self(self, sync: bool = False):
         """
         Capture the first called `self` from this class.
@@ -209,15 +279,13 @@ class Class:
         """
         Proxy for monitor command.
         """
-        self.symbols_jar.monitor(**kwargs)
+        self.methods.monitor(**kwargs)
 
     def bp(self, callback=None, **kwargs):
         """
         Proxy for bp command.
         """
-        for method in self.methods:
-            kwargs['name'] = f'[{self.name} {method.name}]'
-            method.imp.bp(callback, **kwargs)
+        self.methods.bp(callback, **kwargs)
 
     def iter_supers(self):
         """
@@ -242,18 +310,7 @@ class Class:
             Property(name=prop['name'], attributes=convert_encoded_property_attributes(prop['attributes']))
             for prop in data['properties']
         ]
-        self.methods = [Method.from_data(method, self._client) for method in data['methods']]
-
-    @property
-    def symbols_jar(self) -> 'SymbolsJar':
-        """ Get a SymbolsJar object for quick operations on all methods """
-        from hilda.symbols_jar import SymbolsJar
-        jar = SymbolsJar(self._client)
-
-        for m in self.methods:
-            jar.add(m.imp, f'[{self.name} {m.name}]')
-
-        return jar
+        self.methods = MethodList(self.name, [Method.from_data(method, self._client) for method in data['methods']])
 
     def __dir__(self):
         result = set()

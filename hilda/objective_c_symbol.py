@@ -9,9 +9,8 @@ from pygments.formatters import TerminalTrueColorFormatter
 from pygments.lexers import ObjectiveCLexer
 
 from hilda.exceptions import HildaException
-from hilda.objective_c_class import Class, Method, Property, convert_encoded_property_attributes
+from hilda.objective_c_class import Class, Method, MethodList, Property, convert_encoded_property_attributes
 from hilda.symbol import Symbol
-from hilda.symbols_jar import SymbolsJar
 
 
 class SettingIvarError(HildaException):
@@ -45,7 +44,7 @@ class ObjectiveCSymbol(Symbol):
         symbol = super().create(value, client)
         symbol.ivars = []  # type: List[Ivar]
         symbol.properties = []  # type: List[Property]
-        symbol.methods = []  # type: List[Method]
+        symbol.methods = MethodList('', [])  # type: MethodList
         symbol.class_ = None  # type: Optional[Class]
         symbol.reload()
         return symbol
@@ -56,7 +55,7 @@ class ObjectiveCSymbol(Symbol):
         """
         self.ivars.clear()
         self.properties.clear()
-        self.methods.clear()
+        self.methods = MethodList('', [])
         self.class_ = None
 
         obj_c_code = (self._client._hilda_root / 'objective_c' / 'get_objectivec_symbol_data.m').read_text()
@@ -65,12 +64,12 @@ class ObjectiveCSymbol(Symbol):
 
         self._reload_ivars(data['ivars'])
         self._reload_properties(data['properties'])
-        self.methods = [Method.from_data(method, self._client) for method in data['methods']]
 
         data['name'] = data['class_name']
         data['address'] = data['class_address']
         data['super'] = data['class_super']
         self.class_ = Class(self._client, self._client.symbol(data['class_address']), data)
+        self.methods = MethodList(self.class_.name, [Method.from_data(method, self._client) for method in data['methods']])
 
     def show(self, recursive: bool = False):
         """
@@ -141,7 +140,7 @@ class ObjectiveCSymbol(Symbol):
                 buf += f'@synthesize {prop.name} = {attrs.synthesize};\n'
 
         # Add methods
-        methods = self.methods.copy()
+        methods = list(self.methods)
 
         # Add super methods.
         if recursive:
@@ -157,16 +156,6 @@ class ObjectiveCSymbol(Symbol):
 
         buf += '@end'
         return buf
-
-    @property
-    def symbols_jar(self) -> SymbolsJar:
-        """ Get a SymbolsJar object for quick operations on all methods """
-        jar = SymbolsJar(self._client)
-
-        for m in self.methods:
-            jar.add(m.address, m.name)
-
-        return jar
 
     def __dir__(self):
         result = set()

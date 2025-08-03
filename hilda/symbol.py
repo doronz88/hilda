@@ -1,6 +1,7 @@
 import os
 import struct
 from contextlib import contextmanager
+from functools import cached_property
 from typing import Any, Optional, Tuple
 
 from construct import FormatField
@@ -48,7 +49,7 @@ class Symbol(int):
                      'disass', 'po', 'objc_call']
 
     @classmethod
-    def create(cls, value: int, client, lldb_symbol: Optional[lldb.SBSymbol] = None) -> None:
+    def create(cls, value: int, client, lldb_symbol: Optional[lldb.SBSymbol] = None, lldb_address: Optional[lldb.SBAddress] = None, lldb_type: Optional[int] = None) -> None:
         """
         Create a Symbol object.
         :param value: Symbol address.
@@ -75,14 +76,11 @@ class Symbol(int):
         symbol._file_address = None
 
         # getting more data out from lldb
-        lldb_address = client.target.ResolveLoadAddress(int(symbol) & 0xFFFFFFFFFFFFFFFF)
-        file_address = lldb_address.file_addr
-        type_ = lldb_address.symbol.type
-        filename = lldb_address.module.file.basename
-
-        symbol._file_address = file_address
-        symbol.type_ = type_
-        symbol.filename = filename
+        if lldb_address is None:
+            lldb_address = client.target.ResolveLoadAddress(int(symbol) & 0xFFFFFFFFFFFFFFFF)
+        if lldb_type is None:
+            lldb_type = lldb_address.symbol.type
+        symbol.type_ = lldb_type
         symbol.lldb_address = lldb_address
         symbol.lldb_symbol = lldb_symbol
 
@@ -100,13 +98,17 @@ class Symbol(int):
     def lldb_name(self) -> Optional[str]:
         return self.lldb_symbol.GetName() if self.lldb_symbol is not None else None
 
-    @property
+    @cached_property
     def file_address(self) -> int:
         """
         Get symbol file address (address without ASLR)
         :return: File address
         """
-        return self._file_address
+        return self.lldb_address.file_addr
+
+    @cached_property
+    def filename(self):
+        return self.lldb_address.module.file.basename
 
     @property
     def objc_class(self) -> Class:

@@ -1,13 +1,11 @@
-from pathlib import Path
 import shlex
 import json
 import re
 from tqdm import tqdm
 from tempfile import NamedTemporaryFile
 from typing import Tuple, Optional, Union, Iterator
-from contextlib import suppress
 
-from hilda.exceptions import AddingLldbSymbolError, SymbolAbsentError
+from hilda.exceptions import SymbolAbsentError
 from hilda.lldb_importer import lldb
 from hilda.symbol import HildaSymbolId, Symbol
 
@@ -28,6 +26,7 @@ class SymbolsJar:
         :param hilda.hilda_client.HildaClient hilda: Hilda client
         """
         self._hilda = hilda
+        self._modules = set()
         self._symbols = {}
 
         # There should be only one "global" symbol list instance, and it should be referenced by the HildaClient class.
@@ -38,19 +37,10 @@ class SymbolsJar:
             self._global = hilda.symbols
 
     def __iter__(self) -> Iterator[Symbol]:
-        if self._global is self:
-            for lldb_module in self._hilda.target.modules:
-                for lldb_symbol in lldb_module.symbols:
-                    symbol = self.get(lldb_symbol)
+        self._populate_cache()
 
-                    if symbol is None:
-                        # This should only happen if we do not want to expose certain symbols
-                        continue
-
-                    yield symbol
-        else:
-            for symbol in self._symbols.values():
-                yield symbol
+        for symbol in self._symbols.values():
+            yield symbol
 
     def __len__(self) -> int:
         return sum(1 for _ in self)
@@ -94,25 +84,36 @@ class SymbolsJar:
         :param address_or_name_or_id_or_symbol: Address or name or ID (or the symbol itself)
         :return: `Symbol` if one exists, or `None` otherwise
         """
-        lldb_symbol = self._get_lldb_symbol(address_or_name_or_id_or_symbol)
-        if lldb_symbol is None:
+        symbol = self._get_lldb_symbol(address_or_name_or_id_or_symbol)
+        if symbol is None:
             return None
 
-        name = lldb_symbol.GetName()
-        address = lldb_symbol.GetStartAddress().GetLoadAddress(self._hilda.target)
-
+        lldb_symbol, lldb_address, name, address, type_ = symbol
         sym_id = (name, address)
         if sym_id not in self._symbols and self._global is self:
-            self._hilda.log_debug(f'Found a symbol added outside of the Hilda API {lldb_symbol}')
-            self._symbols[sym_id] = Symbol.create(address, self._hilda, lldb_symbol)
+            symbol = Symbol.create(address, self._hilda, lldb_symbol, lldb_address, type_)
+            self._symbols[sym_id] = symbol
+            return symbol
 
         return self._symbols.get(sym_id)
 
-    def force_refresh(self, image_range=None, filename_expr=''):
+    def _populate_cache(self, module_uuid_filter=None) -> None:
+        if self._global is self:
+            modules = self._hilda.target.modules
+            modules_not_cached = [module for module in modules if module.GetUUIDString() not in self._modules]
+            if module_uuid_filter is not None:
+                modules_not_cached = [module for module in modules if module.GetUUIDString() == module_uuid_filter]
+            if len(modules_not_cached) != 0:
+                for lldb_module in tqdm(modules_not_cached, desc='Populating Hilda symbols cache'):
+                    for lldb_symbol in lldb_module.symbols:
+                        _ = self.get(lldb_symbol)
+                    self._modules.add(lldb_module.GetUUIDString())
+
+    def force_refresh(self, module_range=None, module_filename_filter=''):
         """
         Force a refresh of symbols
-        :param image_range: index range for images to load in the form of [start, end]
-        :param filename_expr: filter only images containing given expression
+        :param module_range: index range for images to load in the form of [start, end]
+        :param module_filename_filter: filter only images containing given expression
         """
         self.log_debug('Force symbols')
 
@@ -123,10 +124,10 @@ class SymbolsJar:
         for i, lldb_module in enumerate(tqdm(self._hilda.target.modules)):
             filename = lldb_module.file.basename
 
-            if filename_expr not in filename:
+            if module_filename_filter not in filename:
                 continue
 
-            if image_range is not None and (i < image_range[0] or i > image_range[1]):
+            if module_range is not None and (i < module_range[0] or i > module_range[1]):
                 continue
 
             for lldb_symbol in lldb_module.symbols:
@@ -178,12 +179,12 @@ class SymbolsJar:
             return Symbol.create(symbol_address, self._hilda, None)
 
         # Add a new global symbol
-        self._add_lldb_symbol(
+        symbol = self._global._add_lldb_symbol(
             symbol_name,
             symbol_address,
             symbol_type if symbol_type is not None else 'code',
             symbol_size if symbol_size is not None else 8)
-        return self.add(self._global[(symbol_name, symbol_address)])
+        return self.add(symbol)
 
     def remove(self, address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> None:
         """
@@ -248,17 +249,17 @@ class SymbolsJar:
 
         lldb_symbols = []
         for lldb_symbol_context in lldb_symbol_context_list:
-            lldb_symbol = self._get_lldb_symbol(lldb_symbol_context.symbol)
-            if lldb_symbol is None:
+            symbol = self._get_lldb_symbol(lldb_symbol_context.symbol)
+            if symbol is None:
                 self._hilda.log_info(f'Ignoring symbol {lldb_symbol_context} (failed to convert)')
                 continue
 
             if address is not None:
-                lldb_symbol_address = lldb_symbol.GetStartAddress().GetLoadAddress(self._hilda.target)
-                if address != lldb_symbol_address:
+                lldb_symbol, lldb_address, symbol_name, symbol_address, symbol_type = symbol
+                if address != symbol_address:
                     continue
 
-            lldb_symbols.append(lldb_symbol)
+            lldb_symbols.append(symbol)
 
         if len(lldb_symbols) == 0:
             return None
@@ -271,12 +272,12 @@ class SymbolsJar:
 
         return lldb_symbols[0]
 
-    def _get_lldb_symbol(self, value: Union[int, str, HildaSymbolId, Symbol, lldb.SBAddress, lldb.SBSymbol]) -> Optional[lldb.SBSymbol]:
+    def _get_lldb_symbol(self, value: Union[int, str, HildaSymbolId, Symbol, lldb.SBAddress, lldb.SBSymbol]) -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
         if isinstance(value, Symbol):
             symbol = value
             return self._get_lldb_symbol(symbol.id)
         elif isinstance(value, int):
-            address = value
+            address = value & 0xFFFFFFFFFFFFFFFF
             lldb_address = self._hilda.target.ResolveLoadAddress(address)
             return self._get_lldb_symbol(lldb_address)
         elif isinstance(value, tuple):  # HildaSymbolId
@@ -310,22 +311,26 @@ class SymbolsJar:
             lldb_symbol = value
 
             # Ignore symbols not having a real name
-            if lldb_symbol.GetName() in ('<redacted>',):
+            symbol_name = lldb_symbol.GetName()
+            if symbol_name in ('<redacted>',):
                 return None
 
             # Ignore symbols not having a real address
-            if lldb_symbol.GetStartAddress().GetLoadAddress(self._hilda.target) == 0xffffffffffffffff:
+            lldb_address = lldb_symbol.GetStartAddress()
+            symbol_address = lldb_address.GetLoadAddress(self._hilda.target)
+            if symbol_address == 0xffffffffffffffff:
                 return None
 
             # Ignore symbols not having a useful type
-            if lldb_symbol.GetType() not in (
+            symbol_type = lldb_symbol.GetType()
+            if symbol_type not in (
                 lldb.eSymbolTypeCode,
                 lldb.eSymbolTypeRuntime,
                 lldb.eSymbolTypeData,
                 lldb.eSymbolTypeObjCMetaClass):
                 return None
 
-            return lldb_symbol
+            return (lldb_symbol, lldb_address, symbol_name, symbol_address, symbol_type)
         else:
             raise TypeError()
 
@@ -357,7 +362,6 @@ class SymbolsJar:
                     f' (symbol already exists {symbols_before})')
 
             result = self._hilda.lldb_handle_command(f'target symbols add {shlex.quote(symbols_file.name)}', capture_output=True)
-            print(result)
 
             # Verify command executed as expected
             if result is None:
@@ -384,7 +388,7 @@ class SymbolsJar:
         :param callback:  callback function to be executed upon an hit
         :param args: optional args for the bp command
         """
-        for k, v in self.items():
+        for v in self.values():
             v.bp(callback, **args)
 
     def monitor(self, **args):
@@ -393,9 +397,9 @@ class SymbolsJar:
         See monitor command for more details.
         :param args: given arguments for monitor command
         """
-        for name, address in self.items():
+        for (name, address), symbol in self.items():
             options = args.copy()
-            if name == '_client':
+            if name is None:
                 continue
             if self._hilda.configs.objc_verbose_monitor:
                 arg_count = name.count(':')

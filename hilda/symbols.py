@@ -10,7 +10,7 @@ from hilda.lldb_importer import lldb
 from hilda.symbol import HildaSymbolId, Symbol
 
 
-class SymbolsJar:
+class SymbolList:
     """
     Manager for `Symbol` objects, each one representing a symbol.
 
@@ -383,7 +383,7 @@ class SymbolsJar:
 
     def bp(self, callback=None, **args):
         """
-        Place a breakpoint on all symbols in current jar.
+        Place a breakpoint on all symbols in current list.
         Look for the bp command for more details.
         :param callback:  callback function to be executed upon an hit
         :param args: optional args for the bp command
@@ -393,7 +393,7 @@ class SymbolsJar:
 
     def monitor(self, **args):
         """
-        Perform monitor for all symbols in current jar.
+        Perform monitor for all symbols in current list.
         See monitor command for more details.
         :param args: given arguments for monitor command
         """
@@ -411,25 +411,25 @@ class SymbolsJar:
 
     # Filters
 
-    def __sub__(self, other: 'SymbolsJar') -> 'SymbolsJar':
-        retval = SymbolsJar(self._hilda)
+    def __sub__(self, other: 'SymbolList') -> 'SymbolList':
+        retval = SymbolList(self._hilda)
         for v in self.values():
             if v not in other:
                 retval.add(v)
         return retval
 
-    def __add__(self, other: 'SymbolsJar') -> 'SymbolsJar':
-        retval = SymbolsJar(self._hilda)
+    def __add__(self, other: 'SymbolList') -> 'SymbolList':
+        retval = SymbolList(self._hilda)
         for v in other.values():
             retval.add(v)
         for v in self.values():
             retval.add(v)
         return retval
 
-    def filter_by_module(self, substring: str) -> 'SymbolsJar':
+    def filter_by_module(self, substring: str) -> 'SymbolList':
         """
         Filter symbols who's module name contains the provided substring
-        :return: reduced symbol jar
+        :return: reduced symbol list
         """
 
         def optimized_iter():
@@ -450,27 +450,27 @@ class SymbolsJar:
                 for symbol in self:
                     yield symbol
 
-        retval = SymbolsJar(self._hilda)
+        retval = SymbolList(self._hilda)
         for symbol in optimized_iter():
             if substring in symbol.filename:
                 retval.add(symbol)
 
         return retval
 
-    def filter_symbol_type(self, lldb_type) -> 'SymbolsJar':
+    def filter_symbol_type(self, lldb_type) -> 'SymbolList':
         """
         Filter by LLDB symbol types (for example: lldb.eSymbolTypeCode,
         lldb.eSymbolTypeData, ...)
         :param lldb_type: symbol type from LLDB consts
         :return: symbols matching the type filter
         """
-        retval = SymbolsJar(self._hilda)
+        retval = SymbolList(self._hilda)
         for v in self.values():
             if v.type_ == lldb_type:
                 retval.add(v)
         return retval
 
-    def filter_code_symbols(self) -> 'SymbolsJar':
+    def filter_code_symbols(self) -> 'SymbolList':
         """
         Filter only code symbols
         :return: symbols with type lldb.eSymbolTypeCode
@@ -496,12 +496,12 @@ class SymbolsJar:
         Filter only symbols with given prefix
         :param exp: prefix
         :param case_sensitive: is case sensitive
-        :return: reduced symbol jar
+        :return: reduced symbol list
         """
         if not case_sensitive:
             exp = exp.lower()
 
-        retval = SymbolsJar(self._hilda)
+        retval = SymbolList(self._hilda)
         for v in self.values():
             name = v.lldb_name
             if not case_sensitive:
@@ -515,12 +515,12 @@ class SymbolsJar:
         Filter only symbols with given prefix
         :param exp: prefix
         :param case_sensitive: is case sensitive
-        :return: reduced symbol jar
+        :return: reduced symbol list
         """
         if not case_sensitive:
             exp = exp.lower()
 
-        retval = SymbolsJar(self._hilda)
+        retval = SymbolList(self._hilda)
         for v in self.values():
             name = v.lldb_name
             if not case_sensitive:
@@ -534,12 +534,12 @@ class SymbolsJar:
         Filter symbols containing a given expression
         :param exp: given expression
         :param case_sensitive: is case sensitive
-        :return: reduced symbol jar
+        :return: reduced symbol list
         """
         if not case_sensitive:
             exp = exp.lower()
 
-        retval = SymbolsJar(self._hilda)
+        retval = SymbolList(self._hilda)
         for v in self.values():
             name = v.lldb_name
             if not case_sensitive:

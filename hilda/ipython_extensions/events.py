@@ -6,7 +6,6 @@ from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from hilda.exceptions import EvaluatingExpressionError, SymbolAbsentError
 from hilda.hilda_client import HildaClient
 from hilda.lldb_importer import lldb
-from hilda.symbols_jar import SymbolsJar
 
 
 class HIEvents:

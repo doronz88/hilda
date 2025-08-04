@@ -1,7 +1,7 @@
 import pytest
 
 from hilda.exceptions import SymbolAbsentError
-from hilda.symbols_jar import SymbolsJar
+from hilda.symbols import SymbolList
 
 
 def test_filter_by_module(hilda_client):
@@ -70,7 +70,7 @@ def test_get_absent_symbol(hilda_client):
         hilda_client.symbols.symbol_that_doesnt_exist
 
 
-def test_add(hilda_client):
+def test_add_symbol(hilda_client):
     libsystem_c_symbols = hilda_client.symbols.filter_by_module('libsystem_c')
     isdigit = libsystem_c_symbols.isdigit
 
@@ -89,22 +89,22 @@ def test_getattr(hilda_client):
     assert hilda_client.symbols.malloc is not None
 
 
-def test_sub(hilda_client):
+def test_sub_symbol_lists(hilda_client):
     libsystem_c_symbols = hilda_client.symbols.filter_by_module('libsystem_c')
-    jar = SymbolsJar(hilda_client)
-    jar.add(libsystem_c_symbols.isdigit)
-    jar2 = libsystem_c_symbols - jar
-    assert libsystem_c_symbols.isdigit not in jar2
+    l1 = SymbolList(hilda_client)
+    l1.add(libsystem_c_symbols.isdigit)
+    l2 = libsystem_c_symbols - l1
+    assert libsystem_c_symbols.isdigit not in l2
 
 
-def test_add(hilda_client):
+def test_add_symbol_lists(hilda_client):
     libsystem_c_symbols = hilda_client.symbols.filter_by_module('libsystem_c')
 
-    jar = SymbolsJar(hilda_client)
-    jar.add(libsystem_c_symbols.isdigit)
-    jar2 = SymbolsJar(hilda_client)
-    jar3 = jar2 + jar
-    assert libsystem_c_symbols.isdigit in jar3
+    l1 = SymbolList(hilda_client)
+    l1.add(libsystem_c_symbols.isdigit)
+    l2 = SymbolList(hilda_client)
+    l3 = l2 + l1
+    assert libsystem_c_symbols.isdigit in l3
 
 
 def test_filter_symbol_type(hilda_client):

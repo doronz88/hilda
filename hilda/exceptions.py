@@ -1,7 +1,7 @@
 __all__ = ['HildaException', 'SymbolAbsentError', 'EvaluatingExpressionError', 'CreatingObjectiveCSymbolError',
            'ConvertingToNsObjectError', 'ConvertingFromNSObjectError', 'DisableJetsamMemoryChecksError',
            'GettingObjectiveCClassError', 'AccessingRegisterError', 'AccessingMemoryError',
-           'BrokenLocalSymbolsJarError', 'AddingLldbSymbolError', 'LLDBError', 'InvalidThreadIndexError']
+           'AddingLldbSymbolError', 'LLDBError', 'InvalidThreadIndexError']
 
 
 class HildaException(Exception):
@@ -56,11 +56,6 @@ class AccessingRegisterError(HildaException):
 
 class AccessingMemoryError(HildaException):
     """ Raise when failing to access memory. """
-    pass
-
-
-class BrokenLocalSymbolsJarError(HildaException):
-    """ Raise when attempt to load an invalid symbols jar pickle """
     pass
 
 

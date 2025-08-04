@@ -40,7 +40,7 @@ from hilda.objective_c_symbol import ObjectiveCSymbol
 from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
-from hilda.symbols_jar import SymbolsJar
+from hilda.symbols import SymbolList
 from hilda.ui.ui_manager import UiManager
 from hilda.watchpoints import WatchpointList
 
@@ -127,7 +127,7 @@ class HildaClient:
         self.debugger = debugger
         self.target = debugger.GetSelectedTarget()
         self.process = self.target.GetProcess()
-        self.symbols = SymbolsJar(self)
+        self.symbols = SymbolList(self)
         self.breakpoints = BreakpointList(self)
         self.watchpoints = WatchpointList(self)
         self.captured_objects = {}
@@ -214,18 +214,18 @@ class HildaClient:
         except HildaException as e:
             raise CreatingObjectiveCSymbolError from e
 
-    def inject(self, filename: str) -> SymbolsJar:
+    def inject(self, filename: str) -> SymbolList:
         """
         Inject a single library into currently running process.
 
         :param filename: library to inject (dylib)
-        :return: SymbolsJar
+        :return: SymbolList
         """
         module = self.target.FindModule(lldb.SBFileSpec(os.path.basename(filename), False))
         if module.file.basename is not None:
             self.log_warning(f'file {filename} has already been loaded')
 
-        injected = SymbolsJar(self)
+        injected = SymbolList(self)
         handle = self.symbols.dlopen(filename, 10)  # RTLD_GLOBAL|RTLD_NOW
 
         if handle == 0:

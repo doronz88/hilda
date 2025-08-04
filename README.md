@@ -407,7 +407,7 @@ p.bp(('symbol_name', 'ModuleName'))
 #### Globalized symbols
 
 Usually you would want/need to use the symbols already mapped into the currently running process. To do so, you can
-access them using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolsJar`, which acts like
+access them using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolList`, which acts like
 `dict` for accessing all exported symbols. For example, the following will generate a call to the exported
 `malloc` function with `20` as its only argument:
 
@@ -434,14 +434,14 @@ symbol should be called (if any).
 ```python
 # find all symbols prefixed as `mem*` AND don't have `cpy`
 # in their name
-jar = p.symbols.startswith('mem') - p.symbols.find('cpy')
+l = p.symbols.filter_startswith('mem') - p.symbols.filter_name_contains('cpy')
 
 # filter only symbols of type "code" (removing data global for example)
-jar = jar.filter_code_symbols()
+l = l.filter_code_symbols()
 
 # monitor every time each one is called, print its `x0` in HEX
 # form and show the backtrace
-jar.monitor(regs={'x0': 'x'}, bt=True)
+l.monitor(regs={'x0': 'x'}, bt=True)
 ```
 
 #### Objective-C Classes
@@ -479,7 +479,7 @@ print(NSDictionary.properties)
 # view class' selectors which are prefixed with 'init'
 print(NSDictionary.methods.filter_startswith('init'))
 
-# you can of course use any of `SymbolsJar` over them, for example:
+# you can of course use any of `SymbolList` over them, for example:
 # this will `po` (print object) all those selectors returned value
 NSDictionary.methods.filter_startswith('init').monitor(retval='po')
 

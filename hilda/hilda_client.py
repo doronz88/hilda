@@ -853,7 +853,7 @@ class HildaClient:
 
         # Configure and start IPython shell
         ipython_config = Config()
-        ipython_config.IPCompleter.use_jedi = True
+        ipython_config.IPCompleter.use_jedi = False
         ipython_config.BaseIPythonApplication.profile = 'hilda'
         ipython_config.InteractiveShellApp.extensions = ['hilda.ipython_extensions.magics',
                                                          'hilda.ipython_extensions.events',

@@ -1,6 +1,7 @@
 import shlex
 import json
 import re
+from itertools import chain
 from tqdm import tqdm
 from tempfile import NamedTemporaryFile
 from typing import Tuple, Optional, Union, Iterator
@@ -28,6 +29,7 @@ class SymbolList:
         self._hilda = hilda
         self._modules = set()
         self._symbols = {}
+        self._symbols_by_name = {}
 
         # There should be only one "global" symbol list instance, and it should be referenced by the HildaClient class.
         # The global symbols list contains (lazily) all symbols (from all modules).
@@ -92,7 +94,7 @@ class SymbolList:
         sym_id = (name, address)
         if sym_id not in self._symbols and self._global is self:
             symbol = Symbol.create(address, self._hilda, lldb_symbol, lldb_address, type_)
-            self._symbols[sym_id] = symbol
+            self._add(sym_id, symbol)
             return symbol
 
         return self._symbols.get(sym_id)
@@ -134,6 +136,16 @@ class SymbolList:
                 # Getting the symbol would insert it if it does not exist
                 _ = self.get(lldb_symbol)
 
+    def _add(self, sym_id: HildaSymbolId, symbol: Symbol) -> None:
+        self._symbols[sym_id] = symbol
+        name, address = sym_id
+        if name is not None and re.match(r'^[a-zA-Z0-9_]+$', name):
+            ids = self._symbols_by_name.get(name)
+            if ids is not None:
+                ids.append(sym_id)
+            else:
+                self._symbols_by_name[name] = [sym_id]
+
     def add(self, value: Union[int, Symbol], symbol_name: Optional[str] = None, symbol_type: Optional[str] = None, symbol_size: Optional[int] = None) -> Symbol:
         """
         Add a symbol.
@@ -148,7 +160,7 @@ class SymbolList:
         # Check if we already created the symbol
         if isinstance(value, Symbol) and (symbol_type, symbol_size) == (None, None) and value.lldb_symbol is not None and (
             symbol_name is None or symbol_name == value.lldb_name):  # TODO: Is it an error to add again, providing the same name?
-            self._symbols[value.id] = value
+            self._add(value.id, value)
             return value
 
         # Adding an existing anonymous symbol. Ignore the fact that this is actually a symbol.
@@ -186,6 +198,16 @@ class SymbolList:
             symbol_size if symbol_size is not None else 8)
         return self.add(symbol)
 
+    def _remove(self, sym_id: HildaSymbolId) -> None:
+        del self._symbols[sym_id]
+        name, address = sym_id
+        if name is not None and re.match(r'^[a-zA-Z0-9_]+$', name):
+            ids = self._symbols_by_name[name]
+            if len(ids) == 1:
+                del ids[sym_id]
+            else:
+                del self._symbols_by_name[name]
+
     def remove(self, address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> None:
         """
         Remove a symbol.
@@ -196,7 +218,7 @@ class SymbolList:
             raise Exception('Cannot remove from the global symbols list')
 
         symbol = self[address_or_name_or_id_or_symbol]
-        del self._symbols[symbol.id]
+        self._remove(symbol.id)
 
     def items(self) -> Iterator[Tuple[HildaSymbolId, Symbol]]:
         """
@@ -229,29 +251,38 @@ class SymbolList:
         if match:
             address = int(match[1], base=0x10)
             return self.add(address)
-        return self[attribute_name]
+        value = self.get(attribute_name)
+        if value is None:
+            raise AttributeError(f"SymbolList object has no attribute '{attribute_name}'")
+        return value
 
-    def _get_lldb_symbol_from_name(self, name: str, address: Optional[int] = None) -> Optional[lldb.SBSymbol]:
+    def __dir__(self):
+        self._populate_cache()
+
+        # Return normal attributes and symbol names
+        return chain(super().__dir__(), self._symbols_by_name.keys())
+
+    def _get_lldb_symbol_from_name(self, name: str, address: Optional[int] = None) -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
         lldb_symbol_context_list = list(self._hilda.target.FindSymbols(name))
 
         for lldb_symbol_context in list(lldb_symbol_context_list):
             # Verify because FindSymbols finds `_Z3foov` when looking for `foo`
             if lldb_symbol_context.symbol.name != name:
                 lldb_symbol_context_list.remove(lldb_symbol_context)
-                self._hilda.log_info(f'Ignoring symbol {lldb_symbol_context.symbol.name} (similar to {name})')
+                self._hilda.log_debug(f'Ignoring symbol {lldb_symbol_context.symbol.name} (similar to {name})')
 
         if address is not None:
             for lldb_symbol_context in list(lldb_symbol_context_list):
                 lldb_symbol_context_address = lldb_symbol_context.symbol.GetStartAddress().GetLoadAddress(self._hilda.target)
                 if lldb_symbol_context_address != address:
                     lldb_symbol_context_list.remove(lldb_symbol_context)
-                    self._hilda.log_info(f'Ignoring symbol {name}@0x{lldb_symbol_context_address:016X} (beacause address is not 0x{address:016X})')
+                    self._hilda.log_debug(f'Ignoring symbol {name}@0x{lldb_symbol_context_address:016X} (beacause address is not 0x{address:016X})')
 
-        lldb_symbols = []
+        symbols = []
         for lldb_symbol_context in lldb_symbol_context_list:
             symbol = self._get_lldb_symbol(lldb_symbol_context.symbol)
             if symbol is None:
-                self._hilda.log_info(f'Ignoring symbol {lldb_symbol_context} (failed to convert)')
+                self._hilda.log_debug(f'Ignoring symbol {lldb_symbol_context} (failed to convert)')
                 continue
 
             if address is not None:
@@ -259,18 +290,17 @@ class SymbolList:
                 if address != symbol_address:
                     continue
 
-            lldb_symbols.append(symbol)
+            symbols.append(symbol)
 
-        if len(lldb_symbols) == 0:
+        if len(symbols) == 0:
             return None
 
-        # TODO: Should we just `raise KeyError((name, address))` instead of picking the first?
         # TODO: Should we really pick the first? Maybe the last? Something else?
         # if len(lldb_symbols) != 1:
         #     # Error out if we found multiple symbols with the same name and same address
         #     raise KeyError((name, address))
 
-        return lldb_symbols[0]
+        return symbols[0]
 
     def _get_lldb_symbol(self, value: Union[int, str, HildaSymbolId, Symbol, lldb.SBAddress, lldb.SBSymbol]) -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
         if isinstance(value, Symbol):

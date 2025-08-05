@@ -19,8 +19,12 @@ def test_iter(hilda_client):
     i = 0
     for symbol in hilda_client.symbols:
         i += 1
-        if i > 10:
-            break
+
+
+def test_inner_symbol_cache(hilda_client):
+    l = list(hilda_client.symbols)
+    names = set(symbol.id[0] for symbol in l if symbol.id[0] is not None)
+    assert names == set(hilda_client.symbols._symbols_by_name.keys())
 
 
 def test_getitem(hilda_client):

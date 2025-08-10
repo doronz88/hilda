@@ -40,7 +40,7 @@ from hilda.objective_c_symbol import ObjectiveCSymbol
 from hilda.registers import Registers
 from hilda.snippets.mach import CFRunLoopServiceMachPort_hooks
 from hilda.symbol import Symbol
-from hilda.symbols_jar import SymbolsJar
+from hilda.symbols import SymbolList
 from hilda.ui.ui_manager import UiManager
 from hilda.watchpoints import WatchpointList
 
@@ -127,7 +127,7 @@ class HildaClient:
         self.debugger = debugger
         self.target = debugger.GetSelectedTarget()
         self.process = self.target.GetProcess()
-        self.symbols = SymbolsJar.create(self)
+        self.symbols = SymbolList(self)
         self.breakpoints = BreakpointList(self)
         self.watchpoints = WatchpointList(self)
         self.captured_objects = {}
@@ -201,7 +201,7 @@ class HildaClient:
         :param address:
         :return: Hilda's symbol object
         """
-        return Symbol.create(address, self)
+        return self.symbols.add(address)
 
     def objc_symbol(self, address: int) -> ObjectiveCSymbol:
         """
@@ -214,18 +214,18 @@ class HildaClient:
         except HildaException as e:
             raise CreatingObjectiveCSymbolError from e
 
-    def inject(self, filename: str) -> SymbolsJar:
+    def inject(self, filename: str) -> SymbolList:
         """
         Inject a single library into currently running process.
 
         :param filename: library to inject (dylib)
-        :return: SymbolsJar
+        :return: SymbolList
         """
         module = self.target.FindModule(lldb.SBFileSpec(os.path.basename(filename), False))
         if module.file.basename is not None:
             self.log_warning(f'file {filename} has already been loaded')
 
-        injected = SymbolsJar.create(self)
+        injected = SymbolList(self)
         handle = self.symbols.dlopen(filename, 10)  # RTLD_GLOBAL|RTLD_NOW
 
         if handle == 0:
@@ -247,33 +247,8 @@ class HildaClient:
                 # ignore unnamed symbols and those which are not: data, code or objc classes
                 continue
 
-            injected[name] = self.symbol(load_addr)
+            injected.add(self.symbol(load_addr), name)
         return injected
-
-    def rebind_symbols(self, image_range=None, filename_expr=''):
-        """
-        Reparse all loaded images symbols
-        :param image_range: index range for images to load in the form of [start, end]
-        :param filename_expr: filter only images containing given expression
-        """
-        self.log_debug('mapping symbols')
-        self._symbols_loaded = False
-
-        for i, module in enumerate(tqdm(self.target.modules)):
-            filename = module.file.basename
-
-            if filename_expr not in filename:
-                continue
-
-            if image_range is not None and (i < image_range[0] or i > image_range[1]):
-                continue
-
-            for symbol in module:
-                with suppress(AddingLldbSymbolError):
-                    self.add_lldb_symbol(symbol)
-
-        globals()['symbols'] = self.symbols
-        self._symbols_loaded = True
 
     @stop_is_needed
     def poke(self, address, buf: bytes):
@@ -594,7 +569,7 @@ class HildaClient:
         """ jump to given symbol """
         self.lldb_handle_command(f'j *{symbol}')
 
-    def lldb_handle_command(self, cmd: str) -> None:
+    def lldb_handle_command(self, cmd: str, capture_output: bool = False) -> Optional[str]:
         """
         Execute an LLDB command
 
@@ -602,8 +577,15 @@ class HildaClient:
             lldb_handle_command('register read')
 
         :param cmd: LLDB command
+        :param capture_output: True if capturing the command output
+        :return: The output if capture was requested, None if not or the command failed
         """
-        self.debugger.HandleCommand(cmd)
+        if capture_output:
+            result = lldb.SBCommandReturnObject()
+            self.debugger.GetCommandInterpreter().HandleCommand(cmd, result)
+            return result.GetOutput() if result.Succeeded() else None
+        else:
+            self.debugger.HandleCommand(cmd)
 
     def objc_get_class(self, name: str, module_name: Optional[str] = None) -> objective_c_class.Class:
         """
@@ -828,36 +810,6 @@ class HildaClient:
         """ Log at info level """
         self.logger.info(message)
 
-    def add_lldb_symbol(self, symbol: lldb.SBSymbol) -> Symbol:
-        """
-        Convert an LLDB symbol into Hilda's symbol object and insert into `symbols` global
-        :param symbol: LLDB symbol
-        :return: converted symbol
-        :raise AddingLldbSymbolError: Hilda failed to convert the LLDB symbol.
-        """
-        load_addr = symbol.addr.GetLoadAddress(self.target)
-        if load_addr == 0xffffffffffffffff:
-            # skip those not having a real address
-            raise AddingLldbSymbolError()
-
-        name = symbol.name
-        type_ = symbol.GetType()
-
-        if name in ('<redacted>',) or (type_ not in (lldb.eSymbolTypeCode,
-                                                     lldb.eSymbolTypeRuntime,
-                                                     lldb.eSymbolTypeData,
-                                                     lldb.eSymbolTypeObjCMetaClass)):
-            # ignore unnamed symbols and those which are not in a really used type
-            raise AddingLldbSymbolError()
-
-        value = self.symbol(load_addr)
-
-        # add it into symbols global
-        self.symbols[name] = value
-        self.symbols[f'{name}{{{value.filename}}}'] = value
-
-        return value
-
     def wait_for_module(self, expression: str) -> None:
         """ Wait for a module to be loaded using `dlopen` by matching given expression """
         self.log_info(f'Waiting for module name containing "{expression}" to be loaded')
@@ -901,7 +853,7 @@ class HildaClient:
 
         # Configure and start IPython shell
         ipython_config = Config()
-        ipython_config.IPCompleter.use_jedi = True
+        ipython_config.IPCompleter.use_jedi = False
         ipython_config.BaseIPythonApplication.profile = 'hilda'
         ipython_config.InteractiveShellApp.extensions = ['hilda.ipython_extensions.magics',
                                                          'hilda.ipython_extensions.events',

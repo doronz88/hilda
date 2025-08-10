@@ -227,6 +227,7 @@ class BreakpointList:
         if it does not exist.
 
         :param id_or_name_or_bp: Breakpoint's ID or name (or the breakpoint itself)
+        :return: `HildaBreakpoint` if one exists, or `None` otherwise
         """
 
         if isinstance(id_or_name_or_bp, int):
@@ -366,7 +367,7 @@ class BreakpointList:
             bp = bp_loc.GetBreakpoint()
             symbol = hilda.symbol(hilda.frame.addr.GetLoadAddress(hilda.target))
             thread = hilda.thread
-            printed_name = name if name is not None else str(symbol.lldb_symbol)
+            printed_name = name if name is not None else str(symbol.lldb_address)
 
             def format_value(fmt: Union[str, Callable], value: Symbol) -> str:
                 nonlocal hilda

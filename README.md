@@ -70,7 +70,7 @@ You can may start a Hilda interactive shell by invoking any of the subcommand:
 - `hilda attach [-p pid] [-n process-name]`
   - Attach to an already running process on current host (specified by either `pid` or `process-name`)
 - `hilda remote HOSTNAME PORT`
-  - Attach to an already running process on a target host (sepcified by `HOSTNAME PORT`)
+  - Attach to an already running process on a target host (specified by `HOSTNAME PORT`)
 - `hilda bare`
   - Only start an LLDB shell and load Hilda as a plugin.
   - Please refer to the following help page if you require help on the command available to you within the lldb shell:
@@ -86,8 +86,8 @@ You can may start a Hilda interactive shell by invoking any of the subcommand:
     ... and attaching to a local process:
 
     ```shell
-    process attach -n proccess_name
-    process attach -p proccess_pid
+    process attach -n process_name
+    process attach -p process_pid
     ```
 
     When you are ready, just execute `hilda` to move to Hilda's iPython shell.
@@ -105,7 +105,7 @@ Basic flow control:
 - `step_into` - Step into current instruction
 - `step_over` - Step over current instruction.
 - `run_for` - Run the process for given interval
-- `force_return` - Prematurely return from a stack frame, short-circuiting exection of inner
+- `force_return` - Prematurely return from a stack frame, short-circuiting execution of inner
   frames and optionally yielding a specified value.
 - `jump` - Jump to given symbol
 - `wait_for_module` - Wait for a module to be loaded (`dlopen`) by checking if given expression is contained within its filename
@@ -117,7 +117,7 @@ Breakpoints:
 - `breakpoints.show` - Show existing breakpoints
 - `breakpoints.remove` - Remove a single breakpoint
 - `breakpoints.clear` - Remove all breakpoints
-- `monitor` or `breakpoints.add_monitor` - Creates a breakpoint whose callback implements the requested features (print register vallues, execute commands, mock return value, etc.)
+- `monitor` or `breakpoints.add_monitor` - Creates a breakpoint whose callback implements the requested features (print register values, execute commands, mock return value, etc.)
 
 Basic read/write:
 
@@ -153,7 +153,6 @@ Hilda symbols:
 
 - `symbol` - Get symbol object for a given address
 - `objc_symbol` - Get objc symbol wrapper for given address
-- `rebind_symbols` - Reparse all loaded images symbols
 - `file_symbol` - Calculate symbol address without ASLR
 - `save` - Save loaded symbols map (for loading later using the load() command)
 - `load` - Load an existing symbols map (previously saved by the save() command)
@@ -234,7 +233,7 @@ ui.show()
 ```
 
 By default `step_into` and `step_over` will show this UI automatically.
-You may disable this behaviour by executing:
+You may disable this behavior by executing:
 
 ```python
 ui.active = False
@@ -358,7 +357,7 @@ s[0] = 1
 s[0] = p.symbol(0x11223344)()  # calling symbols also returns symbols 
 
 # attempt to resolve symbol's name
-print(p.symbol(0x11223344).lldb_symbol)
+print(p.symbol(0x11223344).lldb_address)
 
 # monitor each time a symbol is called into console and print its backtrace (`bt` option)
 # this will create a scripted breakpoint which prints your desired data and continue
@@ -408,8 +407,8 @@ p.bp(('symbol_name', 'ModuleName'))
 #### Globalized symbols
 
 Usually you would want/need to use the symbols already mapped into the currently running process. To do so, you can
-access them using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolsJar`, which is a wrapper
-to `dict` for accessing all exported symbols. For example, the following will generate a call to the exported
+access them using `symbols.<symbol-name>`. The `symbols` global object is of type `SymbolList`, which acts like
+`dict` for accessing all exported symbols. For example, the following will generate a call to the exported
 `malloc` function with `20` as its only argument:
 
 ```python
@@ -432,22 +431,17 @@ x = malloc(20)
 Sometimes you don't really know where to start your research. All you have is just theories of how your desired exported
 symbol should be called (if any).
 
-For that reason alone, we have the `rebind_symbols()`
-command - to help you find the symbol you are looking for.
-
 ```python
-p.rebind_symbols()  # this might take some time
-
 # find all symbols prefixed as `mem*` AND don't have `cpy`
 # in their name
-jar = p.symbols.startswith('mem') - p.symbols.find('cpy')
+l = p.symbols.filter_startswith('mem') - p.symbols.filter_name_contains('cpy')
 
 # filter only symbols of type "code" (removing data global for example)
-jar = jar.code()
+l = l.filter_code_symbols()
 
 # monitor every time each one is called, print its `x0` in HEX
 # form and show the backtrace
-jar.monitor(regs={'x0': 'x'}, bt=True)
+l.monitor(regs={'x0': 'x'}, bt=True)
 ```
 
 #### Objective-C Classes
@@ -479,21 +473,21 @@ print(NSDictionary.ivars)
 # show the class' methods
 print(NSDictionary.methods)
 
-# show the class' proprties
+# show the class' properties
 print(NSDictionary.properties)
 
 # view class' selectors which are prefixed with 'init'
-print(NSDictionary.symbols_jar.startswith('-[NSDictionary init'))
+print(NSDictionary.methods.filter_startswith('init'))
 
-# you can of course use any of `SymbolsJar` over them, for example:
+# you can of course use any of `SymbolList` over them, for example:
 # this will `po` (print object) all those selectors returned value
-NSDictionary.symbols_jar.startswith('-[NSDictionary init').monitior(retval='po')
+NSDictionary.methods.filter_startswith('init').monitor(retval='po')
 
 # monitor each time any selector in NSDictionary is called
 NSDictionary.monitor()
 
 # `force_return` for some specific selector with a hard-coded value (4)
-NSDictionary.get_method('valueForKey:').address.monitor(force_return=4)
+NSDictionary.methods.get('valueForKey:').address.monitor(force_return=4)
 
 # capture the `self` object at the first hit of any selector
 # `True` for busy-wait for object to be captured
@@ -578,7 +572,7 @@ They all use the following concept to use:
 ```python
 from hilda.snippets import snippet_name
 
-snippet_name.do_domething()  
+snippet_name.do_something()
 ```
 
 For example, XPC sniffing can be done using:

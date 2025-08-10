@@ -1,7 +1,8 @@
 import os
 import struct
 from contextlib import contextmanager
-from typing import Any, Optional
+from functools import cached_property
+from typing import Any, Optional, Tuple
 
 from construct import FormatField
 
@@ -25,16 +26,35 @@ class SymbolFormatField(FormatField):
         return self._client.symbol(FormatField._parse(self, stream, context, path))
 
 
+"""
+A value identifying a `HildaSymbol`.
+
+`HildaSymbol`s are either regular (i.e., named) symbols or anonymous symbols.
+
+Regular symbols are uniquely identified by a `HildaSymbolId` (i.e., no two
+instances of `HildaSymbol` have the same ID).
+Note that several regular symbols may have the same address (with different names).
+
+Anonymous symbols are not uniquely identified by a `HildaSymbolId`.
+"""
+HildaSymbolId = Tuple[Optional[str], int]
+
+
 class Symbol(int):
+    """
+    Hilda's class representing a symbol (not necessarily an LLDB symbol).
+    """
+
     PROXY_METHODS = ['peek', 'poke', 'peek_str', 'monitor', 'bp',
                      'disass', 'po', 'objc_call']
 
     @classmethod
-    def create(cls, value: int, client):
+    def create(cls, value: int, client, lldb_symbol: Optional[lldb.SBSymbol] = None, lldb_address: Optional[lldb.SBAddress] = None, lldb_type: Optional[int] = None) -> None:
         """
         Create a Symbol object.
         :param value: Symbol address.
         :param hilda.hilda_client.HildaClient client: Hilda client.
+        :param lldb.SBSymbol lldb_symbol: LLDB symbol.
         :return: Symbol object.
         :rtype: Symbol
         """
@@ -56,14 +76,12 @@ class Symbol(int):
         symbol._file_address = None
 
         # getting more data out from lldb
-        lldb_symbol = client.target.ResolveLoadAddress(int(symbol) & 0xFFFFFFFFFFFFFFFF)
-        file_address = lldb_symbol.file_addr
-        type_ = lldb_symbol.symbol.type
-        filename = lldb_symbol.module.file.basename
-
-        symbol._file_address = file_address
-        symbol.type_ = type_
-        symbol.filename = filename
+        if lldb_address is None:
+            lldb_address = client.target.ResolveLoadAddress(int(symbol) & 0xFFFFFFFFFFFFFFFF)
+        if lldb_type is None:
+            lldb_type = lldb_address.symbol.type
+        symbol.type_ = lldb_type
+        symbol.lldb_address = lldb_address
         symbol.lldb_symbol = lldb_symbol
 
         for method_name in Symbol.PROXY_METHODS:
@@ -73,12 +91,24 @@ class Symbol(int):
         return symbol
 
     @property
+    def id(self) -> HildaSymbolId:
+        return (self.lldb_name, int(self))
+
+    @property
+    def lldb_name(self) -> Optional[str]:
+        return self.lldb_symbol.GetName() if self.lldb_symbol is not None else None
+
+    @cached_property
     def file_address(self) -> int:
         """
         Get symbol file address (address without ASLR)
         :return: File address
         """
-        return self._file_address
+        return self.lldb_address.file_addr
+
+    @cached_property
+    def filename(self):
+        return self.lldb_address.module.file.basename
 
     @property
     def objc_class(self) -> Class:
@@ -249,7 +279,12 @@ class Symbol(int):
         self._client.poke(self + item * self.item_size, value)
 
     def __repr__(self):
-        return f'<{type(self).__name__}: {hex(self)}>'
+        address = int(self)
+        name = self.lldb_name
+        if name is not None:
+            return f'Symbol({name}, 0x{address:016X})'
+        else:
+            return f'AnonymousSymbol(0x{address:016X})'
 
     def __str__(self):
         return hex(self)

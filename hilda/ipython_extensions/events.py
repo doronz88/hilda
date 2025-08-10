@@ -6,7 +6,6 @@ from IPython.terminal.interactiveshell import TerminalInteractiveShell
 from hilda.exceptions import EvaluatingExpressionError, SymbolAbsentError
 from hilda.hilda_client import HildaClient
 from hilda.lldb_importer import lldb
-from hilda.symbols_jar import SymbolsJar
 
 
 class HIEvents:
@@ -30,22 +29,19 @@ class HIEvents:
                 # That are undefined
                 continue
 
-            if not hasattr(SymbolsJar, node.id):
-                # ignore SymbolsJar properties
-                try:
-                    symbol = getattr(self.hilda_client.symbols, node.id)
-                except SymbolAbsentError:
-                    pass
-                else:
-                    try:
-                        self.hilda_client._add_global(
-                            node.id,
-                            symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.hilda_client.objc_get_class(
-                                node.id)
-                        )
-                    except EvaluatingExpressionError:
-                        self.hilda_client.log_warning(
-                            f'Process is running. Pause execution in order to resolve "{node.id}"')
+            symbol = self.hilda_client.symbols.get(node.id)
+            if symbol is None:
+                continue
+
+            try:
+                self.hilda_client._add_global(
+                    node.id,
+                    symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.hilda_client.objc_get_class(
+                        node.id)
+                )
+            except EvaluatingExpressionError:
+                self.hilda_client.log_warning(
+                    f'Process is running. Pause execution in order to resolve "{node.id}"')
 
 
 def load_ipython_extension(ip: TerminalInteractiveShell):

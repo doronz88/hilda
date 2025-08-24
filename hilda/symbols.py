@@ -253,7 +253,7 @@ class SymbolList:
             return self.add(address)
         value = self.get(attribute_name)
         if value is None:
-            raise AttributeError(f"SymbolList object has no attribute '{attribute_name}'")
+            raise SymbolAbsentError(f"SymbolList object has no attribute '{attribute_name}'")
         return value
 
     def __dir__(self):

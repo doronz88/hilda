@@ -49,7 +49,8 @@ class Symbol(int):
                      'disass', 'po', 'objc_call']
 
     @classmethod
-    def create(cls, value: int, client, lldb_symbol: Optional[lldb.SBSymbol] = None, lldb_address: Optional[lldb.SBAddress] = None, lldb_type: Optional[int] = None) -> None:
+    def create(cls, value: int, client, lldb_symbol: Optional[lldb.SBSymbol] = None,
+               lldb_address: Optional[lldb.SBAddress] = None, lldb_type: Optional[int] = None) -> None:
         """
         Create a Symbol object.
         :param value: Symbol address.

@@ -93,15 +93,15 @@ class NanoV2Arena:
     def __init__(self, arena_base_addr):
         self.nanov2_arena_struct = Struct(
             # Note that this only parses 1 CPU memblock (1MB). Modify it to be 64.
-            *[\
-                f"blocks_{idx}" / Array(self.blocks_per_size[idx], \
-                                        Struct('content' / \
-                                               Array(self.slots_per_size[idx], \
-                                                     Struct('Q' / Bytes(self.size_per_slot[idx]) \
-                                                            )\
-                                                     )\
-                                               ))\
-                for idx in range(len(self.blocks_per_size))\
+            *[
+                f"blocks_{idx}" / Array(self.blocks_per_size[idx],
+                                        Struct('content' /
+                                               Array(self.slots_per_size[idx],
+                                                     Struct('Q' / Bytes(self.size_per_slot[idx])
+                                                            )
+                                                     )
+                                               ))
+                for idx in range(len(self.blocks_per_size))
             ]
         )
         self.arena_struct = self.nanov2_arena_struct.parse_stream(arena_base_addr)

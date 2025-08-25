@@ -3,7 +3,7 @@ import time
 from collections import UserList, namedtuple
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Iterator, Optional
+from typing import Any, Optional
 
 from objc_types_decoder.decode import decode as decode_type
 from objc_types_decoder.decode import decode_with_tail

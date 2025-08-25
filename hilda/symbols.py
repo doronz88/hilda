@@ -1,10 +1,11 @@
-import shlex
 import json
 import re
+import shlex
 from itertools import chain
-from tqdm import tqdm
 from tempfile import NamedTemporaryFile
-from typing import Tuple, Optional, Union, Iterator
+from typing import Iterator, Optional, Tuple, Union
+
+from tqdm import tqdm
 
 from hilda.exceptions import SymbolAbsentError
 from hilda.lldb_importer import lldb
@@ -47,10 +48,12 @@ class SymbolList:
     def __len__(self) -> int:
         return sum(1 for _ in self)
 
-    def __contains__(self, address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> bool:
+    def __contains__(self,
+                     address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> bool:
         return self.get(address_or_name_or_id_or_symbol) is not None
 
-    def __getitem__(self, address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> Symbol:
+    def __getitem__(self,
+                    address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> Symbol:
         """
         Get a symbol by address or name or ID (or the symbol itself, though it usually makes little sense)
 
@@ -62,7 +65,8 @@ class SymbolList:
             # raise KeyError(address_or_name_or_id_or_symbol)
         return symbol
 
-    def __delitem__(self, address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> None:
+    def __delitem__(self,
+                    address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> None:
         """
         Remove a symbol (unless this is the global symbol list - see remove())
 
@@ -79,7 +83,8 @@ class SymbolList:
     def __str__(self) -> str:
         return repr(self)
 
-    def get(self, address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> Optional[Symbol]:
+    def get(self, address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) \
+            -> Optional[Symbol]:
         """
         Get a symbol by address or name or ID (or the symbol itself, though it usually makes little sense)
 
@@ -146,7 +151,8 @@ class SymbolList:
             else:
                 self._symbols_by_name[name] = [sym_id]
 
-    def add(self, value: Union[int, Symbol], symbol_name: Optional[str] = None, symbol_type: Optional[str] = None, symbol_size: Optional[int] = None) -> Symbol:
+    def add(self, value: Union[int, Symbol], symbol_name: Optional[str] = None, symbol_type: Optional[str] = None,
+            symbol_size: Optional[int] = None) -> Symbol:
         """
         Add a symbol.
         Returns existing symbol if a matching regular (i.e., non-anonymous) symbol exists.
@@ -158,8 +164,12 @@ class SymbolList:
         :return: The symbol
         """
         # Check if we already created the symbol
-        if isinstance(value, Symbol) and (symbol_type, symbol_size) == (None, None) and value.lldb_symbol is not None and (
-            symbol_name is None or symbol_name == value.lldb_name):  # TODO: Is it an error to add again, providing the same name?
+        if (isinstance(value, Symbol) and
+                (symbol_type, symbol_size) == (None, None) and
+                value.lldb_symbol is not None and
+
+                # TODO: Is it an error to add again, providing the same name?
+                (symbol_name is None or symbol_name == value.lldb_name)):
             self._add(value.id, value)
             return value
 
@@ -179,7 +189,8 @@ class SymbolList:
 
         # Check if we can get a global symbol
         symbol_address = value
-        global_symbol = self._global.get(symbol_address) if symbol_name is None else self._global.get((symbol_name, symbol_address))
+        global_symbol = self._global.get(symbol_address) if symbol_name is None else (
+            self._global.get((symbol_name, symbol_address)))
         if global_symbol is not None:
             if (symbol_type, symbol_size) != (None, None):
                 raise ValueError()
@@ -204,7 +215,7 @@ class SymbolList:
         if name is not None and re.match(r'^[a-zA-Z0-9_]+$', name):
             ids = self._symbols_by_name[name]
             if len(ids) == 1:
-                del ids[sym_id]
+                ids.remove(sym_id)
             else:
                 del self._symbols_by_name[name]
 
@@ -253,7 +264,7 @@ class SymbolList:
             return self.add(address)
         value = self.get(attribute_name)
         if value is None:
-            raise AttributeError(f"SymbolList object has no attribute '{attribute_name}'")
+            raise SymbolAbsentError(f"SymbolList object has no attribute '{attribute_name}'")
         return value
 
     def __dir__(self):
@@ -262,7 +273,8 @@ class SymbolList:
         # Return normal attributes and symbol names
         return chain(super().__dir__(), self._symbols_by_name.keys())
 
-    def _get_lldb_symbol_from_name(self, name: str, address: Optional[int] = None) -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
+    def _get_lldb_symbol_from_name(self, name: str, address: Optional[int] = None) \
+            -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
         lldb_symbol_context_list = list(self._hilda.target.FindSymbols(name))
 
         for lldb_symbol_context in list(lldb_symbol_context_list):
@@ -273,10 +285,12 @@ class SymbolList:
 
         if address is not None:
             for lldb_symbol_context in list(lldb_symbol_context_list):
-                lldb_symbol_context_address = lldb_symbol_context.symbol.GetStartAddress().GetLoadAddress(self._hilda.target)
+                lldb_symbol_context_address = lldb_symbol_context.symbol.GetStartAddress().GetLoadAddress(
+                    self._hilda.target)
                 if lldb_symbol_context_address != address:
                     lldb_symbol_context_list.remove(lldb_symbol_context)
-                    self._hilda.log_debug(f'Ignoring symbol {name}@0x{lldb_symbol_context_address:016X} (beacause address is not 0x{address:016X})')
+                    self._hilda.log_debug(f'Ignoring symbol {name}@0x{lldb_symbol_context_address:016X} '
+                                          f'(beacause address is not 0x{address:016X})')
 
         symbols = []
         for lldb_symbol_context in lldb_symbol_context_list:
@@ -302,7 +316,8 @@ class SymbolList:
 
         return symbols[0]
 
-    def _get_lldb_symbol(self, value: Union[int, str, HildaSymbolId, Symbol, lldb.SBAddress, lldb.SBSymbol]) -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
+    def _get_lldb_symbol(self, value: Union[int, str, HildaSymbolId, Symbol, lldb.SBAddress, lldb.SBSymbol]) \
+            -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
         if isinstance(value, Symbol):
             symbol = value
             return self._get_lldb_symbol(symbol.id)
@@ -328,7 +343,8 @@ class SymbolList:
             return self._get_lldb_symbol_from_name(name)
         elif isinstance(value, lldb.SBAddress):
             lldb_address = value
-            lldb_symbol_context = self._hilda.target.ResolveSymbolContextForAddress(lldb_address, lldb.eSymbolContextEverything)
+            lldb_symbol_context = self._hilda.target.ResolveSymbolContextForAddress(lldb_address,
+                                                                                    lldb.eSymbolContextEverything)
             lldb_symbol = lldb_symbol_context.symbol
 
             address = lldb_address.GetLoadAddress(self._hilda.target)
@@ -353,11 +369,10 @@ class SymbolList:
 
             # Ignore symbols not having a useful type
             symbol_type = lldb_symbol.GetType()
-            if symbol_type not in (
-                lldb.eSymbolTypeCode,
-                lldb.eSymbolTypeRuntime,
-                lldb.eSymbolTypeData,
-                lldb.eSymbolTypeObjCMetaClass):
+            if symbol_type not in (lldb.eSymbolTypeCode,
+                                   lldb.eSymbolTypeRuntime,
+                                   lldb.eSymbolTypeData,
+                                   lldb.eSymbolTypeObjCMetaClass):
                 return None
 
             return (lldb_symbol, lldb_address, symbol_name, symbol_address, symbol_type)
@@ -391,7 +406,8 @@ class SymbolList:
                     f'Failed to add symbol {symbol_name} to {lldb_module.file}'
                     f' (symbol already exists {symbols_before})')
 
-            result = self._hilda.lldb_handle_command(f'target symbols add {shlex.quote(symbols_file.name)}', capture_output=True)
+            result = self._hilda.lldb_handle_command(f'target symbols add {shlex.quote(symbols_file.name)}',
+                                                     capture_output=True)
 
             # Verify command executed as expected
             if result is None:

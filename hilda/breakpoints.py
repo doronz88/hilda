@@ -157,7 +157,7 @@ class HildaBreakpoint:
         # A single breakpoint may be related to several locations (addresses)
         locations = self.locations
         if len(locations) == 0:
-            result += f'\tNo locations\n'
+            result += '\tNo locations\n'
         for location in self.locations:
             result += f'\tLocation {location}\n'
 
@@ -363,14 +363,13 @@ class BreakpointList:
             :param frame: LLDB frame
             :param bp_loc: LLDB breakpoint location
             """
-            nonlocal regs, expr, retval, stop, bt, cmd, force_return, name
+            nonlocal name
             bp = bp_loc.GetBreakpoint()
             symbol = hilda.symbol(hilda.frame.addr.GetLoadAddress(hilda.target))
             thread = hilda.thread
             printed_name = name if name is not None else str(symbol.lldb_address)
 
             def format_value(fmt: Union[str, Callable], value: Symbol) -> str:
-                nonlocal hilda
                 if callable(fmt):
                     return fmt(hilda, value)
                 formatters = {

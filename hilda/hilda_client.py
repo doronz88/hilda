@@ -10,7 +10,7 @@ import sys
 import time
 import typing
 from collections import namedtuple
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import cached_property, wraps
@@ -30,10 +30,9 @@ from traitlets.config import Config
 from hilda import objective_c_class
 from hilda.breakpoints import BreakpointList, HildaBreakpoint, WhereType
 from hilda.common import CfSerializable, selection_prompt
-from hilda.exceptions import AccessingMemoryError, AccessingRegisterError, AddingLldbSymbolError, \
-    ConvertingFromNSObjectError, ConvertingToNsObjectError, CreatingObjectiveCSymbolError, \
-    DisableJetsamMemoryChecksError, EvaluatingExpressionError, HildaException, InvalidThreadIndexError, \
-    SymbolAbsentError
+from hilda.exceptions import AccessingMemoryError, AccessingRegisterError, ConvertingFromNSObjectError, \
+    ConvertingToNsObjectError, CreatingObjectiveCSymbolError, DisableJetsamMemoryChecksError, \
+    EvaluatingExpressionError, HildaException, InvalidThreadIndexError, SymbolAbsentError
 from hilda.ipython_extensions.keybindings import get_keybindings
 from hilda.lldb_importer import lldb
 from hilda.objective_c_symbol import ObjectiveCSymbol

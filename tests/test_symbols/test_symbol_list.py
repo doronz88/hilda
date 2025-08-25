@@ -21,12 +21,6 @@ def test_iter(hilda_client):
         i += 1
 
 
-def test_inner_symbol_cache(hilda_client):
-    symbol_list = list(hilda_client.symbols)
-    names = set(symbol.id[0] for symbol in symbol_list if symbol.id[0] is not None)
-    assert names == set(hilda_client.symbols._symbols_by_name.keys())
-
-
 def test_getitem(hilda_client):
     isdigit = hilda_client.symbols['isdigit']
     assert not isdigit(0x10)

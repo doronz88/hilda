@@ -215,7 +215,7 @@ class SymbolList:
         if name is not None and re.match(r'^[a-zA-Z0-9_]+$', name):
             ids = self._symbols_by_name[name]
             if len(ids) == 1:
-                del ids[sym_id]
+                ids.remove(sym_id)
             else:
                 del self._symbols_by_name[name]
 

@@ -296,7 +296,7 @@ class SymbolList:
         for lldb_symbol_context in lldb_symbol_context_list:
             symbol = self._get_lldb_symbol(lldb_symbol_context.symbol)
             if symbol is None:
-                self._hilda.log_debug(f'Ignoring symbol {lldb_symbol_context} (failed to convert)')
+                # Ignoring symbol - failed to convert
                 continue
 
             if address is not None:

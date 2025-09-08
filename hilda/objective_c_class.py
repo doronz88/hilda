@@ -3,6 +3,7 @@ import time
 from collections import UserList, namedtuple
 from dataclasses import dataclass, field
 from functools import partial
+from pathlib import Path
 from typing import Any, Optional
 
 from objc_types_decoder.decode import decode as decode_type
@@ -295,6 +296,11 @@ class Class:
         while sup is not None:
             yield sup
             sup = sup.super
+
+    @property
+    def bundle_path(self) -> Path:
+        return Path(self._client.symbols.objc_getClass('NSBundle')
+                    .objc_call('bundleForClass:', self._class_object).objc_call('bundlePath').py())
 
     def _load_class_data(self, data: dict):
         self._class_object = self._client.symbol(data['address'])

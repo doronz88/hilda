@@ -6,7 +6,9 @@ from hilda.snippets.macho.apple_version import version_t
 from hilda.symbol import SymbolFormatField
 
 # See: https://opensource.apple.com/source/xnu/xnu-7195.81.3/EXTERNAL_HEADERS/mach-o/loader.h
+# And: https://github.com/blacktop/go-macho/blob/master/types/commands.go
 LC_REQ_DYLD = 0x80000000
+LC_SEP = 0x8000000
 
 LOAD_COMMAND_TYPE = Enum(Int32ul,
                          LC_SEGMENT=0x1,
@@ -62,7 +64,12 @@ LOAD_COMMAND_TYPE = Enum(Int32ul,
                          LC_BUILD_VERSION=0x32,
                          LC_DYLD_EXPORTS_TRIE=(0x33 | LC_REQ_DYLD),
                          LC_DYLD_CHAINED_FIXUPS=(0x34 | LC_REQ_DYLD),
-                         LC_FILESET_ENTRY=(0x35 | LC_REQ_DYLD)
+                         LC_FILESET_ENTRY=(0x35 | LC_REQ_DYLD),
+                         LC_ATOM_INFO=0x36,
+                         LC_FUNCTION_VARIANTS=0x37,
+                         LC_FUNCTION_VARIANT_FIXUPS=0x38,
+                         LC_TARGET_TRIPLE=0x39,
+                         LC_SEP_CACHE_SLIDE=(0x1 | LC_SEP)
                          )
 
 

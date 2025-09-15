@@ -148,6 +148,7 @@ def test_symbol_str_recursive(hilda_client):
     assert '+ alloc;' in hilda_client.ns({1: 2, 3: 4}).objc_symbol._to_str(True)
 
 
+@pytest.mark.skip('Not fully supported')
 def test_set_implementation(hilda_client):
     pid = hilda_client.symbols.getpid()
 

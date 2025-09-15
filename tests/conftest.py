@@ -3,7 +3,7 @@ import pytest
 from hilda.hilda_client import HildaClient
 from hilda.launch_lldb import create_hilda_client_using_attach_by_name
 
-PROCESS = 'awdd'
+PROCESS = 'remoted'
 
 
 @pytest.fixture(scope='function')

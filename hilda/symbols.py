@@ -277,12 +277,6 @@ class SymbolList:
             -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
         lldb_symbol_context_list = list(self._hilda.target.FindSymbols(name))
 
-        for lldb_symbol_context in list(lldb_symbol_context_list):
-            # Verify because FindSymbols finds `_Z3foov` when looking for `foo`
-            if lldb_symbol_context.symbol.name != name:
-                lldb_symbol_context_list.remove(lldb_symbol_context)
-                self._hilda.log_debug(f'Ignoring symbol {lldb_symbol_context.symbol.name} (similar to {name})')
-
         if address is not None:
             for lldb_symbol_context in list(lldb_symbol_context_list):
                 lldb_symbol_context_address = lldb_symbol_context.symbol.GetStartAddress().GetLoadAddress(

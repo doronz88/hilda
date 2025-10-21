@@ -51,6 +51,9 @@ class HildaWatchpoint:
     @callback.setter
     def callback(self, callback: Optional[Callable]) -> None:
         self._callback = callback
+        # TODO: Figure out a way to add set this callback programmatically
+        self._hilda.lldb_handle_command(f'watchpoint command add -F '
+                                        f'lldb.hilda_client.watchpoints._dispatch_watchpoint_callback {self.id}')
 
     @property
     def condition(self) -> Optional[str]:
@@ -256,10 +259,11 @@ class WatchpointList:
         """
         return (wp for wp in self)
 
-    def _dispatch_watchpoint_callback(self, watchpoint_id: int, _, frame) -> None:
+    def _dispatch_watchpoint_callback(self, frame, wp, internal_dict) -> None:
         """
         Route the watchpoint callback the specific watchpoint callback.
         """
+        watchpoint_id = wp.GetID()
         self._hilda._bp_frame = frame
         try:
             callback = self[watchpoint_id].callback

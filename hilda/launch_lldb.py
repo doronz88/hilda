@@ -61,14 +61,6 @@ class LLDBListenerThread(Thread, ABC):
                 sys.stderr.write(stderr)
             stderr = self.process.GetSTDERR(1024)
 
-    def _process_potential_watchpoint_event(self) -> None:
-        stopped_threads = self._get_stopped_threads(lldb.eStopReasonWatchpoint)
-        for thread in stopped_threads:
-            watchpoint_id = thread.GetStopReasonDataAtIndex(0)
-            frame = thread.GetFrameAtIndex(0)
-            if lldb.hilda_client is not None:
-                lldb.hilda_client.watchpoints._dispatch_watchpoint_callback(watchpoint_id, thread, frame)
-
     def _get_stopped_threads(self, reason: Optional[int] = None) -> list[lldb.SBThread]:
         if reason is None:
             stop_reasons = [
@@ -115,7 +107,6 @@ class LLDBListenerThread(Thread, ABC):
             elif state == lldb.eStateStopped and last_state == lldb.eStateRunning:
                 logger.debug('Process Stopped')
                 self._set_selected_thread_to_stopped_thread()
-                self._process_potential_watchpoint_event()
 
             last_state = state
 

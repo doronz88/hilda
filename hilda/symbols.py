@@ -447,7 +447,7 @@ class SymbolList:
                     arg_count = min(6, arg_count)
                     options['expr'] = {f'$arg{i + 3}': 'po' for i in range(arg_count)}
             name = options.get('name', name)
-            address.monitor(name=name, **options)
+            self._hilda.symbol(address).monitor(name=name, **options)
 
     # Filters
 

@@ -24,9 +24,9 @@ def safe_monitor(symbol_name, **kwargs):
 
 
 def sniff_send():
-    safe_monitor('xpc_connection_send_message{libxpc.dylib}', regs={'x0': 'po', 'x1': 'po'})
-    safe_monitor('xpc_connection_send_message_with_reply{libxpc.dylib}', regs={'x0': 'po', 'x1': 'po'})
-    safe_monitor('xpc_connection_send_message_with_reply_sync{libxpc.dylib}', regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor('xpc_connection_send_message', regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor('xpc_connection_send_message_with_reply', regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor('xpc_connection_send_message_with_reply_sync', regs={'x0': 'po', 'x1': 'po'})
 
 
 def sniff_receive():

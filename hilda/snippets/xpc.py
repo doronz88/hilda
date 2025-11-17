@@ -96,7 +96,9 @@ def send_message_raw(service_name, message_raw):
             # 0 is for connecting instead of listening
             conn = hilda.symbols.xpc_connection_create_mach_service(service_name, 0, 0)
             assert conn != 0, 'failed to create xpc connection'
-            hilda.po(f'''xpc_connection_set_event_handler({conn}, ^(xpc_object_t obj) {{}})''')
+            hilda.po(f'''
+            extern void xpc_connection_set_event_handler(intptr_t, id);
+            xpc_connection_set_event_handler({conn}, ^(id obj) {{}})''')
             hilda.symbols.xpc_connection_resume(conn)
             active_xpc_connections[service_name] = conn
 

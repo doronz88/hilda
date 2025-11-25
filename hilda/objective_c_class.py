@@ -78,6 +78,22 @@ class Method:
         self.client.symbols.method_setImplementation(self.address, new_imp)
         self.imp = self.client.symbol(new_imp)
 
+    def monitor(self, **args) -> None:
+        """
+        Perform monitor on method's IMP.
+        See monitor command for more details.
+        :param args: given arguments for monitor command
+        """
+        self.client.symbol(self.imp).monitor(**args)
+
+    def bp(self, **args) -> None:
+        """
+        Place a breakpoint on method's IMP.
+        See bp command for more details.
+        :param args: given arguments for bp command
+        """
+        self.client.symbol(self.imp).bp(**args)
+
     def __str__(self):
         if ':' in self.name:
             args_names = self.name.split(':')

@@ -55,11 +55,13 @@ class Method:
     return_type: str = field(compare=False)
     is_class: bool = field(compare=False)
     args_types: list = field(compare=False)
+    class_name: str = field(compare=False)
 
     @staticmethod
-    def from_data(data: dict, client):
+    def from_data(class_name: str, data: dict, client) -> 'Method':
         """
         Create Method object from raw data.
+        :param class_name: ObjC class name
         :param data: Data as loaded from get_objectivec_symbol_data.m.
         :param hilda.hilda_client.HildaClient client: Hilda client.
         """
@@ -71,7 +73,8 @@ class Method:
             type_=data['type'],
             return_type=decode_type(data['return_type']),
             is_class=data['is_class'],
-            args_types=list(map(decode_type, data['args_types']))
+            args_types=list(map(decode_type, data['args_types'])),
+            class_name=class_name,
         )
 
     def set_implementation(self, new_imp: int):
@@ -94,7 +97,7 @@ class Method:
         """
         self.client.symbol(self.imp).bp(**args)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if ':' in self.name:
             args_names = self.name.split(':')
             name = ' '.join(['{}:({})'.format(*arg) for arg in zip(args_names, self.args_types[2:])])
@@ -141,7 +144,9 @@ class MethodList(UserList):
         :param args: given arguments for monitor command
         """
         for method in self.data:
-            method.imp.monitor(**kwargs)
+            method_kwargs = kwargs.copy()
+            method_kwargs['name'] = f'{"+" if method.is_class else "-"}[{method.class_name} {method.name}]'
+            method.imp.monitor(**method_kwargs)
 
     # Filters
 
@@ -332,7 +337,7 @@ class Class:
             Property(name=prop['name'], attributes=convert_encoded_property_attributes(prop['attributes']))
             for prop in data['properties']
         ]
-        self.methods = MethodList(self.name, [Method.from_data(method, self._client) for method in data['methods']])
+        self.methods = MethodList(self.name, [Method.from_data(self.name, method, self._client) for method in data['methods']])
 
     def __dir__(self):
         result = set()

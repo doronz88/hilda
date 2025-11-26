@@ -69,7 +69,8 @@ class ObjectiveCSymbol(Symbol):
         data['address'] = data['class_address']
         data['super'] = data['class_super']
         self.class_ = Class(self._client, self._client.symbol(data['class_address']), data)
-        self.methods = MethodList(self.class_.name, [Method.from_data(method, self._client) for method in data['methods']])
+        self.methods = MethodList(
+            self.class_.name, [Method.from_data(self.class_.name, method, self._client) for method in data['methods']])
 
     def show(self, recursive: bool = False):
         """

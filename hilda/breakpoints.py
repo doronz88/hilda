@@ -388,15 +388,15 @@ class BreakpointList:
 
             if regs != {}:
                 log_message += '\nregs:'
-                for name, fmt in regs.items():
-                    value = hilda.symbol(frame.FindRegister(name).unsigned)
-                    log_message += f'\n\t{name} = {format_value(fmt, value)}'
+                for reg_name, fmt in regs.items():
+                    value = hilda.symbol(frame.FindRegister(reg_name).unsigned)
+                    log_message += f'\n\t{reg_name} = {format_value(fmt, value)}'
 
             if expr != {}:
                 log_message += '\nexpr:'
-                for name, fmt in expr.items():
-                    value = hilda.symbol(hilda.evaluate_expression(name))
-                    log_message += f'\n\t{name} = {format_value(fmt, value)}'
+                for expr_name, fmt in expr.items():
+                    value = hilda.symbol(hilda.evaluate_expression(expr_name))
+                    log_message += f'\n\t{expr_name} = {format_value(fmt, value)}'
 
             if force_return is not None:
                 hilda.force_return(force_return)

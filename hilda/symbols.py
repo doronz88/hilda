@@ -38,6 +38,7 @@ class SymbolList:
             self._global = self
         else:
             self._global = hilda.symbols
+        self._manual_lldb_symbols = {}
 
     def __iter__(self) -> Iterator[Symbol]:
         self._populate_cache()
@@ -379,18 +380,23 @@ class SymbolList:
             lldb_module = lldb_address.module
             symbol_file_address = lldb_address.GetFileAddress()
 
-            # Create symbol file
-            data = {
-                "triple": lldb_module.GetTriple(),
-                "uuid": lldb_module.GetUUIDString(),
-                "symbols": [{
+            lldb_module_uuid = lldb_module.GetUUIDString()
+            if lldb_module_uuid not in self._manual_lldb_symbols:
+                # Create a symbol dictionary
+                self._manual_lldb_symbols[lldb_module_uuid] = {
+                    "triple": lldb_module.GetTriple(),
+                    "uuid": lldb_module_uuid,
+                    "symbols": []
+                }
+
+                # Add the symbol to the dictionary
+                self._manual_lldb_symbols[lldb_module_uuid]["symbols"].append({
                     "name": symbol_name,
                     "type": symbol_type,
                     "size": symbol_size,
                     "address": symbol_file_address,
-                }],
-            }
-            json.dump(data, symbols_file)
+                })
+                json.dump(self._manual_lldb_symbols[lldb_module_uuid], symbols_file)
             symbols_file.flush()
 
             # Add symbol from file

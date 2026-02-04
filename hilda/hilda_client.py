@@ -167,14 +167,23 @@ class HildaClient:
         return {int(k): v for k, v in result.items()}
 
     def bt(self, should_print: bool = False, depth: Optional[int] = None) -> list[Union[str, lldb.SBFrame]]:
-        """ Print an improved backtrace. """
+        """
+        Get backtrace of the current thread.
+
+        :param should_print: Whether to print the backtrace to stdout. Please note this backtrace also resolved user
+                             imported symbols.
+        :param depth: Maximum depth of the backtrace to return
+        :return: List of backtrace frames, each represented as a tuple of (address, frame)
+        """
         backtrace = []
         for i, frame in enumerate(self.thread.frames):
             if i == depth:
                 break
             row = ''
             row += click.style(f'0x{frame.addr.GetFileAddress():x} ', fg='cyan')
-            row += str(frame)
+            row += f' frame #{i:02} '
+            row += click.style(f'0x{frame.pc:016x} ', fg='yellow')
+            row += str(frame.addr)
             if i == 0:
                 # first line
                 row += ' 👈'

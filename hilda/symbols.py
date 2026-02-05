@@ -41,16 +41,19 @@ class SymbolList:
         self._manual_lldb_symbols = {}
 
     def __iter__(self) -> Iterator[Symbol]:
+        """Iterate over cached symbols, populating the cache if needed."""
         self._populate_cache()
 
         for symbol in self._symbols.values():
             yield symbol
 
     def __len__(self) -> int:
+        """Return the number of symbols in the list."""
         return sum(1 for _ in self)
 
     def __contains__(self,
                      address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> bool:
+        """Return True if a symbol can be resolved by address/name/ID/instance."""
         return self.get(address_or_name_or_id_or_symbol) is not None
 
     def __getitem__(self,
@@ -76,12 +79,14 @@ class SymbolList:
         self.remove(address_or_name_or_id_or_symbol)
 
     def __repr__(self) -> str:
+        """Human-readable representation, special-casing the global list."""
         if self._global is self:
             return (f'<{self.__class__.__name__} GLOBAL>')
         else:
             return repr(list(self))
 
     def __str__(self) -> str:
+        """Alias for __repr__."""
         return repr(self)
 
     def get(self, address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) \
@@ -106,6 +111,7 @@ class SymbolList:
         return self._symbols.get(sym_id)
 
     def _populate_cache(self, module_uuid_filter=None) -> None:
+        """Populate the global cache lazily, optionally filtering by module UUID."""
         if self._global is self:
             modules = self._hilda.target.modules
             modules_not_cached = [module for module in modules if module.GetUUIDString() not in self._modules]
@@ -143,6 +149,7 @@ class SymbolList:
                 _ = self.get(lldb_symbol)
 
     def _add(self, sym_id: HildaSymbolId, symbol: Symbol) -> None:
+        """Insert a symbol into the internal caches."""
         self._symbols[sym_id] = symbol
         name, address = sym_id
         if name is not None and re.match(r'^[a-zA-Z0-9_]+$', name):
@@ -272,6 +279,7 @@ class SymbolList:
         return value
 
     def __dir__(self):
+        """Return dir() results including known symbol names."""
         self._populate_cache()
 
         # Return normal attributes and symbol names
@@ -279,6 +287,7 @@ class SymbolList:
 
     def _get_lldb_symbol_from_name(self, name: str, address: Optional[int] = None) \
             -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
+        """Resolve a symbol by name (and optionally address) from LLDB."""
         lldb_symbol_context_list = list(self._hilda.target.FindSymbols(name))
 
         if address is not None:
@@ -316,6 +325,7 @@ class SymbolList:
 
     def _get_lldb_symbol(self, value: Union[int, str, HildaSymbolId, Symbol, lldb.SBAddress, lldb.SBSymbol]) \
             -> Optional[Tuple[lldb.SBSymbol, lldb.SBAddress, str, int, int]]:
+        """Normalize inputs to an LLDB symbol tuple or return None if not resolvable."""
         if isinstance(value, Symbol):
             symbol = value
             return self._get_lldb_symbol(symbol.id)
@@ -461,6 +471,7 @@ class SymbolList:
     # Filters
 
     def __sub__(self, other: 'SymbolList') -> 'SymbolList':
+        """Return a new SymbolList with symbols present in self but not in other."""
         retval = SymbolList(self._hilda)
         for v in self.values():
             if v not in other:
@@ -468,6 +479,7 @@ class SymbolList:
         return retval
 
     def __add__(self, other: 'SymbolList') -> 'SymbolList':
+        """Return a new SymbolList containing symbols from both lists."""
         retval = SymbolList(self._hilda)
         for v in other.values():
             retval.add(v)
@@ -477,7 +489,7 @@ class SymbolList:
 
     def filter_by_module(self, substring: str) -> 'SymbolList':
         """
-        Filter symbols who's module name contains the provided substring
+        Filter symbols whose module name contains the provided substring.
         :return: reduced symbol list
         """
 
@@ -526,21 +538,21 @@ class SymbolList:
         """
         return self.filter_symbol_type(lldb.eSymbolTypeCode)
 
-    def filter_data_symbols(self):
+    def filter_data_symbols(self) -> 'SymbolList':
         """
         Filter only data symbols
-        :return: symbols with type lldb.eSymbolTypeCode
+        :return: symbols with type lldb.eSymbolTypeData
         """
         return self.filter_symbol_type(lldb.eSymbolTypeData)
 
-    def filter_objc_classes(self):
+    def filter_objc_classes(self) -> 'SymbolList':
         """
         Filter only objc meta classes
         :return: symbols with type lldb.eSymbolTypeObjCMetaClass
         """
         return self.filter_symbol_type(lldb.eSymbolTypeObjCMetaClass)
 
-    def filter_startswith(self, exp, case_sensitive=True):
+    def filter_startswith(self, exp: str, case_sensitive: bool = True) -> 'SymbolList':
         """
         Filter only symbols with given prefix
         :param exp: prefix
@@ -559,7 +571,7 @@ class SymbolList:
                 retval.add(v)
         return retval
 
-    def filter_endswith(self, exp, case_sensitive=True):
+    def filter_endswith(self, exp: str, case_sensitive: bool = True) -> 'SymbolList':
         """
         Filter only symbols with given prefix
         :param exp: prefix
@@ -578,7 +590,7 @@ class SymbolList:
                 retval.add(v)
         return retval
 
-    def filter_name_contains(self, exp, case_sensitive=True):
+    def filter_name_contains(self, exp: str, case_sensitive: bool = True) -> 'SymbolList':
         """
         Filter symbols containing a given expression
         :param exp: given expression

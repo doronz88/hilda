@@ -1,15 +1,24 @@
 import json
 import re
 import shlex
+from dataclasses import dataclass
 from itertools import chain
 from tempfile import NamedTemporaryFile
-from typing import Iterator, Optional, Tuple, Union
+from typing import Iterator, Optional, Tuple, Union, List
 
 from tqdm import tqdm
 
-from hilda.exceptions import SymbolAbsentError
+from hilda.exceptions import SymbolAbsentError, HildaException
 from hilda.lldb_importer import lldb
 from hilda.symbol import HildaSymbolId, Symbol
+
+
+@dataclass(frozen=True)
+class SymbolIdentifier:
+    """Name + file address + size tuple for bulk symbol creation."""
+    symbol_name: str
+    file_address: int
+    symbol_size: int
 
 
 class SymbolList:
@@ -210,21 +219,48 @@ class SymbolList:
             return Symbol.create(symbol_address, self._hilda, None)
 
         # Add a new global symbol
-        symbol = self._global._add_lldb_symbol(
+        symbols = self._global._add_lldb_symbols([(
             symbol_name,
             symbol_address,
             symbol_type if symbol_type is not None else 'code',
-            symbol_size if symbol_size is not None else 8)
-        return self.add(symbol)
+            symbol_size if symbol_size is not None else 8)])
+        if len(symbols) != 1:
+            raise HildaException('Symbol could not be added')
+        return self.add(symbols[0])
+
+    def add_multiple_file_symbols(self, symbol_identifiers: List[SymbolIdentifier],
+                                  symbol_type: Optional[str] = None) -> List[Symbol]:
+        """
+        Add multiple symbols by file address.
+        Expects SymbolIdentifier entries (tuple inputs are accepted for compatibility).
+        """
+        symbol_type = symbol_type if symbol_type is not None else 'code'
+        fixed_identifiers = []
+        for identifier in symbol_identifiers:
+            if isinstance(identifier, tuple):
+                identifier = SymbolIdentifier(*identifier)
+            symbol_name = identifier.symbol_name
+            file_address = identifier.file_address
+            symbol_size = identifier.symbol_size
+            file_symbol = self._hilda.file_symbol(file_address)
+            if file_symbol.lldb_name is not None:
+                # There is already an lldb symbol - skip
+                self._hilda.log_warning(f'Not adding {symbol_name}@0x{int(file_symbol):016X} '
+                                        f'(because it is already {file_symbol.lldb_name}')
+                continue
+            fixed_identifiers.append((symbol_name, int(file_symbol), symbol_type, symbol_size))
+        symbols = self._global._add_lldb_symbols(fixed_identifiers)
+        return [self.add(symbol) for symbol in symbols]
 
     def _remove(self, sym_id: HildaSymbolId) -> None:
+        """Remove a symbol from internal caches (caller must validate)."""
         del self._symbols[sym_id]
         name, address = sym_id
         if name is not None and re.match(r'^[a-zA-Z0-9_]+$', name):
             ids = self._symbols_by_name[name]
-            if len(ids) == 1:
+            if sym_id in ids:
                 ids.remove(sym_id)
-            else:
+            if not ids:
                 del self._symbols_by_name[name]
 
     def remove(self, address_or_name_or_id_or_symbol: Union[int, str, HildaSymbolId, lldb.SBSymbol, Symbol]) -> None:
@@ -387,11 +423,14 @@ class SymbolList:
         else:
             raise TypeError()
 
-    def _add_lldb_symbol(self, symbol_name: str, symbol_address: int, symbol_type: str, symbol_size) -> lldb.SBSymbol:
+    def _add_lldb_symbols(self, symbol_identifiers: List[Tuple[str, int, str, int]]) -> List[lldb.SBSymbol]:
+        """Add LLDB symbols in bulk using a generated symbol JSON file."""
+        if len(symbol_identifiers) == 0:
+            return []
         with NamedTemporaryFile(mode='w+', suffix='.json') as symbols_file:
-            lldb_address = self._hilda.target.ResolveLoadAddress(symbol_address)
-            lldb_module = lldb_address.module
-            symbol_file_address = lldb_address.GetFileAddress()
+            first_address = symbol_identifiers[0][1]
+            first_lldb_address = self._hilda.target.ResolveLoadAddress(first_address)
+            lldb_module = first_lldb_address.module
 
             lldb_module_uuid = lldb_module.GetUUIDString()
             if lldb_module_uuid not in self._manual_lldb_symbols:
@@ -402,6 +441,17 @@ class SymbolList:
                     "symbols": []
                 }
 
+            num_symbols_to_add = 0
+            for symbol_name, symbol_address, symbol_type, symbol_size in symbol_identifiers:
+                # Skip symbols that are already there
+                if len(lldb_module.FindSymbols(symbol_name)) != 0:
+                    continue
+
+                lldb_address = self._hilda.target.ResolveLoadAddress(symbol_address)
+                if lldb_module != lldb_address.module:
+                    raise HildaException('All symbols must belong to the same module')
+                symbol_file_address = lldb_address.GetFileAddress()
+
                 # Add the symbol to the dictionary
                 self._manual_lldb_symbols[lldb_module_uuid]["symbols"].append({
                     "name": symbol_name,
@@ -409,34 +459,30 @@ class SymbolList:
                     "size": symbol_size,
                     "address": symbol_file_address,
                 })
-                json.dump(self._manual_lldb_symbols[lldb_module_uuid], symbols_file)
-            symbols_file.flush()
+                num_symbols_to_add += 1
 
-            # Add symbol from file
-            symbols_before = lldb_module.FindSymbols(symbol_name)
-            if len(symbols_before) != 0:
-                raise Exception(
-                    f'Failed to add symbol {symbol_name} to {lldb_module.file}'
-                    f' (symbol already exists {symbols_before})')
+            json.dump(self._manual_lldb_symbols[lldb_module_uuid], symbols_file)
+            symbols_file.flush()
 
             result = self._hilda.lldb_handle_command(f'target symbols add {shlex.quote(symbols_file.name)}',
                                                      capture_output=True)
-
-            # Verify command executed as expected
             if result is None:
-                raise Exception(f'Failed to add symbol {symbol_name} to {lldb_module.file}')
+                raise HildaException(f'Failed to add symbol {symbol_name} to {lldb_module.file}')
             expected_result = f"symbol file '{symbols_file.name}' has been added to '{lldb_module.file}'\n"
             if expected_result != result:
-                raise Exception(
-                    f'Failed to add symbol {symbol_name} to {lldb_module.file}'
-                    f' (expected: {json.dumps(expected_result)}, output: {json.dumps(result)})')
+                raise HildaException(f'Failed to add symbol {symbol_name} to {lldb_module.file}'
+                                     f' (expected: {json.dumps(expected_result)}, output: {json.dumps(result)})')
 
-            # Verify the symbol was added
-            symbols_after = lldb_module.FindSymbols(symbol_name)
-            if len(symbols_after) != 1:
-                raise Exception(f'Failed to add symbol {symbol_name} to {lldb_module.file}')
-
-            return self.get((symbol_name, symbol_address))
+            # Verify the symbols were added and create a symbol for each
+            new_symbols = []
+            for symbol_name, symbol_address, symbol_type, symbol_size in symbol_identifiers:
+                symbols_after = lldb_module.FindSymbols(symbol_name)
+                if len(symbols_after) == 0:
+                    continue
+                new_symbols.append(self.get((symbol_name, symbol_address)))
+            if len(new_symbols) != num_symbols_to_add:
+                raise HildaException('Failed to add all symbols')
+            return new_symbols
 
     # Actions
 

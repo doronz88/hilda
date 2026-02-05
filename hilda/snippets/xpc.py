@@ -18,27 +18,29 @@ def safe_monitor(symbol_name, **kwargs):
     except KeyError:
         args = []
         for k, v in kwargs.items():
-            args.append(f'{k}={v}')
-        lldb.hilda_client.log_warning(f'missing symbol: "{symbol_name}". try to locate it manually (in IDA) and place '
-                                      f'a breakpoint as follows:\n\tfile_symbol(ADDRESS).monitor({", ".join(args)})')
+            args.append(f"{k}={v}")
+        lldb.hilda_client.log_warning(
+            f'missing symbol: "{symbol_name}". try to locate it manually (in IDA) and place '
+            f"a breakpoint as follows:\n\tfile_symbol(ADDRESS).monitor({', '.join(args)})"
+        )
 
 
 def sniff_send():
-    safe_monitor('xpc_connection_send_message', regs={'x0': 'po', 'x1': 'po'})
-    safe_monitor('xpc_connection_send_message_with_reply', regs={'x0': 'po', 'x1': 'po'})
-    safe_monitor('xpc_connection_send_message_with_reply_sync', regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor("xpc_connection_send_message", regs={"x0": "po", "x1": "po"})
+    safe_monitor("xpc_connection_send_message_with_reply", regs={"x0": "po", "x1": "po"})
+    safe_monitor("xpc_connection_send_message_with_reply_sync", regs={"x0": "po", "x1": "po"})
 
 
 def sniff_receive():
-    safe_monitor('_xpc_connection_call_event_handler', regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor("_xpc_connection_call_event_handler", regs={"x0": "po", "x1": "po"})
 
 
 def sniff_incoming_event():
-    safe_monitor('__XPC_CONNECTION_EVENT_HANDLER_CALLOUT__', regs={'x0': 'po', 'x1': 'po'})
+    safe_monitor("__XPC_CONNECTION_EVENT_HANDLER_CALLOUT__", regs={"x0": "po", "x1": "po"})
 
 
 def sniff_activities():
-    safe_monitor('__XPC_ACTIVITY_CALLING_HANDLER__', regs={'x0': 'po'})
+    safe_monitor("__XPC_ACTIVITY_CALLING_HANDLER__", regs={"x0": "po"})
 
 
 def sniff_all():
@@ -51,7 +53,7 @@ def from_xpc_object(address: int):
     Convert XPC object to python object.
     :param address: Address of XPC object.
     """
-    return lldb.hilda_client.decode_cf(f'_CFXPCCreateCFObjectFromXPCObject({address})')
+    return lldb.hilda_client.decode_cf(f"_CFXPCCreateCFObjectFromXPCObject({address})")
 
 
 def disable_transaction_exit() -> None:
@@ -60,7 +62,7 @@ def disable_transaction_exit() -> None:
     By patching this function the process will stay alive.
     """
     hilda = lldb.hilda_client
-    hilda.symbols.xpc_transaction_exit_clean.poke(b'\xc0\x03\x5f\xd6')  # ret
+    hilda.symbols.xpc_transaction_exit_clean.poke(b"\xc0\x03\x5f\xd6")  # ret
 
 
 def to_xpc_object(obj: object):
@@ -81,7 +83,7 @@ def xpc_to_python_monitor_format(hilda_client, address):
     """
     try:
         formatted = pformat(from_xpc_object(address))
-        return highlight(formatted, PythonLexer(), TerminalTrueColorFormatter(style='native'))
+        return highlight(formatted, PythonLexer(), TerminalTrueColorFormatter(style="native"))
     except ConvertingFromNSObjectError:
         return address.po()
 
@@ -95,10 +97,10 @@ def send_message_raw(service_name, message_raw):
         else:
             # 0 is for connecting instead of listening
             conn = hilda.symbols.xpc_connection_create_mach_service(service_name, 0, 0)
-            assert conn != 0, 'failed to create xpc connection'
-            hilda.po(f'''
+            assert conn != 0, "failed to create xpc connection"
+            hilda.po(f"""
             extern void xpc_connection_set_event_handler(intptr_t, id);
-            xpc_connection_set_event_handler({conn}, ^(id obj) {{}})''')
+            xpc_connection_set_event_handler({conn}, ^(id obj) {{}})""")
             hilda.symbols.xpc_connection_resume(conn)
             active_xpc_connections[service_name] = conn
 
@@ -111,5 +113,5 @@ def send_message(service_name, message: object):
 
     with hilda.stopped():
         message_raw = to_xpc_object(message)
-        assert message_raw != 0, 'failed to convert python message object to native xpc object'
+        assert message_raw != 0, "failed to convert python message object to native xpc object"
         return from_xpc_object(send_message_raw(service_name, message_raw))

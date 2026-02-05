@@ -14,7 +14,8 @@ from hilda.symbol import Symbol
 
 
 class SettingIvarError(HildaException):
-    """ Raise when trying to set an Ivar too early or when the Ivar doesn't exist. """
+    """Raise when trying to set an Ivar too early or when the Ivar doesn't exist."""
+
     pass
 
 
@@ -44,7 +45,7 @@ class ObjectiveCSymbol(Symbol):
         symbol = super().create(value, client)
         symbol.ivars = []  # type: List[Ivar]
         symbol.properties = []  # type: List[Property]
-        symbol.methods = MethodList('', [])  # type: MethodList
+        symbol.methods = MethodList("", [])  # type: MethodList
         symbol.class_ = None  # type: Optional[Class]
         symbol.reload()
         return symbol
@@ -55,55 +56,53 @@ class ObjectiveCSymbol(Symbol):
         """
         self.ivars.clear()
         self.properties.clear()
-        self.methods = MethodList('', [])
+        self.methods = MethodList("", [])
         self.class_ = None
 
-        obj_c_code = (self._client._hilda_root / 'objective_c' / 'get_objectivec_symbol_data.m').read_text()
-        obj_c_code = obj_c_code.replace('__symbol_address__', f'{self:d}')
+        obj_c_code = (self._client._hilda_root / "objective_c" / "get_objectivec_symbol_data.m").read_text()
+        obj_c_code = obj_c_code.replace("__symbol_address__", f"{self:d}")
         data = json.loads(self._client.po(obj_c_code))
 
-        self._reload_ivars(data['ivars'])
-        self._reload_properties(data['properties'])
+        self._reload_ivars(data["ivars"])
+        self._reload_properties(data["properties"])
 
-        data['name'] = data['class_name']
-        data['address'] = data['class_address']
-        data['super'] = data['class_super']
-        self.class_ = Class(self._client, self._client.symbol(data['class_address']), data)
+        data["name"] = data["class_name"]
+        data["address"] = data["class_address"]
+        data["super"] = data["class_super"]
+        self.class_ = Class(self._client, self._client.symbol(data["class_address"]), data)
         self.methods = MethodList(
-            self.class_.name, [Method.from_data(self.class_.name, method, self._client) for method in data['methods']])
+            self.class_.name, [Method.from_data(self.class_.name, method, self._client) for method in data["methods"]]
+        )
 
     def show(self, recursive: bool = False):
         """
         Print to terminal the highlighted class description.
         :param recursive: Show methods of super classes.
         """
-        print(highlight(self._to_str(recursive), ObjectiveCLexer(), TerminalTrueColorFormatter(style='native')))
+        print(highlight(self._to_str(recursive), ObjectiveCLexer(), TerminalTrueColorFormatter(style="native")))
 
     def _reload_ivars(self, ivars_data):
-        raw_ivars = sorted(ivars_data, key=lambda ivar: ivar['offset'])
+        raw_ivars = sorted(ivars_data, key=lambda ivar: ivar["offset"])
         for i, ivar in enumerate(raw_ivars):
-            ivar_type = ivar['type']
-            if ivar_type:
-                ivar_type = decode_type(ivar_type)
-            else:
-                ivar_type = 'unknown_type_t'
-            value = ivar['value']
+            ivar_type = ivar["type"]
+            ivar_type = decode_type(ivar_type) if ivar_type else "unknown_type_t"
+            value = ivar["value"]
             if i < len(raw_ivars) - 1:
                 # The .fm file returns a 64bit value, regardless of the real size.
-                size = raw_ivars[i + 1]['offset'] - ivar['offset']
+                size = raw_ivars[i + 1]["offset"] - ivar["offset"]
                 value = value & ((2 ** (size * 8)) - 1)
             ivar_value = self._client.symbol(value)
-            self.ivars.append(Ivar(name=ivar['name'], type_=ivar_type, offset=ivar['offset'], value=ivar_value))
+            self.ivars.append(Ivar(name=ivar["name"], type_=ivar_type, offset=ivar["offset"], value=ivar_value))
 
     def _reload_properties(self, properties_data):
         for prop in properties_data:
-            prop_attributes = convert_encoded_property_attributes(prop['attributes'])
-            self.properties.append(Property(name=prop['name'], attributes=prop_attributes))
+            prop_attributes = convert_encoded_property_attributes(prop["attributes"])
+            self.properties.append(Property(name=prop["name"], attributes=prop_attributes))
 
     def _set_ivar(self, name, value):
         try:
-            ivars = self.__getattribute__('ivars')
-            class_name = self.__getattribute__('class_').name
+            ivars = self.__getattribute__("ivars")
+            class_name = self.__getattribute__("class_").name
         except AttributeError as e:
             raise SettingIvarError from e
 
@@ -119,26 +118,26 @@ class ObjectiveCSymbol(Symbol):
         raise SettingIvarError(f'Ivar "{name}" does not exist in "{class_name}"')
 
     def _to_str(self, recursive=False):
-        protocols_buf = f'<{",".join(self.class_.protocols)}>' if self.class_.protocols else ''
+        protocols_buf = f"<{','.join(self.class_.protocols)}>" if self.class_.protocols else ""
 
         if self.class_.super is not None:
-            buf = f'@interface {self.class_.name}: {self.class_.super.name} {protocols_buf}\n'
+            buf = f"@interface {self.class_.name}: {self.class_.super.name} {protocols_buf}\n"
         else:
-            buf = f'@interface {self.class_.name} {protocols_buf}\n'
+            buf = f"@interface {self.class_.name} {protocols_buf}\n"
 
         # Add ivars
-        buf += '{\n'
+        buf += "{\n"
         for ivar in self.ivars:
-            buf += f'\t{ivar.type_} {ivar.name} = 0x{int(ivar.value):x}; // 0x{ivar.offset:x}\n'
-        buf += '}\n'
+            buf += f"\t{ivar.type_} {ivar.name} = 0x{int(ivar.value):x}; // 0x{ivar.offset:x}\n"
+        buf += "}\n"
 
         # Add properties
         for prop in self.properties:
             attrs = prop.attributes
-            buf += f'@property ({",".join(attrs.list)}) {prop.attributes.type_} {prop.name};\n'
+            buf += f"@property ({','.join(attrs.list)}) {prop.attributes.type_} {prop.name};\n"
 
             if attrs.synthesize is not None:
-                buf += f'@synthesize {prop.name} = {attrs.synthesize};\n'
+                buf += f"@synthesize {prop.name} = {attrs.synthesize};\n"
 
         # Add methods
         methods = list(self.methods)
@@ -155,7 +154,7 @@ class ObjectiveCSymbol(Symbol):
         for method in methods:
             buf += str(method)
 
-        buf += '@end'
+        buf += "@end"
         return buf
 
     def __dir__(self):
@@ -165,13 +164,13 @@ class ObjectiveCSymbol(Symbol):
             result.add(ivar.name)
 
         for method in self.methods:
-            result.add(method.name.replace(':', '_'))
+            result.add(method.name.replace(":", "_"))
 
         for sup in self.class_.iter_supers():
-            if self._client.configs.nsobject_exclusion and sup.name == 'NSObject':
+            if self._client.configs.nsobject_exclusion and sup.name == "NSObject":
                 continue
             for method in sup.methods:
-                result.add(method.name.replace(':', '_'))
+                result.add(method.name.replace(":", "_"))
 
         result.update(list(super().__dir__()))
         return list(result)
@@ -200,7 +199,7 @@ class ObjectiveCSymbol(Symbol):
                 if method.name == item:
                     return partial(self.class_.objc_call, item) if method.is_class else partial(self.objc_call, item)
 
-        raise AttributeError(f''''{self.class_.name}' has no attribute {item}''')
+        raise AttributeError(f"""'{self.class_.name}' has no attribute {item}""")
 
     def __getattr__(self, item: str):
         return self[self.class_.sanitize_name(item)]
@@ -215,10 +214,8 @@ class ObjectiveCSymbol(Symbol):
             return
 
     def __setattr__(self, key, value):
-        try:
-            key = self.__getattribute__('class_').sanitize_name(key)
-        except AttributeError:
-            pass
+        with suppress(AttributeError):
+            key = self.__getattribute__("class_").sanitize_name(key)
         try:
             self._set_ivar(key, value)
         except SettingIvarError:
@@ -228,4 +225,4 @@ class ObjectiveCSymbol(Symbol):
         return self._to_str(False)
 
     def __repr__(self):
-        return f'<{self.__class__.__name__} 0x{int(self):x} Class: {self.class_.name}>'
+        return f"<{self.__class__.__name__} 0x{int(self):x} Class: {self.class_.name}>"

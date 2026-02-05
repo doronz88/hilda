@@ -1,23 +1,21 @@
+from typing import Optional
+
 from hilda.lldb_importer import lldb
 
-_FILENAME = '/tmp/hilda-keylog.txt'
+_FILENAME = "/tmp/hilda-keylog.txt"
 
 
 def _ssl_log_secret_bp(hilda, *args):
     label = hilda.registers.x1.peek_str()
     secret = hilda.registers.x2.peek(hilda.registers.x3).hex()
     random = (hilda.registers.x0[6] + 48).peek(32).hex()
-    print(f'ssl_log_secret\n'
-          f'    label: {label}\n'
-          f'    secret: {secret}\n'
-          f'    random: {random}\n'
-          f'---\n')
-    with open(_FILENAME, 'a') as f:
-        f.write(f'{label} {random} {secret}\n')
+    print(f"ssl_log_secret\n    label: {label}\n    secret: {secret}\n    random: {random}\n---\n")
+    with open(_FILENAME, "a") as f:
+        f.write(f"{label} {random} {secret}\n")
     hilda.cont()
 
 
-def start_keylog(filename: str = None) -> None:
+def start_keylog(filename: Optional[str] = None) -> None:
     global _FILENAME
 
     if filename is not None:

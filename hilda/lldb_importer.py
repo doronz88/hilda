@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_lldb_python_path() -> str:
-    result = subprocess.run(['lldb', '-P'], capture_output=True, text=True, check=True)
+    result = subprocess.run(["lldb", "-P"], capture_output=True, text=True, check=True)
     return result.stdout.strip()
 
 
@@ -17,6 +17,7 @@ def import_lldb() -> Optional[ModuleType]:
     if lldb_python_path not in sys.path:
         sys.path.append(lldb_python_path)
     import lldb
+
     return lldb
 
 

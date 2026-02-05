@@ -7,18 +7,17 @@ from hilda.snippets.uuid import uuid_t
 from hilda.symbol import SymbolFormatField
 
 dyld_image_info_t = Struct(
-    '_imageLoadAddress' / SymbolFormatField(lldb.hilda_client),
-    'imageLoadAddress' / Pointer(this._imageLoadAddress, mach_header_t),
-    '_imageFilePath' / SymbolFormatField(lldb.hilda_client),
-    'imageFilePath' / Pointer(this._imageFilePath, CString('utf8')),
-    'imageFileModDate' / Int64ul
+    "_imageLoadAddress" / SymbolFormatField(lldb.hilda_client),
+    "imageLoadAddress" / Pointer(this._imageLoadAddress, mach_header_t),
+    "_imageFilePath" / SymbolFormatField(lldb.hilda_client),
+    "imageFilePath" / Pointer(this._imageFilePath, CString("utf8")),
+    "imageFileModDate" / Int64ul,
 )
 
 dyld_uuid_info_t = Struct(
-    '_imageLoadAddress' / SymbolFormatField(lldb.hilda_client),
-    'imageLoadAddress' / If(this._imageLoadAddress != 0, Pointer(this._imageLoadAddress,
-                                                                 mach_header_t)),
-    'imageUUID' / uuid_t
+    "_imageLoadAddress" / SymbolFormatField(lldb.hilda_client),
+    "imageLoadAddress" / If(this._imageLoadAddress != 0, Pointer(this._imageLoadAddress, mach_header_t)),
+    "imageUUID" / uuid_t,
 )
 
 

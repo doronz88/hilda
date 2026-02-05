@@ -14,32 +14,32 @@ from pygments.lexers import ObjectiveCLexer
 
 from hilda.exceptions import GettingObjectiveCClassError
 
-Ivar = namedtuple('Ivar', 'name type_ offset')
-Property = namedtuple('Property', 'name attributes')
-PropertyAttributes = namedtuple('PropertyAttributes', 'synthesize type_ list')
+Ivar = namedtuple("Ivar", "name type_ offset")
+Property = namedtuple("Property", "name attributes")
+PropertyAttributes = namedtuple("PropertyAttributes", "synthesize type_ list")
 
 
 def convert_encoded_property_attributes(encoded):
     conversions = {
-        'R': lambda x: 'readonly',
-        'C': lambda x: 'copy',
-        '&': lambda x: 'strong',
-        'N': lambda x: 'nonatomic',
-        'G': lambda x: 'getter=' + x[1:],
-        'S': lambda x: 'setter=' + x[1:],
-        'd': lambda x: 'dynamic',
-        'W': lambda x: 'weak',
-        'P': lambda x: '<garbage-collected>',
-        't': lambda x: 'encoding=' + x[1:],
+        "R": lambda x: "readonly",
+        "C": lambda x: "copy",
+        "&": lambda x: "strong",
+        "N": lambda x: "nonatomic",
+        "G": lambda x: "getter=" + x[1:],
+        "S": lambda x: "setter=" + x[1:],
+        "d": lambda x: "dynamic",
+        "W": lambda x: "weak",
+        "P": lambda x: "<garbage-collected>",
+        "t": lambda x: "encoding=" + x[1:],
     }
 
     type_, tail = decode_with_tail(encoded[1:])
     attributes = []
     synthesize = None
-    for attr in filter(None, tail.lstrip(',').split(',')):
+    for attr in filter(None, tail.lstrip(",").split(",")):
         if attr[0] in conversions:
             attributes.append(conversions[attr[0]](attr))
-        elif attr[0] == 'V':
+        elif attr[0] == "V":
             synthesize = attr[1:]
 
     return PropertyAttributes(type_=type_, synthesize=synthesize, list=attributes)
@@ -58,7 +58,7 @@ class Method:
     class_name: str = field(compare=False)
 
     @staticmethod
-    def from_data(class_name: str, data: dict, client) -> 'Method':
+    def from_data(class_name: str, data: dict, client) -> "Method":
         """
         Create Method object from raw data.
         :param class_name: ObjC class name
@@ -66,14 +66,14 @@ class Method:
         :param hilda.hilda_client.HildaClient client: Hilda client.
         """
         return Method(
-            name=data['name'],
+            name=data["name"],
             client=client,
-            address=client.symbol(data['address']),
-            imp=client.symbol(data['imp']),
-            type_=data['type'],
-            return_type=decode_type(data['return_type']),
-            is_class=data['is_class'],
-            args_types=list(map(decode_type, data['args_types'])),
+            address=client.symbol(data["address"]),
+            imp=client.symbol(data["imp"]),
+            type_=data["type"],
+            return_type=decode_type(data["return_type"]),
+            is_class=data["is_class"],
+            args_types=list(map(decode_type, data["args_types"])),
             class_name=class_name,
         )
 
@@ -98,13 +98,13 @@ class Method:
         self.client.symbol(self.imp).bp(**args)
 
     def __str__(self) -> str:
-        if ':' in self.name:
-            args_names = self.name.split(':')
-            name = ' '.join(['{}:({})'.format(*arg) for arg in zip(args_names, self.args_types[2:])])
+        if ":" in self.name:
+            args_names = self.name.split(":")
+            name = " ".join(["{}:({})".format(*arg) for arg in zip(args_names, self.args_types[2:])])
         else:
             name = self.name
-        prefix = '+' if self.is_class else '-'
-        return f'{prefix} {name}; // 0x{self.address:x} (returns: {self.return_type})\n'
+        prefix = "+" if self.is_class else "-"
+        return f"{prefix} {name}; // 0x{self.address:x} (returns: {self.return_type})\n"
 
 
 class MethodList(UserList):
@@ -134,7 +134,7 @@ class MethodList(UserList):
         :param kwargs: optional kwargs for the bp command
         """
         for method in self.data:
-            kwargs['name'] = f'[{self._class_name} {method.name}]'
+            kwargs["name"] = f"[{self._class_name} {method.name}]"
             method.imp.bp(callback, **kwargs)
 
     def monitor(self, **kwargs):
@@ -145,7 +145,7 @@ class MethodList(UserList):
         """
         for method in self.data:
             method_kwargs = kwargs.copy()
-            method_kwargs['name'] = f'{"+" if method.is_class else "-"}[{method.class_name} {method.name}]'
+            method_kwargs["name"] = f"{'+' if method.is_class else '-'}[{method.class_name} {method.name}]"
             method.imp.monitor(**method_kwargs)
 
     # Filters
@@ -194,7 +194,7 @@ class Class:
     Wrapper for ObjectiveC Class object.
     """
 
-    def __init__(self, client, class_object=0, class_data: dict = None):
+    def __init__(self, client, class_object=0, class_data: Optional[dict] = None):
         """
         :param hilda.hilda_client.HildaClient client:
         :param hilda.symbol.Symbol class_object:
@@ -204,7 +204,7 @@ class Class:
         self.protocols = []
         self.ivars = []
         self.properties = []
-        self.name = ''
+        self.name = ""
         self.methods = MethodList(self.name, [])
         self.super = None
         if class_data is None:
@@ -219,8 +219,8 @@ class Class:
         :param hilda.hilda_client.HildaClient client: Hilda client.
         :param class_name: Class name.
         """
-        obj_c_code = (client._hilda_root / 'objective_c' / 'get_objectivec_class_description.m').read_text()
-        obj_c_code = obj_c_code.replace('__class_address__', '0').replace('__class_name__', class_name)
+        obj_c_code = (client._hilda_root / "objective_c" / "get_objectivec_class_description.m").read_text()
+        obj_c_code = obj_c_code.replace("__class_address__", "0").replace("__class_name__", class_name)
         class_symbol = Class(client, class_data=json.loads(client.po(obj_c_code)))
         if class_symbol.name != class_name:
             raise GettingObjectiveCClassError()
@@ -231,10 +231,7 @@ class Class:
         """
         Sanitize python name to ObjectiveC name.
         """
-        if name.startswith('_'):
-            name = '_' + name[1:].replace('_', ':')
-        else:
-            name = name.replace('_', ':')
+        name = "_" + name[1:].replace("_", ":") if name.startswith("_") else name.replace("_", ":")
         return name
 
     def reload(self):
@@ -242,16 +239,16 @@ class Class:
         Reload class object data.
         Should be used whenever the class layout changes (for example, during method swizzling)
         """
-        obj_c_code = (self._client._hilda_root / 'objective_c' / 'get_objectivec_class_description.m').read_text()
-        obj_c_code = obj_c_code.replace('__class_address__', f'{self._class_object:d}')
-        obj_c_code = obj_c_code.replace('__class_name__', self.name)
+        obj_c_code = (self._client._hilda_root / "objective_c" / "get_objectivec_class_description.m").read_text()
+        obj_c_code = obj_c_code.replace("__class_address__", f"{self._class_object:d}")
+        obj_c_code = obj_c_code.replace("__class_name__", self.name)
         self._load_class_data(json.loads(self._client.po(obj_c_code)))
 
     def show(self):
         """
         Print to terminal the highlighted class description.
         """
-        print(highlight(str(self), ObjectiveCLexer(), TerminalTrueColorFormatter(style='native')))
+        print(highlight(str(self), ObjectiveCLexer(), TerminalTrueColorFormatter(style="native")))
 
     def objc_call(self, sel: str, *args):
         """
@@ -274,14 +271,14 @@ class Class:
             del self._client.captured_objects[class_name]
 
         def hook(hilda, frame, bp_loc, options):
-            hilda.log_info(f'self object has been captured from {options["name"]}')
-            hilda.log_info('removing breakpoints')
+            hilda.log_info(f"self object has been captured from {options['name']}")
+            hilda.log_info("removing breakpoints")
             for bp_id, bp in list(hilda.breakpoints.items()):
-                if 'group_uuid' in bp.options and bp.options.get('group_uuid', '') == options['group_uuid']:
+                if "group_uuid" in bp.options and bp.options.get("group_uuid", "") == options["group_uuid"]:
                     hilda.breakpoints.remove(bp_id)
-            captured = hilda.evaluate_expression('$arg1')
+            captured = hilda.evaluate_expression("$arg1")
             captured = captured.objc_symbol
-            hilda.captured_objects[options['name'].split(' ')[0].split('[')[1]] = captured
+            hilda.captured_objects[options["name"].split(" ")[0].split("[")[1]] = captured
             hilda.cont()
 
         for method in self.methods:
@@ -291,7 +288,7 @@ class Class:
 
         if sync:
             self._client.cont()
-            self._client.log_debug('Waiting for desired object to be captured...')
+            self._client.log_debug("Waiting for desired object to be captured...")
             while class_name not in self._client.captured_objects:
                 time.sleep(1)
 
@@ -320,68 +317,78 @@ class Class:
 
     @property
     def bundle_path(self) -> Path:
-        return Path(self._client.symbols.objc_getClass('NSBundle')
-                    .objc_call('bundleForClass:', self._class_object).objc_call('bundlePath').py())
+        return Path(
+            self._client.symbols
+            .objc_getClass("NSBundle")
+            .objc_call("bundleForClass:", self._class_object)
+            .objc_call("bundlePath")
+            .py()
+        )
 
     def _load_class_data(self, data: dict):
-        self._class_object = self._client.symbol(data['address'])
-        self.super = Class(self._client, data['super']) if data['super'] else None
-        self.name = data['name']
-        self.protocols = data['protocols']
+        self._class_object = self._client.symbol(data["address"])
+        self.super = Class(self._client, data["super"]) if data["super"] else None
+        self.name = data["name"]
+        self.protocols = data["protocols"]
         self.ivars = [
-            Ivar(name=ivar['name'], type_=decode_type(ivar['type']) if ivar['type'] else 'unknown_type_t',
-                 offset=ivar['offset'])
-            for ivar in data['ivars']
+            Ivar(
+                name=ivar["name"],
+                type_=decode_type(ivar["type"]) if ivar["type"] else "unknown_type_t",
+                offset=ivar["offset"],
+            )
+            for ivar in data["ivars"]
         ]
         self.properties = [
-            Property(name=prop['name'], attributes=convert_encoded_property_attributes(prop['attributes']))
-            for prop in data['properties']
+            Property(name=prop["name"], attributes=convert_encoded_property_attributes(prop["attributes"]))
+            for prop in data["properties"]
         ]
-        self.methods = MethodList(self.name, [Method.from_data(self.name, method, self._client) for method in data['methods']])
+        self.methods = MethodList(
+            self.name, [Method.from_data(self.name, method, self._client) for method in data["methods"]]
+        )
 
     def __dir__(self):
         result = set()
 
         for method in self.methods:
             if method.is_class:
-                result.add(method.name.replace(':', '_'))
+                result.add(method.name.replace(":", "_"))
 
         for sup in self.iter_supers():
-            if self._client.configs.nsobject_exclusion and sup.name == 'NSObject':
+            if self._client.configs.nsobject_exclusion and sup.name == "NSObject":
                 continue
             for method in sup.methods:
                 if method.is_class:
-                    result.add(method.name.replace(':', '_'))
+                    result.add(method.name.replace(":", "_"))
 
         result.update(list(super().__dir__()))
         return list(result)
 
     def __str__(self):
-        protocol_buf = f'<{",".join(self.protocols)}>' if self.protocols else ''
+        protocol_buf = f"<{','.join(self.protocols)}>" if self.protocols else ""
 
         if self.super is not None:
-            buf = f'@interface {self.name}: {self.super.name} {protocol_buf}\n'
+            buf = f"@interface {self.name}: {self.super.name} {protocol_buf}\n"
         else:
-            buf = f'@interface {self.name} {protocol_buf}\n'
+            buf = f"@interface {self.name} {protocol_buf}\n"
 
         # Add ivars
-        buf += '{\n'
+        buf += "{\n"
         for ivar in self.ivars:
-            buf += f'\t{ivar.type_} {ivar.name}; // 0x{ivar.offset:x}\n'
-        buf += '}\n'
+            buf += f"\t{ivar.type_} {ivar.name}; // 0x{ivar.offset:x}\n"
+        buf += "}\n"
 
         # Add properties
         for prop in self.properties:
-            buf += f'@property ({",".join(prop.attributes.list)}) {prop.attributes.type_} {prop.name};\n'
+            buf += f"@property ({','.join(prop.attributes.list)}) {prop.attributes.type_} {prop.name};\n"
 
             if prop.attributes.synthesize is not None:
-                buf += f'@synthesize {prop.name} = {prop.attributes.synthesize};\n'
+                buf += f"@synthesize {prop.name} = {prop.attributes.synthesize};\n"
 
         # Add methods
         for method in self.methods:
             buf += str(method)
 
-        buf += '@end'
+        buf += "@end"
         return buf
 
     def __repr__(self):
@@ -393,8 +400,7 @@ class Class:
                 if method.is_class:
                     return partial(self.objc_call, item)
                 else:
-                    raise AttributeError(f'{self.name} class has an instance method named {item}, '
-                                         f'not a class method')
+                    raise AttributeError(f"{self.name} class has an instance method named {item}, not a class method")
 
         for sup in self.iter_supers():
             for method in sup.methods:
@@ -402,10 +408,11 @@ class Class:
                     if method.is_class:
                         return partial(self.objc_call, item)
                     else:
-                        raise AttributeError(f'{self.name} class has an instance method named {item}, '
-                                             f'not a class method')
+                        raise AttributeError(
+                            f"{self.name} class has an instance method named {item}, not a class method"
+                        )
 
-        raise AttributeError(f''''{self.name}' class has no attribute {item}''')
+        raise AttributeError(f"""'{self.name}' class has no attribute {item}""")
 
     def __getattr__(self, item: str):
         return self[self.sanitize_name(item)]

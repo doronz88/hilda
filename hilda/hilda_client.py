@@ -10,7 +10,7 @@ import sys
 import time
 import typing
 from collections import namedtuple
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import cached_property, wraps
@@ -30,9 +30,18 @@ from traitlets.config import Config
 from hilda import objective_c_class
 from hilda.breakpoints import BreakpointList, HildaBreakpoint, WhereType
 from hilda.common import CfSerializable, selection_prompt
-from hilda.exceptions import AccessingMemoryError, AccessingRegisterError, ConvertingFromNSObjectError, \
-    ConvertingToNsObjectError, CreatingObjectiveCSymbolError, DisableJetsamMemoryChecksError, \
-    EvaluatingExpressionError, HildaException, InvalidThreadIndexError, SymbolAbsentError
+from hilda.exceptions import (
+    AccessingMemoryError,
+    AccessingRegisterError,
+    ConvertingFromNSObjectError,
+    ConvertingToNsObjectError,
+    CreatingObjectiveCSymbolError,
+    DisableJetsamMemoryChecksError,
+    EvaluatingExpressionError,
+    HildaException,
+    InvalidThreadIndexError,
+    SymbolAbsentError,
+)
 from hilda.ipython_extensions.keybindings import get_keybindings
 from hilda.lldb_importer import lldb
 from hilda.objective_c_symbol import ObjectiveCSymbol
@@ -48,57 +57,65 @@ try:
     from keystone import KS_ARCH_ARM64, KS_ARCH_X86, KS_MODE_64, KS_MODE_LITTLE_ENDIAN, Ks
 except ImportError:
     lldb.KEYSTONE_SUPPORT = False
-    print('failed to import keystone. disabling some features')
+    print("failed to import keystone. disabling some features")
 
 
 def disable_logs() -> None:
-    logging.getLogger('asyncio').disabled = True
-    logging.getLogger('parso.cache').disabled = True
-    logging.getLogger('parso.cache.pickle').disabled = True
-    logging.getLogger('parso.python.diff').disabled = True
-    logging.getLogger('blib2to3.pgen2.driver').disabled = True
-    logging.getLogger('hilda.launch_lldb').setLevel(logging.INFO)
+    logging.getLogger("asyncio").disabled = True
+    logging.getLogger("parso.cache").disabled = True
+    logging.getLogger("parso.cache.pickle").disabled = True
+    logging.getLogger("parso.python.diff").disabled = True
+    logging.getLogger("blib2to3.pgen2.driver").disabled = True
+    logging.getLogger("hilda.launch_lldb").setLevel(logging.INFO)
 
 
-SerializableSymbol = namedtuple('SerializableSymbol', 'address type_ filename')
+SerializableSymbol = namedtuple("SerializableSymbol", "address type_ filename")
 
 
 @dataclass
 class HelpSnippet:
-    """ Small snippet line to occur from `HildaClient.show_help()` """
+    """Small snippet line to occur from `HildaClient.show_help()`"""
 
     key: str
     description: str
 
     def __str__(self) -> str:
-        return click.style(self.key.ljust(8), bold=True, fg='magenta') + click.style(self.description, bold=True)
+        return click.style(self.key.ljust(8), bold=True, fg="magenta") + click.style(self.description, bold=True)
 
 
 @dataclass
 class Configs:
-    """ Configuration settings for evaluation and monitoring. """
-    evaluation_unwind_on_error: bool = field(default=False,
-                                             metadata={'doc': 'Whether to unwind on error during evaluation.'})
-    evaluation_ignore_breakpoints: bool = field(default=False,
-                                                metadata={'doc': 'Whether to ignore breakpoints during evaluation.'})
-    nsobject_exclusion: bool = field(default=False, metadata={
-        'doc': 'Whether to exclude NSObject during evaluation - reduce ipython autocomplete results.'})
-    objc_verbose_monitor: bool = field(default=False, metadata={
-        'doc': 'When set to True, using monitor() will automatically print objc methods arguments.'})
-    enable_stdout_stderr: bool = field(default=True, metadata={
-        'doc': 'When set to True, will enable process stdout and stderr.'})
+    """Configuration settings for evaluation and monitoring."""
+
+    evaluation_unwind_on_error: bool = field(
+        default=False, metadata={"doc": "Whether to unwind on error during evaluation."}
+    )
+    evaluation_ignore_breakpoints: bool = field(
+        default=False, metadata={"doc": "Whether to ignore breakpoints during evaluation."}
+    )
+    nsobject_exclusion: bool = field(
+        default=False,
+        metadata={"doc": "Whether to exclude NSObject during evaluation - reduce ipython autocomplete results."},
+    )
+    objc_verbose_monitor: bool = field(
+        default=False,
+        metadata={"doc": "When set to True, using monitor() will automatically print objc methods arguments."},
+    )
+    enable_stdout_stderr: bool = field(
+        default=True, metadata={"doc": "When set to True, will enable process stdout and stderr."}
+    )
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        config_str = 'Configuration settings:\n'
+        config_str = "Configuration settings:\n"
         max_len = max(len(field_name) for field_name in self.__dataclass_fields__) + 2
 
         for field_name, field_info in self.__dataclass_fields__.items():
             value = getattr(self, field_name)
-            doc = field_info.metadata.get('doc', 'No docstring available')
-            config_str += f'\t{field_name.ljust(max_len)}: {str(value).ljust(5)} | {doc}\n'
+            doc = field_info.metadata.get("doc", "No docstring available")
+            config_str += f"\t{field_name.ljust(max_len)}: {str(value).ljust(5)} | {doc}\n"
 
         return config_str
 
@@ -110,7 +127,7 @@ def stop_is_needed(func: Callable):
     def wrapper(self, *args, **kwargs):
         is_running = self.process.GetState() == lldb.eStateRunning
         if is_running:
-            self.logger.error(f'Cannot {func.__name__.replace("_", "-")}: Process must be stopped first.')
+            self.logger.error(f"Cannot {func.__name__.replace('_', '-')}: Process must be stopped first.")
             return
         return func(self, *args, **kwargs)
 
@@ -122,7 +139,7 @@ class HildaClient:
 
     def __init__(self, debugger: lldb.SBDebugger) -> None:
         self.logger = logging.getLogger(__name__)
-        self.endianness = '<'
+        self.endianness = "<"
         self.debugger = debugger
         self.target = debugger.GetSelectedTarget()
         self.process = self.target.GetProcess()
@@ -131,7 +148,7 @@ class HildaClient:
         self.watchpoints = WatchpointList(self)
         self.captured_objects = {}
         self.registers = Registers(self)
-        self.arch = self.target.GetTriple().split('-')[0]
+        self.arch = self.target.GetTriple().split("-")[0]
         self.ui_manager = UiManager(self)
         self.configs = Configs()
         self._dynamic_env_loaded = False
@@ -142,11 +159,11 @@ class HildaClient:
         # the frame called within the context of the hit BP
         self._bp_frame = None
 
-        self._add_global('symbols', self.symbols, [])
-        self._add_global('registers', self.registers, [])
+        self._add_global("symbols", self.symbols, [])
+        self._add_global("registers", self.registers, [])
 
-        self.log_info(f'Target: {self.target}')
-        self.log_info(f'Process: {self.process}')
+        self.log_info(f"Target: {self.target}")
+        self.log_info(f"Process: {self.process}")
 
     def hd(self, buf: bytes) -> None:
         """
@@ -161,7 +178,7 @@ class HildaClient:
         Get dictionary of all open FDs
         :return: Mapping between open FDs and their paths
         """
-        data = (self._hilda_root / 'objective_c' / 'lsof.m').read_text()
+        data = (self._hilda_root / "objective_c" / "lsof.m").read_text()
         result = json.loads(self.po(data))
         # convert FDs into int
         return {int(k): v for k, v in result.items()}
@@ -179,15 +196,15 @@ class HildaClient:
         for i, frame in enumerate(self.thread.frames):
             if i == depth:
                 break
-            row = ''
-            row += click.style(f'0x{frame.addr.GetFileAddress():x} ', fg='cyan')
-            row += f' frame #{i:02} '
-            row += click.style(f'0x{frame.pc:016x} ', fg='yellow')
+            row = ""
+            row += click.style(f"0x{frame.addr.GetFileAddress():x} ", fg="cyan")
+            row += f" frame #{i:02} "
+            row += click.style(f"0x{frame.pc:016x} ", fg="yellow")
             row += str(frame.addr)
             if i == 0:
                 # first line
-                row += ' 👈'
-            backtrace.append([f'0x{frame.addr.file_addr:016x}', frame])
+                row += " 👈"
+            backtrace.append([f"0x{frame.addr.file_addr:016x}", frame])
             if should_print:
                 print(row)
         return backtrace
@@ -231,27 +248,27 @@ class HildaClient:
         """
         module = self.target.FindModule(lldb.SBFileSpec(os.path.basename(filename), False))
         if module.file.basename is not None:
-            self.log_warning(f'file {filename} has already been loaded')
+            self.log_warning(f"file {filename} has already been loaded")
 
         injected = SymbolList(self)
         handle = self.symbols.dlopen(filename, 10)  # RTLD_GLOBAL|RTLD_NOW
 
         if handle == 0:
-            self.log_critical(f'failed to inject: {filename}')
+            self.log_critical(f"failed to inject: {filename}")
 
         module = self.target.FindModule(lldb.SBFileSpec(os.path.basename(filename), False))
         for symbol in module.symbols:
             load_addr = symbol.addr.GetLoadAddress(self.target)
-            if load_addr == 0xffffffffffffffff:
+            if load_addr == 0xFFFFFFFFFFFFFFFF:
                 # skip those not having a real address
                 continue
 
             name = symbol.name
             type_ = symbol.GetType()
 
-            if name in ('<redacted>',) or (type_ not in (lldb.eSymbolTypeCode,
-                                                         lldb.eSymbolTypeData,
-                                                         lldb.eSymbolTypeObjCMetaClass)):
+            if name in ("<redacted>",) or (
+                type_ not in (lldb.eSymbolTypeCode, lldb.eSymbolTypeData, lldb.eSymbolTypeObjCMetaClass)
+            ):
                 # ignore unnamed symbols and those which are not: data, code or objc classes
                 continue
 
@@ -281,8 +298,8 @@ class HildaClient:
         :param code:
         """
         if not lldb.KEYSTONE_SUPPORT:
-            raise NotImplementedError('Not supported without keystone')
-        bytecode, count = self._ks.asm(code, as_bytes=True)
+            raise NotImplementedError("Not supported without keystone")
+        bytecode, _count = self._ks.asm(code, as_bytes=True)
         return self.poke(address, bytecode)
 
     @stop_is_needed
@@ -294,7 +311,7 @@ class HildaClient:
         :return:
         """
         if size == 0:
-            return b''
+            return b""
 
         err = lldb.SBError()
         retval = self.process.ReadMemory(address, int(size), err)
@@ -311,7 +328,7 @@ class HildaClient:
         :param address:
         :return:
         """
-        return address.po('char *')[1:-1]  # strip the ""
+        return address.po("char *")[1:-1]  # strip the ""
 
     @stop_is_needed
     def peek_std_str(self, address: Symbol) -> str:
@@ -323,16 +340,16 @@ class HildaClient:
         return self._std_string(address)
 
     def stop(self, *args) -> None:
-        """ Stop process. """
+        """Stop process."""
         self.debugger.SetAsync(False)
 
         is_running = self.process.GetState() == lldb.eStateRunning
         if not is_running:
-            self.log_debug('already stopped')
+            self.log_debug("already stopped")
             return
 
         if not self.process.Stop().Success():
-            self.log_critical('failed to stop process')
+            self.log_critical("failed to stop process")
 
     def run_for(self, seconds: float) -> None:
         """
@@ -340,16 +357,16 @@ class HildaClient:
         :return:
         """
         self.cont()
-        self.logger.info(f'Running for {seconds} seconds')
+        self.logger.info(f"Running for {seconds} seconds")
         time.sleep(seconds)
         self.stop()
 
     def cont(self, *args) -> None:
-        """ Continue process. """
+        """Continue process."""
         is_running = self.process.GetState() == lldb.eStateRunning
 
         if is_running:
-            self.log_debug('already running')
+            self.log_debug("already running")
             return
 
         # bugfix:   the debugger may become in sync state, so we make sure
@@ -357,7 +374,7 @@ class HildaClient:
         self.debugger.SetAsync(True)
 
         if not self.process.Continue().Success():
-            self.log_critical('failed to continue process')
+            self.log_critical("failed to continue process")
 
     def detach(self) -> None:
         """
@@ -369,13 +386,14 @@ class HildaClient:
         if not self.process.is_alive:
             return
         if not self.process.Detach().Success():
-            self.log_critical('failed to detach')
+            self.log_critical("failed to detach")
             return
-        self.log_info('Process Detached')
+        self.log_info("Process Detached")
 
     @stop_is_needed
-    def disass(self, address: int, buf: bytes, flavor: str = 'intel',
-               should_print: bool = False) -> lldb.SBInstructionList:
+    def disass(
+        self, address: int, buf: bytes, flavor: str = "intel", should_print: bool = False
+    ) -> lldb.SBInstructionList:
         """
         Print disassembly from a given address
         :param flavor:
@@ -395,10 +413,7 @@ class HildaClient:
         :param address: address as can be seen originally in Mach-O
         :param module_name: Module name to resolve the symbol from
         """
-        if module_name is None:
-            module = self.target
-        else:
-            module = self.target.FindModule(lldb.SBFileSpec(module_name))
+        module = self.target if module_name is None else self.target.FindModule(lldb.SBFileSpec(module_name))
 
         return self.symbol(module.ResolveFileAddress(address).GetLoadAddress(self.target))
 
@@ -461,7 +476,7 @@ class HildaClient:
         with self.stopped():
             return self.evaluate_expression(call_expression)
 
-    def monitor(self, address, condition: str = None, **options) -> HildaBreakpoint:
+    def monitor(self, address, condition: Optional[str] = None, **options) -> HildaBreakpoint:
         """
         Monitor every time a given address is called
 
@@ -470,18 +485,18 @@ class HildaClient:
         return self.breakpoints.add_monitor(address, condition, **options)
 
     def show_current_source(self) -> None:
-        """ print current source code if possible """
-        self.lldb_handle_command('f')
+        """print current source code if possible"""
+        self.lldb_handle_command("f")
 
     def finish(self):
-        """ Run current frame till its end. """
+        """Run current frame till its end."""
         with self.sync_mode():
             self.thread.StepOutOfFrame(self.frame)
             self._bp_frame = None
 
     @stop_is_needed
     def step_into(self, *args):
-        """ Step into current instruction. """
+        """Step into current instruction."""
         with self.sync_mode():
             self.thread.StepInto()
         if self.ui_manager.active:
@@ -489,7 +504,7 @@ class HildaClient:
 
     @stop_is_needed
     def step_over(self, *args):
-        """ Step over current instruction. """
+        """Step over current instruction."""
         with self.sync_mode():
             self.thread.StepOver()
         if self.ui_manager.active:
@@ -503,24 +518,31 @@ class HildaClient:
         :return:
         """
         self.finish()
-        self.set_register('x0', value)
+        self.set_register("x0", value)
 
     def proc_info(self) -> None:
-        """ Print information about currently running mapped process. """
+        """Print information about currently running mapped process."""
         print(self.process)
 
     def print_proc_entitlements(self) -> None:
-        """ Get the plist embedded inside the process' __LINKEDIT section. """
-        linkedit_section = self.target.modules[0].FindSection('__LINKEDIT')
+        """Get the plist embedded inside the process' __LINKEDIT section."""
+        linkedit_section = self.target.modules[0].FindSection("__LINKEDIT")
         linkedit_data = self.symbol(linkedit_section.GetLoadAddress(self.target)).peek(linkedit_section.size)
 
         # just look for the xml start inside the __LINKEDIT section. should be good enough since wer'e not
         # expecting any other XML there
-        entitlements = str(linkedit_data[linkedit_data.find(b'<?xml'):].split(b'\xfa', 1)[0], 'utf8')
+        entitlements = str(linkedit_data[linkedit_data.find(b"<?xml") :].split(b"\xfa", 1)[0], "utf8")
         print(highlight(entitlements, XmlLexer(), TerminalTrueColorFormatter()))
 
-    def bp(self, address_or_name: WhereType, callback: Optional[Callable] = None, condition: Optional[str] = None,
-           guarded: bool = False, description: Optional[str] = None, **options) -> HildaBreakpoint:
+    def bp(
+        self,
+        address_or_name: WhereType,
+        callback: Optional[Callable] = None,
+        condition: Optional[str] = None,
+        guarded: bool = False,
+        description: Optional[str] = None,
+        **options,
+    ) -> HildaBreakpoint:
         """
         Add a breakpoint
 
@@ -549,13 +571,13 @@ class HildaClient:
         :raise EvaluatingExpressionError: LLDB failed to evaluate the expression
         :return: LLDB's po output
         """
-        casted_expression = ''
+        casted_expression = ""
         if cast is not None:
-            casted_expression += '(%s)' % cast
-        casted_expression += f'0x{expression:x}' if isinstance(expression, int) else str(expression)
+            casted_expression += f"({cast})"
+        casted_expression += f"0x{expression:x}" if isinstance(expression, int) else str(expression)
 
         res = lldb.SBCommandReturnObject()
-        self.debugger.GetCommandInterpreter().HandleCommand(f'expression -i 0 -lobjc -O -- {casted_expression}', res)
+        self.debugger.GetCommandInterpreter().HandleCommand(f"expression -i 0 -lobjc -O -- {casted_expression}", res)
         if not res.Succeeded():
             raise EvaluatingExpressionError(res.GetError())
         return res.GetOutput().strip()
@@ -566,16 +588,12 @@ class HildaClient:
         """
         reserved_names = list(globals().keys()) + dir(builtins)
         for name, value in tqdm(self.symbols.items()):
-            if ':' not in name \
-                    and '[' not in name \
-                    and '<' not in name \
-                    and '(' not in name \
-                    and '.' not in name:
+            if ":" not in name and "[" not in name and "<" not in name and "(" not in name and "." not in name:
                 self._add_global(name, value, reserved_names)
 
     def jump(self, symbol: int) -> None:
-        """ jump to given symbol """
-        self.lldb_handle_command(f'j *{symbol}')
+        """jump to given symbol"""
+        self.lldb_handle_command(f"j *{symbol}")
 
     def lldb_handle_command(self, cmd: str, capture_output: bool = False) -> Optional[str]:
         """
@@ -609,7 +627,7 @@ class HildaClient:
         return ret
 
     def CFSTR(self, symbol: int) -> Symbol:
-        """ Create CFStringRef object from given string """
+        """Create CFStringRef object from given string"""
         return self.cf(symbol)
 
     def cf(self, data: CfSerializable) -> Symbol:
@@ -627,11 +645,11 @@ class HildaClient:
         :return: Pointer to a NSObject
         """
         try:
-            json_data = json.dumps({'root': data}, default=self._to_ns_json_default)
+            json_data = json.dumps({"root": data}, default=self._to_ns_json_default)
         except TypeError as e:
             raise ConvertingToNsObjectError from e
-        obj_c_code = (self._hilda_root / 'objective_c' / 'to_ns_from_json.m').read_text()
-        expression = obj_c_code.replace('__json_object_dump__', json_data.replace('"', r'\"'))
+        obj_c_code = (self._hilda_root / "objective_c" / "to_ns_from_json.m").read_text()
+        expression = obj_c_code.replace("__json_object_dump__", json_data.replace('"', r"\""))
         try:
             return self.evaluate_expression(expression)
         except EvaluatingExpressionError as e:
@@ -643,14 +661,14 @@ class HildaClient:
         :param address: NS object.
         :return: Python object.
         """
-        obj_c_code = (self._hilda_root / 'objective_c' / 'from_ns_to_json.m').read_text()
-        address = f'0x{address:x}' if isinstance(address, int) else address
-        expression = obj_c_code.replace('__ns_object_address__', address)
+        obj_c_code = (self._hilda_root / "objective_c" / "from_ns_to_json.m").read_text()
+        address = f"0x{address:x}" if isinstance(address, int) else address
+        expression = obj_c_code.replace("__ns_object_address__", address)
         try:
             json_dump = self.po(expression)
         except EvaluatingExpressionError as e:
             raise ConvertingFromNSObjectError from e
-        return json.loads(json_dump, object_hook=self._from_ns_json_object_hook)['root']
+        return json.loads(json_dump, object_hook=self._from_ns_json_object_hook)["root"]
 
     def evaluate_expression(self, expression: str) -> Union[float, Symbol]:
         """
@@ -666,10 +684,7 @@ class HildaClient:
         :return: Returned value (either float or a Symbol)
         """
         # prepending a prefix so LLDB knows to return an int type
-        if isinstance(expression, int):
-            formatted_expression = f'(intptr_t)0x{expression:x}'
-        else:
-            formatted_expression = str(expression)
+        formatted_expression = f"(intptr_t)0x{expression:x}" if isinstance(expression, int) else str(expression)
 
         options = lldb.SBExpressionOptions()
         options.SetIgnoreBreakpoints(self.configs.evaluation_ignore_breakpoints)
@@ -703,13 +718,13 @@ class HildaClient:
             thread = selection_prompt(self.process.threads)
         else:
             try:
-                thread = [t for t in self.process.threads if t.idx == idx][0]
-            except IndexError:
-                raise InvalidThreadIndexError()
+                thread = next(t for t in self.process.threads if t.idx == idx)
+            except IndexError as e:
+                raise InvalidThreadIndexError() from e
         self.process.SetSelectedThread(thread)
 
     def unwind(self) -> bool:
-        """ Unwind the stack (useful when get_evaluation_unwind() == False) """
+        """Unwind the stack (useful when get_evaluation_unwind() == False)"""
         return self.thread.UnwindInnermostExpression().Success()
 
     @cached_property
@@ -718,14 +733,14 @@ class HildaClient:
 
     @property
     def thread(self):
-        """ Current active thread. """
+        """Current active thread."""
         if self._bp_frame is not None:
             return self._bp_frame.GetThread()
         return self.process.GetSelectedThread()
 
     @property
     def frame(self):
-        """ Current active frame. """
+        """Current active frame."""
         if self._bp_frame is not None:
             return self._bp_frame
         return self.thread.GetSelectedFrame()
@@ -759,7 +774,7 @@ class HildaClient:
         """
         block = self.symbols.malloc(size)
         if block == 0:
-            raise OSError(f'failed to allocate memory of size: {size} bytes')
+            raise OSError(f"failed to allocate memory of size: {size} bytes")
 
         try:
             yield block
@@ -768,7 +783,7 @@ class HildaClient:
 
     @contextmanager
     def sync_mode(self):
-        """ Context-Manager for execution while LLDB is in sync mode. """
+        """Context-Manager for execution while LLDB is in sync mode."""
         is_async = self.debugger.GetAsync()
         self.debugger.SetAsync(False)
         try:
@@ -777,114 +792,115 @@ class HildaClient:
             self.debugger.SetAsync(is_async)
 
     def init_dynamic_environment(self):
-        """ Init session-scoped process dynamic dependencies. """
-        self.log_debug('init dynamic environment')
+        """Init session-scoped process dynamic dependencies."""
+        self.log_debug("init dynamic environment")
         self._dynamic_env_loaded = True
 
-        self.log_debug('disable mach_msg receive errors')
+        self.log_debug("disable mach_msg receive errors")
         try:
             CFRunLoopServiceMachPort_hooks.disable_mach_msg_errors()
         except SymbolAbsentError:
-            self.log_warning('failed to disable mach_msg errors')
+            self.log_warning("failed to disable mach_msg errors")
 
         objc_code = """
         @import ObjectiveC;
         @import Foundation;
         """
-        try:
+        with suppress(EvaluatingExpressionError):
+            # First time is expected to fail - bug in LLDB?
             self.po(objc_code)
-        except EvaluatingExpressionError:
-            # first time is expected to fail. bug in LLDB?
-            pass
 
     def log_warning(self, message):
-        """ Log at warning level """
+        """Log at warning level"""
         self.logger.warning(message)
 
     def log_debug(self, message):
-        """ Log at debug level """
+        """Log at debug level"""
         self.logger.debug(message)
 
     def log_error(self, message):
-        """ Log at error level """
+        """Log at error level"""
         self.logger.error(message)
 
     def log_critical(self, message):
-        """ Log at critical level """
+        """Log at critical level"""
         self.logger.critical(message)
         raise HildaException(message)
 
     def log_info(self, message):
-        """ Log at info level """
+        """Log at info level"""
         self.logger.info(message)
 
     def wait_for_module(self, expression: str) -> None:
-        """ Wait for a module to be loaded using `dlopen` by matching given expression """
+        """Wait for a module to be loaded using `dlopen` by matching given expression"""
         self.log_info(f'Waiting for module name containing "{expression}" to be loaded')
 
         def bp(client: HildaClient, frame, bp_loc, options) -> None:
-            loading_module_name = client.evaluate_expression('$arg1').peek_str()
-            client.log_info(f'Loading module: {loading_module_name}')
+            loading_module_name = client.evaluate_expression("$arg1").peek_str()
+            client.log_info(f"Loading module: {loading_module_name}")
             if expression not in loading_module_name:
                 client.cont()
                 return
             client.finish()
-            client.log_info(f'Desired module has been loaded: {expression}. Process remains stopped')
+            client.log_info(f"Desired module has been loaded: {expression}. Process remains stopped")
             bp_id = bp_loc.GetBreakpoint().GetID()
             client.breakpoints.remove(bp_id)
 
-        self.bp('dlopen', bp)
+        self.bp("dlopen", bp)
         self.cont()
 
     def show_help(self, *_) -> None:
         """
         Show banner help message
         """
-        help_snippets = [HelpSnippet(key='p', description='Global to access all features')]
+        help_snippets = [HelpSnippet(key="p", description="Global to access all features")]
         for keybinding in get_keybindings(self):
             help_snippets.append(HelpSnippet(key=keybinding.key.upper(), description=keybinding.description))
 
         for help_snippet in help_snippets:
             click.echo(help_snippet)
 
-    def interact(self, additional_namespace: Optional[typing.Mapping] = None,
-                 startup_files: Optional[list[str]] = None) -> None:
-        """ Start an interactive Hilda shell """
+    def interact(
+        self, additional_namespace: Optional[typing.Mapping] = None, startup_files: Optional[list[str]] = None
+    ) -> None:
+        """Start an interactive Hilda shell"""
         if not self._dynamic_env_loaded:
             self.init_dynamic_environment()
 
         # Show greeting
-        click.secho('Hilda has been successfully loaded! 😎', bold=True)
-        click.secho('Usage:', bold=True)
+        click.secho("Hilda has been successfully loaded! 😎", bold=True)
+        click.secho("Usage:", bold=True)
         self.show_help()
-        click.echo(click.style('Have a nice flight ✈️! Starting an IPython shell...', bold=True))
+        click.echo(click.style("Have a nice flight ✈️! Starting an IPython shell...", bold=True))
 
         # Configure and start IPython shell
         ipython_config = Config()
         ipython_config.IPCompleter.use_jedi = False
-        ipython_config.BaseIPythonApplication.profile = 'hilda'
-        ipython_config.InteractiveShellApp.extensions = ['hilda.ipython_extensions.magics',
-                                                         'hilda.ipython_extensions.events',
-                                                         'hilda.ipython_extensions.keybindings']
-        ipython_config.InteractiveShellApp.exec_lines = ['disable_logs()']
+        ipython_config.BaseIPythonApplication.profile = "hilda"
+        ipython_config.InteractiveShellApp.extensions = [
+            "hilda.ipython_extensions.magics",
+            "hilda.ipython_extensions.events",
+            "hilda.ipython_extensions.keybindings",
+        ]
+        ipython_config.InteractiveShellApp.exec_lines = ["disable_logs()"]
         if startup_files is not None:
             ipython_config.InteractiveShellApp.exec_files = startup_files
-            self.log_debug(f'Startup files - {startup_files}')
+            self.log_debug(f"Startup files - {startup_files}")
 
         namespace = self.globals
-        namespace['p'] = self
-        namespace['ui'] = self.ui_manager
-        namespace['cfg'] = self.configs
+        namespace["p"] = self
+        namespace["ui"] = self.ui_manager
+        namespace["cfg"] = self.configs
         if additional_namespace is not None:
             namespace.update(additional_namespace)
-        sys.argv = ['a']
+        sys.argv = ["a"]
         IPython.start_ipython(config=ipython_config, user_ns=namespace)
 
     def toggle_enable_stdout_stderr(self, *args) -> None:
         self.configs.enable_stdout_stderr = not self.configs.enable_stdout_stderr
-        self.logger.info(f'Changed stdout and stderr status to: {self.configs.enable_stdout_stderr}')
+        self.logger.info(f"Changed stdout and stderr status to: {self.configs.enable_stdout_stderr}")
 
-    def __enter__(self) -> 'HildaClient':
+    def __enter__(self) -> "HildaClient":
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -897,14 +913,14 @@ class HildaClient:
 
     @staticmethod
     def _get_saved_state_filename():
-        return '/tmp/cache.hilda'
+        return "/tmp/cache.hilda"
 
     @staticmethod
     def _to_ns_json_default(obj):
         if isinstance(obj, bytes):
-            return f'__hilda_magic_key__|NSData|{base64.b64encode(obj).decode()}'
+            return f"__hilda_magic_key__|NSData|{base64.b64encode(obj).decode()}"
         elif isinstance(obj, datetime):
-            return f'__hilda_magic_key__|NSDate|{obj.timestamp()}'
+            return f"__hilda_magic_key__|NSDate|{obj.timestamp()}"
         raise TypeError
 
     @staticmethod
@@ -918,45 +934,45 @@ class HildaClient:
     def _from_ns_parse_function(obj):
         if isinstance(obj, list):
             return list(map(HildaClient._from_ns_parse_function, obj))
-        if not isinstance(obj, str) or not obj.startswith('__hilda_magic_key__'):
+        if not isinstance(obj, str) or not obj.startswith("__hilda_magic_key__"):
             return obj
-        _, type_, data = obj.split('|')
-        if type_ == 'NSData':
+        _, type_, data = obj.split("|")
+        if type_ == "NSData":
             return base64.b64decode(data)
-        if type_ == 'NSDictionary':
+        if type_ == "NSDictionary":
             return tuple(json.loads(data, object_hook=HildaClient._from_ns_json_object_hook).items())
-        if type_ == 'NSArray':
+        if type_ == "NSArray":
             return tuple(json.loads(data, object_hook=HildaClient._from_ns_json_object_hook))
-        if type_ == 'NSNumber':
+        if type_ == "NSNumber":
             return eval(data)
-        if type_ == 'NSNull':
+        if type_ == "NSNull":
             return None
-        if type_ == 'NSDate':
+        if type_ == "NSDate":
             return datetime.fromtimestamp(eval(data), timezone.utc)
 
     def _serialize_call_params(self, argv):
         args_conv = []
         for arg in argv:
-            if isinstance(arg, str) or isinstance(arg, bytes):
+            if isinstance(arg, (str, bytes)):
                 if isinstance(arg, str):
                     arg = arg.encode()
-                arg = ''.join([f'\\x{b:02x}' for b in arg])
+                arg = "".join([f"\\x{b:02x}" for b in arg])
                 args_conv.append(f'(intptr_t)"{arg}"')
-            elif isinstance(arg, int) or isinstance(arg, Symbol):
-                arg = int(arg) & 0xffffffffffffffff
-                args_conv.append(f'0x{arg:x}')
+            elif isinstance(arg, (int, Symbol)):
+                arg = int(arg) & 0xFFFFFFFFFFFFFFFF
+                args_conv.append(f"0x{arg:x}")
             else:
-                raise NotImplementedError('cannot serialize argument')
+                raise NotImplementedError("cannot serialize argument")
         return args_conv
 
     def _generate_call_expression(self, address, params):
-        args_type = ','.join(['intptr_t'] * len(params))
-        args_conv = ','.join(params)
+        args_type = ",".join(["intptr_t"] * len(params))
+        args_conv = ",".join(params)
 
-        if self.arch == 'arm64e':
-            address = f'ptrauth_sign_unauthenticated((void *){address}, ptrauth_key_asia, 0)'
+        if self.arch == "arm64e":
+            address = f"ptrauth_sign_unauthenticated((void *){address}, ptrauth_key_asia, 0)"
 
-        return f'((intptr_t(*)({args_type}))({address}))({args_conv})'
+        return f"((intptr_t(*)({args_type}))({address}))({args_conv})"
 
     @staticmethod
     def _std_string(value: Symbol) -> str:
@@ -967,28 +983,34 @@ class HildaClient:
 
     @cached_property
     def _object_identifier(self) -> Symbol:
-        return self.symbols.objc_getClass('VMUObjectIdentifier').objc_call('alloc').objc_call(
-            'initWithTask:', self.symbols.mach_task_self())
+        return (
+            self.symbols
+            .objc_getClass("VMUObjectIdentifier")
+            .objc_call("alloc")
+            .objc_call("initWithTask:", self.symbols.mach_task_self())
+        )
 
     @cached_property
-    def _ks(self) -> Optional['Ks']:
+    def _ks(self) -> Optional["Ks"]:
         if not lldb.KEYSTONE_SUPPORT:
             return False
-        platforms = {'arm64': Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
-                     'arm64e': Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
-                     'x86_64h': Ks(KS_ARCH_X86, KS_MODE_64)}
+        platforms = {
+            "arm64": Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
+            "arm64e": Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN),
+            "x86_64h": Ks(KS_ARCH_X86, KS_MODE_64),
+        }
         return platforms.get(self.arch)
 
     def _get_module_class_list(self, module_name: str):
         for m in self.target.module_iter():
             if module_name != m.file.basename:
                 continue
-            objc_classlist = m.FindSection('__DATA').FindSubSection('__objc_classlist')
+            objc_classlist = m.FindSection("__DATA").FindSubSection("__objc_classlist")
             objc_classlist_addr = self.symbol(objc_classlist.GetLoadAddress(self.target))
-            obj_c_code = (self._hilda_root / 'objective_c' / 'get_objectivec_class_by_module.m').read_text()
-            obj_c_code = obj_c_code.replace('__count_objc_class', f'{objc_classlist.size // 8}').replace(
-                '__objc_class_list',
-                f'{objc_classlist_addr}')
+            obj_c_code = (self._hilda_root / "objective_c" / "get_objectivec_class_by_module.m").read_text()
+            obj_c_code = obj_c_code.replace("__count_objc_class", f"{objc_classlist.size // 8}").replace(
+                "__objc_class_list", f"{objc_classlist_addr}"
+            )
             return json.loads(self.po(obj_c_code))
 
     def _get_symbol_or_float_from_sbvalue(self, value: lldb.SBValue) -> Union[float, Symbol]:

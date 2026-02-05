@@ -5,7 +5,7 @@ from hilda.lldb_importer import lldb
 def _CFRunLoopServiceMachPort_hook(hilda, *args):
     """
     :param hilda.hilda_client.HildaClient hilda:
-     """
+    """
     hilda.jump(hilda.CFRunLoopServiceMachPort_while_ea)
     hilda.cont()
 
@@ -20,24 +20,24 @@ def _disable_internal_error_handling() -> None:
                 # Beginning of the `while(true) { ... }`
                 while_ea = instruction.GetOperands(hilda.target)
                 hilda.CFRunLoopServiceMachPort_while_ea = int(hilda.file_symbol(eval(while_ea)))
-            elif instruction.GetMnemonic(hilda.target) in ('brk', 'ud2'):
+            elif instruction.GetMnemonic(hilda.target) in ("brk", "ud2"):
                 symbol = hilda.symbol(instruction.addr.GetLoadAddress(hilda.target))
-                description = f'__CFRunLoopServiceMachPort-brk-{int(symbol - hilda.symbols.__CFRunLoopServiceMachPort)}'
+                description = f"__CFRunLoopServiceMachPort-brk-{int(symbol - hilda.symbols.__CFRunLoopServiceMachPort)}"
                 symbol.bp(_CFRunLoopServiceMachPort_hook, guarded=True, description=description)
 
-    if hilda.arch == 'x86_64h':
+    if hilda.arch == "x86_64h":
         return
 
     # on iOS 16.x, will need to also patch this one
     try:
-        handle_error = hilda.symbols['__CFRunLoopServiceMachPort.cold.1']
+        handle_error = hilda.symbols["__CFRunLoopServiceMachPort.cold.1"]
     except SymbolAbsentError:
         return
 
     for instruction in handle_error.disass(2000, should_print=False):
-        if instruction.GetMnemonic(hilda.target) in ('brk', 'ud2'):
+        if instruction.GetMnemonic(hilda.target) in ("brk", "ud2"):
             # mov x0, x0
-            hilda.symbol(instruction.addr.GetLoadAddress(hilda.target)).poke(b'\xe0\x03\x00\xaa')
+            hilda.symbol(instruction.addr.GetLoadAddress(hilda.target)).poke(b"\xe0\x03\x00\xaa")
 
 
 def _disable_mach_msg_timeout() -> None:
@@ -70,18 +70,18 @@ def _disable_mach_msg_timeout() -> None:
         return
 
     hilda = lldb.hilda_client
-    if hilda.arch == 'x86_64h':
+    if hilda.arch == "x86_64h":
         return
 
     with hilda.stopped():
         for inst in hilda.symbols.__CFRunLoopServiceMachPort.disass(200, should_print=False):
             mnemonic = inst.GetMnemonic(hilda.target)
             operands = inst.GetOperands(hilda.target)
-            if mnemonic != 'mov' or not operands.endswith('x3'):
+            if mnemonic != "mov" or not operands.endswith("x3"):
                 continue
             addr = inst.GetAddress()
             file_addr = addr.GetFileAddress()
-            new_inst = f'{mnemonic} {operands.replace("x3", "0")}'
+            new_inst = f"{mnemonic} {operands.replace('x3', '0')}"
             hilda.file_symbol(file_addr).poke_text(new_inst)
             break
 

@@ -16,12 +16,11 @@ logger = logging.getLogger(__name__)
 
 
 def execute(cmd: str) -> int:
-    logging.debug(f'executing: {cmd}')
+    logging.debug(f"executing: {cmd}")
     return os.system(cmd)
 
 
 class LLDBListenerThread(Thread, ABC):
-
     def __init__(self):
         super().__init__()
         lldb.SBDebugger.Initialize()
@@ -64,9 +63,12 @@ class LLDBListenerThread(Thread, ABC):
     def _get_stopped_threads(self, reason: Optional[int] = None) -> list[lldb.SBThread]:
         if reason is None:
             stop_reasons = [
-                lldb.eStopReasonSignal, lldb.eStopReasonException,
-                lldb.eStopReasonBreakpoint, lldb.eStopReasonWatchpoint,
-                lldb.eStopReasonPlanComplete, lldb.eStopReasonTrace,
+                lldb.eStopReasonSignal,
+                lldb.eStopReasonException,
+                lldb.eStopReasonBreakpoint,
+                lldb.eStopReasonWatchpoint,
+                lldb.eStopReasonPlanComplete,
+                lldb.eStopReasonTrace,
             ]
         else:
             stop_reasons = [reason]
@@ -97,15 +99,15 @@ class LLDBListenerThread(Thread, ABC):
 
             state = self.process.GetStateFromEvent(event)
             if state == lldb.eStateDetached:
-                logger.debug('Process Detached')
+                logger.debug("Process Detached")
                 self.should_quit = True
             elif state == lldb.eStateExited:
-                logger.info(f'Process Exited with status {self.process.GetExitStatus()}')
+                logger.info(f"Process Exited with status {self.process.GetExitStatus()}")
                 self.should_quit = True
             elif state == lldb.eStateRunning and last_state == lldb.eStateStopped:
-                logger.debug('Process Continued')
+                logger.debug("Process Continued")
             elif state == lldb.eStateStopped and last_state == lldb.eStateRunning:
-                logger.debug('Process Stopped')
+                logger.debug("Process Stopped")
                 self._set_selected_thread_to_stopped_thread()
 
             last_state = state
@@ -113,11 +115,11 @@ class LLDBListenerThread(Thread, ABC):
 
 class LLDBRemote(LLDBListenerThread):
     def __init__(self, address: str, port: int = 1234):
-        self.url_connect = f'connect://{address}:{port}'
+        self.url_connect = f"connect://{address}:{port}"
         super().__init__()
 
     def _create_target(self) -> lldb.SBTarget:
-        return self.debugger.CreateTarget('')
+        return self.debugger.CreateTarget("")
 
     def _create_process(self) -> lldb.SBProcess:
         logger.debug(f'Connecting to "{self.url_connect}"')
@@ -125,7 +127,6 @@ class LLDBRemote(LLDBListenerThread):
 
 
 class LLDBAttachPid(LLDBListenerThread):
-
     def __init__(self, pid: int):
         self.pid = pid
         super().__init__()
@@ -134,12 +135,11 @@ class LLDBAttachPid(LLDBListenerThread):
         return self.debugger.CreateTargetWithFileAndArch(None, None)
 
     def _create_process(self) -> lldb.SBProcess:
-        logger.debug(f'Attaching to {self.pid}')
+        logger.debug(f"Attaching to {self.pid}")
         return self.target.AttachToProcessWithID(self.listener, self.pid, self.error)
 
 
 class LLDBAttachName(LLDBListenerThread):
-
     def __init__(self, proc_name: str, wait_for: bool = False):
         self.proc_name = proc_name
         self.wait_for = wait_for
@@ -149,15 +149,22 @@ class LLDBAttachName(LLDBListenerThread):
         return self.debugger.CreateTargetWithFileAndArch(None, None)
 
     def _create_process(self) -> lldb.SBProcess:
-        logger.debug(f'Attaching to {self.proc_name}')
+        logger.debug(f"Attaching to {self.proc_name}")
         return self.target.AttachToProcessWithName(self.listener, self.proc_name, self.wait_for, self.error)
 
 
 class LLDBLaunch(LLDBListenerThread):
-    def __init__(self, exec_path: str, argv: Optional[list[str]] = None, envp: Optional[list[str]] = None,
-                 stdin: Optional[str] = None,
-                 stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
-                 flags: Optional[int] = 0):
+    def __init__(
+        self,
+        exec_path: str,
+        argv: Optional[list[str]] = None,
+        envp: Optional[list[str]] = None,
+        stdin: Optional[str] = None,
+        stdout: Optional[str] = None,
+        stderr: Optional[str] = None,
+        wd: Optional[str] = None,
+        flags: Optional[int] = 0,
+    ):
         self.exec_path = exec_path
         self.stdout = stdout
         self.stdin = stdin
@@ -175,11 +182,19 @@ class LLDBLaunch(LLDBListenerThread):
         # Launch(SBTarget self, SBListener listener, char const ** argv, char const ** envp,
         # char const * stdin_path, char const * stdout_path, char const * stderr_path, char const * working_directory,
         # uint32_t launch_flags, bool stop_at_entry, SBError error) -> SBProcess
-        logger.debug(f'Launching process  {self.exec_path}')
-        return self.target.Launch(self.listener, self.argv, self.envp,
-                                  self.stdin, self.stdout, self.stderr, self.working_directory,
-                                  self.flags, True,
-                                  self.error)
+        logger.debug(f"Launching process  {self.exec_path}")
+        return self.target.Launch(
+            self.listener,
+            self.argv,
+            self.envp,
+            self.stdin,
+            self.stdout,
+            self.stderr,
+            self.working_directory,
+            self.flags,
+            True,
+            self.error,
+        )
 
 
 def _get_hilda_client_from_sbdebugger(debugger: lldb.SBDebugger) -> HildaClient:
@@ -189,17 +204,22 @@ def _get_hilda_client_from_sbdebugger(debugger: lldb.SBDebugger) -> HildaClient:
     return hilda_client
 
 
-def create_hilda_client_using_remote_attach(
-        hostname: str, port: int) -> HildaClient:
+def create_hilda_client_using_remote_attach(hostname: str, port: int) -> HildaClient:
     lldb_t = LLDBRemote(hostname, port)
     lldb_t.start()
     return _get_hilda_client_from_sbdebugger(lldb_t.debugger)
 
 
 def create_hilda_client_using_launch(
-        exec_path: str, argv: Optional[list] = None, envp: Optional[list] = None, stdin: Optional[str] = None,
-        stdout: Optional[str] = None, stderr: Optional[str] = None, wd: Optional[str] = None,
-        flags: Optional[int] = 0) -> HildaClient:
+    exec_path: str,
+    argv: Optional[list] = None,
+    envp: Optional[list] = None,
+    stdin: Optional[str] = None,
+    stdout: Optional[str] = None,
+    stderr: Optional[str] = None,
+    wd: Optional[str] = None,
+    flags: Optional[int] = 0,
+) -> HildaClient:
     lldb_t = LLDBLaunch(exec_path, argv, envp, stdin, stdout, stderr, wd, flags)
     lldb_t.start()
     return _get_hilda_client_from_sbdebugger(lldb_t.debugger)

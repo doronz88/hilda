@@ -6,7 +6,8 @@ from hilda.ui.views import BackTraceView, DisassemblyView, RegistersView, StackV
 
 
 class DotDict(OrderedDict):
-    """ Extends `OrderedDict` to access items using dot """
+    """Extends `OrderedDict` to access items using dot"""
+
     __slots__ = ["__recursion_lock__"]
 
     def __getattr__(self, name):
@@ -15,8 +16,8 @@ class DotDict(OrderedDict):
                 return object.__getattribute__(self, name)
             else:
                 return self[name]
-        except KeyError:
-            raise AttributeError(name)
+        except KeyError as e:
+            raise AttributeError(name) from e
 
     def __setattr__(self, name, value):
         try:
@@ -24,13 +25,13 @@ class DotDict(OrderedDict):
                 return object.__setattr__(self, name, value)
             else:
                 self[name] = value
-        except KeyError:
-            raise AttributeError(name)
+        except KeyError as e:
+            raise AttributeError(name) from e
 
 
 class ColorScheme(DotDict):
     def __init__(self, scheme: Path):
-        with scheme.open('r') as f:
+        with scheme.open("r") as f:
             data = json.load(f)
         super().__init__(data)
 
@@ -48,8 +49,7 @@ class UiManager:
     - Views can be disabled from terminal (Setting `ui_manager.color.title=False`)
     """
 
-    def __init__(self, hilda_client, scheme_file=Path(__file__).parent / 'colors.json',
-                 active: bool = True):
+    def __init__(self, hilda_client, scheme_file=Path(__file__).parent / "colors.json", active: bool = True):
         """
         :param hilda_client: hilda.hilda_client.HildaClient
         :param scheme_file: pathlib.Path
@@ -57,10 +57,10 @@ class UiManager:
         """
         self.colors = ColorScheme(scheme_file)
         self.views = ViewsManager({
-            'registers': RegistersView(hilda_client, self.colors),
-            'disassembly': DisassemblyView(hilda_client, self.colors),
-            'stack': StackView(hilda_client, self.colors),
-            'backtrace': BackTraceView(hilda_client, self.colors)
+            "registers": RegistersView(hilda_client, self.colors),
+            "disassembly": DisassemblyView(hilda_client, self.colors),
+            "stack": StackView(hilda_client, self.colors),
+            "backtrace": BackTraceView(hilda_client, self.colors),
         })
         self.active = active
 
@@ -71,4 +71,4 @@ class UiManager:
             if view.active is False:
                 continue
             fmt_parts.append(str(view))
-        print('\n'.join(fmt_parts))
+        print("\n".join(fmt_parts))

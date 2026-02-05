@@ -1,5 +1,7 @@
-from typing import Callable, Generator, Optional, Union
+from collections.abc import Generator
+from typing import Callable, Optional, Union
 
+from hilda.exceptions import HildaException
 from hilda.lldb_importer import lldb
 
 
@@ -35,7 +37,7 @@ class HildaWatchpoint:
 
     @property
     def id(self) -> int:
-        """ A number identifying the watchpoint. """
+        """A number identifying the watchpoint."""
         return self.lldb_watchpoint.GetID()
 
     @property
@@ -52,8 +54,9 @@ class HildaWatchpoint:
     def callback(self, callback: Optional[Callable]) -> None:
         self._callback = callback
         # TODO: Figure out a way to add set this callback programmatically
-        self._hilda.lldb_handle_command(f'watchpoint command add -F '
-                                        f'lldb.hilda_client.watchpoints._dispatch_watchpoint_callback {self.id}')
+        self._hilda.lldb_handle_command(
+            f"watchpoint command add -F lldb.hilda_client.watchpoints._dispatch_watchpoint_callback {self.id}"
+        )
 
     @property
     def condition(self) -> Optional[str]:
@@ -92,17 +95,17 @@ class HildaWatchpoint:
         self.lldb_watchpoint.SetEnabled(value)
 
     def __repr__(self) -> str:
-        return f'<{self.__class__.__name__} LLDB:{self.lldb_watchpoint} CALLBACK:{self.callback}>'
+        return f"<{self.__class__.__name__} LLDB:{self.lldb_watchpoint} CALLBACK:{self.callback}>"
 
     def __str__(self) -> str:
-        emoji = '🚨' if self.enabled else '🔕'
-        enabled_str = 'enabled' if self.enabled else 'disabled'
-        result = f'{emoji} Watchpoint #{self.id} ({enabled_str})\n'
+        emoji = "🚨" if self.enabled else "🔕"
+        enabled_str = "enabled" if self.enabled else "disabled"
+        result = f"{emoji} Watchpoint #{self.id} ({enabled_str})\n"
 
         if self.where is not None:
-            result += f'\tWhere: {self.where}\n'
+            result += f"\tWhere: {self.where}\n"
 
-        return result.strip('\n')
+        return result.strip("\n")
 
     def remove(self) -> None:
         """
@@ -181,13 +184,20 @@ class WatchpointList:
 
         wp_id = wp.GetID()
         if wp_id not in self._watchpoints:
-            self._hilda.log_debug(f'Found a watchpoint added outside of the Hilda API {wp}')
+            self._hilda.log_debug(f"Found a watchpoint added outside of the Hilda API {wp}")
             self._watchpoints[wp_id] = HildaWatchpoint(self._hilda, wp)
 
         return self._watchpoints[wp_id]
 
-    def add(self, where: int, size: int = 8, read: bool = True, write: bool = True,
-            callback: Optional[Callable] = None, condition: str = None) -> HildaWatchpoint:
+    def add(
+        self,
+        where: int,
+        size: int = 8,
+        read: bool = True,
+        write: bool = True,
+        callback: Optional[Callable] = None,
+        condition: Optional[str] = None,
+    ) -> HildaWatchpoint:
         """
         Add a watchpoint.
 
@@ -205,7 +215,7 @@ class WatchpointList:
         error = lldb.SBError()
         wp = self._hilda.target.WatchAddress(where, size, read, write, error)
         if not wp.IsValid():
-            raise Exception(f'Failed to create watchpoint at {where} ({error})')
+            raise HildaException(f"Failed to create watchpoint at {where} ({error})")
 
         wp = HildaWatchpoint(self._hilda, wp, where)
         wp.callback = callback
@@ -213,7 +223,7 @@ class WatchpointList:
 
         self._watchpoints[wp.id] = wp
 
-        self._hilda.log_info(f'Watchpoint #{wp.id} has been set')
+        self._hilda.log_info(f"Watchpoint #{wp.id} has been set")
         return wp
 
     def remove(self, id_or_wp: Union[int, HildaWatchpoint]) -> None:
@@ -225,7 +235,7 @@ class WatchpointList:
         wp = self[id_or_wp]
         watchpoint_id = wp.id
         self._hilda.target.DeleteWatchpoint(watchpoint_id)
-        self._hilda.log_debug(f'Watchpoint #{watchpoint_id} has been removed')
+        self._hilda.log_debug(f"Watchpoint #{watchpoint_id} has been removed")
 
     def clear(self) -> None:
         """
@@ -235,9 +245,9 @@ class WatchpointList:
             self.remove(wp)
 
     def show(self) -> None:
-        """ Show existing watchpoints. """
+        """Show existing watchpoints."""
         if len(self) == 0:
-            self._hilda.log_info('No watchpoints')
+            self._hilda.log_info("No watchpoints")
         for wp in self:
             self._hilda.log_info(wp)
 

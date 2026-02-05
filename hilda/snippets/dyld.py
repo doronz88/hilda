@@ -12,8 +12,9 @@ def all_image_infos():
 @cached_property
 def version():
     with lldb.hilda_client.stopped(1):
-        return \
-            lldb.hilda_client.symbols.dyldVersionString.peek_str().decode('utf-8').split("PROJECT", 1)[1].split("\n")[0]
+        return (
+            lldb.hilda_client.symbols.dyldVersionString.peek_str().decode("utf-8").split("PROJECT", 1)[1].split("\n")[0]
+        )
 
 
 def enable_syslog():
@@ -26,21 +27,19 @@ def enable_syslog():
         client.symbols._ZN4dyldL10sLogSocketE.item_size = 4
         client.symbols._ZN4dyldL10sLogSocketE[0] = 0xFFFFFFFF
         options = (
-            'DYLD_PRINT_APIS',
-            'DYLD_PRINT_APIS_APP',
-            'DYLD_PRINT_BINDINGS'
-            'DYLD_PRINT_DOFS',
-            'DYLD_PRINT_INITIALIZERS',
-            'DYLD_PRINT_INTERPOSING',
-            'DYLD_PRINT_LIBRARIES',
-            'DYLD_PRINT_LIBRARIES_POST_LAUNCH',
-            'DYLD_PRINT_NOTIFICATIONS',
-            'DYLD_PRINT_STATSTICS'
-            'DYLD_PRINT_STATSTICS_DETAILS',
-            'DYLD_PRINT_SEGMENTS',
-            'DYLD_PRINT_WEAK_BINDINGS',
-            'DYLD_PRINT_OPTS',
-            'DYLD_PRINT_WARNINGS',
+            "DYLD_PRINT_APIS",
+            "DYLD_PRINT_APIS_APP",
+            "DYLD_PRINT_BINDINGSDYLD_PRINT_DOFS",
+            "DYLD_PRINT_INITIALIZERS",
+            "DYLD_PRINT_INTERPOSING",
+            "DYLD_PRINT_LIBRARIES",
+            "DYLD_PRINT_LIBRARIES_POST_LAUNCH",
+            "DYLD_PRINT_NOTIFICATIONS",
+            "DYLD_PRINT_STATSTICSDYLD_PRINT_STATSTICS_DETAILS",
+            "DYLD_PRINT_SEGMENTS",
+            "DYLD_PRINT_WEAK_BINDINGS",
+            "DYLD_PRINT_OPTS",
+            "DYLD_PRINT_WARNINGS",
         )
 
         open_syslog_socket()
@@ -49,7 +48,7 @@ def enable_syslog():
             for i, option in enumerate(options):
                 # enable for /usr/lib/dyld via dyld::processDyldEnvironmentVariable(option)
                 client.symbols._ZN4dyld30processDyldEnvironmentVariableEPKcS1_S1_(option)
-                variable = f'{option}=1'
+                variable = f"{option}=1"
                 envp[i] = client.symbols.malloc(len(option) + 10)
                 envp[i].poke(variable)
 

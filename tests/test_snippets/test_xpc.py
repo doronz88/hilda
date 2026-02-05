@@ -5,7 +5,7 @@ def test_from_xpc_object(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    xpc_object = hilda_client.evaluate_expression('''
+    xpc_object = hilda_client.evaluate_expression("""
         typedef void * xpc_object_t;
         typedef void * xpc_activity_t;
         typedef void (^xpc_activity_handler_t)(xpc_activity_t activity);
@@ -19,5 +19,5 @@ def test_from_xpc_object(hilda_client):
         xpc_dictionary_set_int64(criteria, "GracePeriod", 1);
         xpc_dictionary_set_string(criteria, "Priority", "Utility");
         criteria;
-    ''')
-    assert xpc.from_xpc_object(xpc_object) == {'Delay': 5, 'Priority': 'Utility', 'GracePeriod': 1}
+    """)
+    assert xpc.from_xpc_object(xpc_object) == {"Delay": 5, "Priority": "Utility", "GracePeriod": 1}

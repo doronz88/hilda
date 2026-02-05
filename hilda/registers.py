@@ -4,7 +4,7 @@ class Registers:
     """
 
     def __init__(self, client):
-        self.__dict__['_client'] = client
+        self.__dict__["_client"] = client
 
     def __getattr__(self, item):
         return self._client.get_register(item)
@@ -26,5 +26,5 @@ class Registers:
         return result
 
     def show(self):
-        """ Show current frame's registers """
+        """Show current frame's registers"""
         print(self._client.frame.register.regs)

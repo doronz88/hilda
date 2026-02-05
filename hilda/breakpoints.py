@@ -1,7 +1,9 @@
-from typing import Any, Callable, Generator, Optional, Union
+from collections.abc import Generator
+from typing import Any, Callable, Optional, Union
 
 import inquirer3
 
+from hilda.exceptions import HildaException
 from hilda.lldb_importer import lldb
 from hilda.symbol import Symbol
 
@@ -20,8 +22,13 @@ class HildaBreakpoint:
     Hilda's class representing an LLDB breakpoint, with some optional additional properties
     """
 
-    def __init__(self, hilda, lldb_breakpoint: lldb.SBBreakpoint,
-                 where: Optional[WhereType] = None, description: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        hilda,
+        lldb_breakpoint: lldb.SBBreakpoint,
+        where: Optional[WhereType] = None,
+        description: Optional[str] = None,
+    ) -> None:
         """
         Initialize a HildaBreakpoint.
 
@@ -45,12 +52,12 @@ class HildaBreakpoint:
 
     @property
     def where(self) -> Optional[WhereType]:
-        """ Where the breakpoint was set (when it was created). """
+        """Where the breakpoint was set (when it was created)."""
         return self._where
 
     @property
     def id(self) -> int:
-        """ A number identifying the breakpoint. """
+        """A number identifying the breakpoint."""
         return self.lldb_breakpoint.GetID()
 
     @property
@@ -68,11 +75,12 @@ class HildaBreakpoint:
 
         if callback is not None:
             self.lldb_breakpoint.SetScriptCallbackFunction(
-                'lldb.hilda_client.breakpoints._dispatch_breakpoint_callback')
+                "lldb.hilda_client.breakpoints._dispatch_breakpoint_callback"
+            )
 
     @property
     def condition(self) -> Optional[str]:
-        """ An LLDB expression to make this a conditional breakpoint. """
+        """An LLDB expression to make this a conditional breakpoint."""
         return self.lldb_breakpoint.GetCondition()
 
     @condition.setter
@@ -81,7 +89,7 @@ class HildaBreakpoint:
 
     @property
     def locations(self) -> list[lldb.SBBreakpointLocation]:
-        """ LLDB locations array the breakpoint relates to. """
+        """LLDB locations array the breakpoint relates to."""
         return self.lldb_breakpoint.locations
 
     @property
@@ -94,9 +102,9 @@ class HildaBreakpoint:
         if len(names) == 0:
             return None
         if len(names) != 1:
-            raise ValueError(f'Breakpoint {self.id} has multiple names {names}')
+            raise ValueError(f"Breakpoint {self.id} has multiple names {names}")
 
-        name, = names
+        (name,) = names
         return name
 
     @name.setter
@@ -105,16 +113,16 @@ class HildaBreakpoint:
 
     @property
     def names(self) -> set[str]:
-        """ The set of names of the breakpoint. """
+        """The set of names of the breakpoint."""
         name_list = lldb.SBStringList()
         self.lldb_breakpoint.GetNames(name_list)
-        return set(name_list.GetStringAtIndex(i) for i in range(name_list.GetSize()))
+        return {name_list.GetStringAtIndex(i) for i in range(name_list.GetSize())}
 
     @names.setter
     def names(self, names: Union[set[str], list[str]]) -> None:
         new_names = set(names)
         if len(new_names) != len(names):
-            raise ValueError(f'Duplicate names in {names}')
+            raise ValueError(f"Duplicate names in {names}")
 
         current_names = self.names
         names_to_remove = current_names - new_names
@@ -136,32 +144,34 @@ class HildaBreakpoint:
         self.lldb_breakpoint.SetEnabled(value)
 
     def __repr__(self) -> str:
-        enabled_repr = 'ENABLED' if self.enabled else 'DISABLED'
-        guarded_repr = 'GUARDED' if self.guarded else 'NOT-GUARDED'
-        return (f'<{self.__class__.__name__} LLDB:{self.lldb_breakpoint} {enabled_repr} {guarded_repr} '
-                f'CALLBACK:{self.callback}>')
+        enabled_repr = "ENABLED" if self.enabled else "DISABLED"
+        guarded_repr = "GUARDED" if self.guarded else "NOT-GUARDED"
+        return (
+            f"<{self.__class__.__name__} LLDB:{self.lldb_breakpoint} {enabled_repr} {guarded_repr} "
+            f"CALLBACK:{self.callback}>"
+        )
 
     def __str__(self) -> str:
-        emoji = '🚨' if self.enabled else '🔕'
-        enabled_str = 'enabled' if self.enabled else 'disabled'
-        guarded_str = 'guarded' if self.guarded else 'not-guarded'
+        emoji = "🚨" if self.enabled else "🔕"
+        enabled_str = "enabled" if self.enabled else "disabled"
+        guarded_str = "guarded" if self.guarded else "not-guarded"
 
-        result = f'{emoji} Breakpoint #{self.id} ({enabled_str}, {guarded_str})\n'
+        result = f"{emoji} Breakpoint #{self.id} ({enabled_str}, {guarded_str})\n"
 
         if self.description is not None:
-            result += f'\tDescription: {self.description}\n'
+            result += f"\tDescription: {self.description}\n"
 
         if self.where is not None:
-            result += f'\tWhere: {self.where}\n'
+            result += f"\tWhere: {self.where}\n"
 
         # A single breakpoint may be related to several locations (addresses)
         locations = self.locations
         if len(locations) == 0:
-            result += '\tNo locations\n'
+            result += "\tNo locations\n"
         for location in self.locations:
-            result += f'\tLocation {location}\n'
+            result += f"\tLocation {location}\n"
 
-        return result.strip('\n')
+        return result.strip("\n")
 
     def remove(self, remove_guarded: bool = False) -> None:
         """
@@ -251,13 +261,20 @@ class BreakpointList:
 
         bp_id = bp.GetID()
         if bp_id not in self._breakpoints:
-            self._hilda.log_debug(f'Found a breakpoint added outside of the Hilda API {bp}')
+            self._hilda.log_debug(f"Found a breakpoint added outside of the Hilda API {bp}")
             self._breakpoints[bp_id] = HildaBreakpoint(self._hilda, bp)
 
         return self._breakpoints[bp_id]
 
-    def add(self, where: WhereType, callback: Optional[Callable] = None, condition: str = None, guarded: bool = False,
-            override: bool = True, description: Optional[str] = None) -> HildaBreakpoint:
+    def add(
+        self,
+        where: WhereType,
+        callback: Optional[Callable] = None,
+        condition: Optional[str] = None,
+        guarded: bool = False,
+        override: bool = True,
+        description: Optional[str] = None,
+    ) -> HildaBreakpoint:
         """
         Add a breakpoint.
 
@@ -274,11 +291,14 @@ class BreakpointList:
             breakpoint and replace it with the new breakpoint. Otherwise, prompt the user.
         :return: The new breakpoint
         """
-        if where in (bp.where for bp in self):
-            if override or inquirer3.confirm('A breakpoint already exist in given location. '
-                                             'Would you like to delete the previous one?', True):
-                for bp in list(bp for bp in self if where == bp.where):
-                    del self[bp]
+        if where in (bp.where for bp in self) and (
+            override
+            or inquirer3.confirm(
+                "A breakpoint already exist in given location. Would you like to delete the previous one?", True
+            )
+        ):
+            for bp in [bp for bp in self if where == bp.where]:
+                del self[bp]
 
         if isinstance(where, int):
             bp = self._hilda.target.BreakpointCreateByAddress(where)
@@ -287,10 +307,10 @@ class BreakpointList:
             # not the name of the breakpoint.
             bp = self._hilda.target.BreakpointCreateByName(where)
         elif isinstance(where, tuple):
-            name, module = where
+            _name, _module = where
             raise NotImplementedError()
         if not bp.IsValid():
-            raise Exception(f'Failed to create breakpoint at {where}')
+            raise HildaException(f"Failed to create breakpoint at {where}")
 
         bp = HildaBreakpoint(self._hilda, bp, where, description=description)
         bp.callback = callback
@@ -299,23 +319,25 @@ class BreakpointList:
 
         self._breakpoints[bp.id] = bp
 
-        self._hilda.log_info(f'Breakpoint #{bp.id} has been set')
+        self._hilda.log_info(f"Breakpoint #{bp.id} has been set")
         return bp
 
-    def add_monitor(self, where: WhereType,
-                    condition: str = None,
-                    guarded: bool = False,
-                    override: bool = True,
-                    regs: Optional[dict[str, Union[str, Callable]]] = None,
-                    expr: Optional[dict[str, Union[str, Callable]]] = None,
-                    retval: Optional[Union[str, Callable]] = None,
-                    stop: bool = False,
-                    bt: bool = False,
-                    cmd: Optional[list[str]] = None,
-                    force_return: Optional[bool] = None,
-                    name: Optional[str] = None,
-                    description: Optional[str] = None,
-                    ) -> HildaBreakpoint:
+    def add_monitor(
+        self,
+        where: WhereType,
+        condition: Optional[str] = None,
+        guarded: bool = False,
+        override: bool = True,
+        regs: Optional[dict[str, Union[str, Callable]]] = None,
+        expr: Optional[dict[str, Union[str, Callable]]] = None,
+        retval: Optional[Union[str, Callable]] = None,
+        stop: bool = False,
+        bt: bool = False,
+        cmd: Optional[list[str]] = None,
+        force_return: Optional[bool] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> HildaBreakpoint:
         """
         Monitor every time a given address is called.
 
@@ -373,46 +395,46 @@ class BreakpointList:
                 if callable(fmt):
                     return fmt(hilda, value)
                 formatters = {
-                    'x': lambda val: f'0x{int(val):x}',
-                    's': lambda val: val.peek_str() if val else None,
-                    'cf': lambda val: val.cf_description,
-                    'po': lambda val: val.po(),
-                    'std::string': hilda._std_string
+                    "x": lambda val: f"0x{int(val):x}",
+                    "s": lambda val: val.peek_str() if val else None,
+                    "cf": lambda val: val.cf_description,
+                    "po": lambda val: val.po(),
+                    "std::string": hilda._std_string,
                 }
                 if fmt in formatters:
                     return formatters[fmt](value)
                 else:
-                    return f'{value:x} (unsupported format)'
+                    return f"{value:x} (unsupported format)"
 
-            log_message = f'🚨 #{bp.id} 0x{symbol:x} {printed_name} - Thread #{thread.idx}:{hex(thread.id)}'
+            log_message = f"🚨 #{bp.id} 0x{symbol:x} {printed_name} - Thread #{thread.idx}:{hex(thread.id)}"
 
             if regs != {}:
-                log_message += '\nregs:'
+                log_message += "\nregs:"
                 for reg_name, fmt in regs.items():
                     value = hilda.symbol(frame.FindRegister(reg_name).unsigned)
-                    log_message += f'\n\t{reg_name} = {format_value(fmt, value)}'
+                    log_message += f"\n\t{reg_name} = {format_value(fmt, value)}"
 
             if expr != {}:
-                log_message += '\nexpr:'
+                log_message += "\nexpr:"
                 for expr_name, fmt in expr.items():
                     value = hilda.symbol(hilda.evaluate_expression(expr_name))
-                    log_message += f'\n\t{expr_name} = {format_value(fmt, value)}'
+                    log_message += f"\n\t{expr_name} = {format_value(fmt, value)}"
 
             if force_return is not None:
                 hilda.force_return(force_return)
-                log_message += f'\nforced return: {force_return}'
+                log_message += f"\nforced return: {force_return}"
 
             if bt:
                 # bugfix: for callstacks from xpc events
                 hilda.finish()
                 for frame in hilda.bt():
-                    log_message += f'\n\t{frame[0]} {frame[1]}'
+                    log_message += f"\n\t{frame[0]} {frame[1]}"
 
             if retval is not None:
                 # return from function
                 hilda.finish()
-                value = hilda.evaluate_expression('$arg1')
-                log_message += f'\nreturned: {format_value(retval, value)}'
+                value = hilda.evaluate_expression("$arg1")
+                log_message += f"\nreturned: {format_value(retval, value)}"
 
             hilda.log_info(log_message)
 
@@ -420,12 +442,13 @@ class BreakpointList:
                 hilda.lldb_handle_command(command)
 
             if stop:
-                hilda.log_info('Process remains stopped and focused on current thread')
+                hilda.log_info("Process remains stopped and focused on current thread")
             else:
                 hilda.cont()
 
-        return self.add(where, callback, condition=condition, guarded=guarded, override=override,
-                        description=description)
+        return self.add(
+            where, callback, condition=condition, guarded=guarded, override=override, description=description
+        )
 
     def remove(self, id_or_name_or_bp: Union[int, str, HildaBreakpoint], remove_guarded: bool = False) -> None:
         """
@@ -438,14 +461,14 @@ class BreakpointList:
         bp = self[id_or_name_or_bp]
 
         if bp.guarded and not remove_guarded:
-            self._hilda.log_warning(f'Remove request for breakpoint {bp} is ignored')
+            self._hilda.log_warning(f"Remove request for breakpoint {bp} is ignored")
             return
 
         # Removing a breakpoint without using this function would leak the breakpoint in self._breakpoints
 
         breakpoint_id = bp.id
         self._hilda.target.BreakpointDelete(breakpoint_id)
-        self._hilda.log_debug(f'Breakpoint #{breakpoint_id} has been removed')
+        self._hilda.log_debug(f"Breakpoint #{breakpoint_id} has been removed")
 
     def clear(self, remove_guarded: bool = False) -> None:
         """
@@ -461,9 +484,9 @@ class BreakpointList:
             self.remove(bp, remove_guarded)
 
     def show(self) -> None:
-        """ Show existing breakpoints. """
+        """Show existing breakpoints."""
         if len(self) == 0:
-            self._hilda.log_info('No breakpoints')
+            self._hilda.log_info("No breakpoints")
         for bp in self:
             self._hilda.log_info(bp)
 

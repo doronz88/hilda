@@ -17,6 +17,7 @@ def breakpoint(where: WhereType, enable: bool = False):
     my_breakpoint.enabled = True
     ```
     """
+
     def decorator(callback):
         bp = p.breakpoints.add(where, callback=callback)
         bp.enabled = enable
@@ -38,6 +39,7 @@ def watchpoint(where: int, enable: bool = False):
     my_watchpoint.enabled = True
     ```
     """
+
     def decorator(callback):
         wp = p.watchpoints.add(where, callback=callback)
         wp.enabled = enable

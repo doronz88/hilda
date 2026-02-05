@@ -11,14 +11,14 @@ from hilda.lldb_importer import lldb
 class HIEvents:
     def __init__(self, ip: TerminalInteractiveShell):
         self.shell = ip
-        self.hilda_client: HildaClient = self.shell.user_ns['p']
+        self.hilda_client: HildaClient = self.shell.user_ns["p"]
 
     def pre_run_cell(self, info):
         """
         Enable lazy loading for symbols
         :param info: IPython's CellInfo object
         """
-        if info.raw_cell[0] in ['!', '%'] or info.raw_cell.endswith('?'):
+        if info.raw_cell[0] in ["!", "%"] or info.raw_cell.endswith("?"):
             return
         for node in ast.walk(ast.parse(info.raw_cell)):
             if not isinstance(node, ast.Name):
@@ -36,14 +36,14 @@ class HIEvents:
             try:
                 self.hilda_client._add_global(
                     node.id,
-                    symbol if symbol.type_ != lldb.eSymbolTypeObjCMetaClass else self.hilda_client.objc_get_class(
-                        node.id)
+                    symbol
+                    if symbol.type_ != lldb.eSymbolTypeObjCMetaClass
+                    else self.hilda_client.objc_get_class(node.id),
                 )
             except EvaluatingExpressionError:
-                self.hilda_client.log_warning(
-                    f'Process is running. Pause execution in order to resolve "{node.id}"')
+                self.hilda_client.log_warning(f'Process is running. Pause execution in order to resolve "{node.id}"')
 
 
 def load_ipython_extension(ip: TerminalInteractiveShell):
     hie = HIEvents(ip)
-    ip.events.register('pre_run_cell', hie.pre_run_cell)
+    ip.events.register("pre_run_cell", hie.pre_run_cell)

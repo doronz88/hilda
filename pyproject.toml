@@ -55,3 +55,58 @@ version_file = "hilda/_version.py"
 [build-system]
 requires = ["setuptools>=43.0.0", "setuptools_scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+fix = true
+
+[tool.ruff.lint]
+select = [
+    # flake8-2020
+    "YTT",
+    # flake8-bugbear
+    "B",
+    # flake8-builtins
+    "A",
+    # flake8-comprehensions
+    "C4",
+    # flake8-debugger
+    "T10",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pycodestyle
+    "E",
+    "W",
+    # pyflakes
+    "F",
+    # pygrep-hooks
+    "PGH",
+    # pyupgrade
+    "UP",
+    # ruff
+    "RUF",
+    # tryceratops
+    "TRY",
+]
+ignore = [
+    # Shadowing a built-in
+    "A001",
+    # LineTooLong
+    "E501",
+    # Custom error classes
+    "TRY003",
+    # Use `logging.exception` instead of `logging.error`
+    "TRY400",
+    # Abstract `raise` to an inner function
+    "TRY301",
+    # Do not perform function call `csfield` in dataclass defaults
+    "RUF009",
+    # Found useless attribute access. Either assign it to a variable or remove it.
+    "B018"
+]
+
+[tool.ruff.format]
+preview = true

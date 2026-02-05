@@ -30,15 +30,18 @@ def test_itemsize(hilda_client):
         long_item = rand[0]
         rand.item_size = addressing_sizes[i + 1]
         short_item = rand[0]
-        assert long_item & ((0x100 ** rand.item_size) - 1) == short_item
+        assert long_item & ((0x100**rand.item_size) - 1) == short_item
 
 
-@pytest.mark.parametrize('augend, addend, result', [
-    (1, 1, 2),
-    (0, 1, 1),
-    (1, 0, 1),
-    (1, 1.5, 2.5),
-])
+@pytest.mark.parametrize(
+    "augend, addend, result",
+    [
+        (1, 1, 2),
+        (0, 1, 1),
+        (1, 0, 1),
+        (1, 1.5, 2.5),
+    ],
+)
 def test_symbol_add(hilda_client, augend, addend, result):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
@@ -48,11 +51,14 @@ def test_symbol_add(hilda_client, augend, addend, result):
     assert reverse_sum == sum_ == result
 
 
-@pytest.mark.parametrize('minuend, subtrahend, difference', [
-    (2, 1, 1),
-    (1, 1, 0),
-    (1, 0, 1),
-])
+@pytest.mark.parametrize(
+    "minuend, subtrahend, difference",
+    [
+        (2, 1, 1),
+        (1, 1, 0),
+        (1, 0, 1),
+    ],
+)
 def test_symbol_sub(hilda_client, minuend, subtrahend, difference):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
@@ -62,9 +68,12 @@ def test_symbol_sub(hilda_client, minuend, subtrahend, difference):
     assert reverse_diff == diff == difference
 
 
-@pytest.mark.parametrize('minuend, subtrahend, difference', [
-    (2.5, 1, 1.5),
-])
+@pytest.mark.parametrize(
+    "minuend, subtrahend, difference",
+    [
+        (2.5, 1, 1.5),
+    ],
+)
 def test_symbol_rsub(hilda_client, minuend, subtrahend, difference):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
@@ -73,12 +82,15 @@ def test_symbol_rsub(hilda_client, minuend, subtrahend, difference):
     assert diff == difference
 
 
-@pytest.mark.parametrize('multiplier, multiplicand, product', [
-    (1, 1, 1),
-    (0, 1, 0),
-    (1, 2, 2),
-    (1, 1.5, 1.5),
-])
+@pytest.mark.parametrize(
+    "multiplier, multiplicand, product",
+    [
+        (1, 1, 1),
+        (0, 1, 0),
+        (1, 2, 2),
+        (1, 1.5, 1.5),
+    ],
+)
 def test_symbol_mul(hilda_client, multiplier, multiplicand, product):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
@@ -89,10 +101,13 @@ def test_symbol_mul(hilda_client, multiplier, multiplicand, product):
     assert prod == product
 
 
-@pytest.mark.parametrize('value, fmt', [
-    (1, '0x{:8x}'),
-    (0x1122334455667788, '(intptr_t)0x{:x}'),
-])
+@pytest.mark.parametrize(
+    "value, fmt",
+    [
+        (1, "0x{:8x}"),
+        (0x1122334455667788, "(intptr_t)0x{:x}"),
+    ],
+)
 def test_formatting_symbol(hilda_client, value: int, fmt: str):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
@@ -107,25 +122,25 @@ def test_po_cfstr(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    assert hilda_client.ns('ABC').po() == 'ABC'
+    assert hilda_client.ns("ABC").po() == "ABC"
 
 
 def test_po_nsobject(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    assert hilda_client.objc_get_class('NSObject').new().po().startswith('<NSObject: ')
+    assert hilda_client.objc_get_class("NSObject").new().po().startswith("<NSObject: ")
 
 
 def test_cf_description_cfstr(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    assert hilda_client.CFSTR('ABC').cf_description == 'ABC'
+    assert hilda_client.CFSTR("ABC").cf_description == "ABC"
 
 
 def test_cf_description_nsobject(hilda_client):
     """
     :param hilda.hilda_client.HildaClient hilda_client: Hilda client.
     """
-    assert hilda_client.objc_get_class('NSObject').new().cf_description.startswith('<NSObject: ')
+    assert hilda_client.objc_get_class("NSObject").new().cf_description.startswith("<NSObject: ")

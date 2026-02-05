@@ -2,7 +2,7 @@ import os
 import struct
 from contextlib import contextmanager
 from functools import cached_property
-from typing import Any, Optional, Tuple
+from typing import Any, ClassVar, Optional
 
 from construct import FormatField
 
@@ -10,7 +10,7 @@ from hilda.common import CfSerializable
 from hilda.lldb_importer import lldb
 from hilda.objective_c_class import Class
 
-ADDRESS_SIZE_TO_STRUCT_FORMAT = {1: 'B', 2: 'H', 4: 'I', 8: 'Q'}
+ADDRESS_SIZE_TO_STRUCT_FORMAT = {1: "B", 2: "H", 4: "I", 8: "Q"}
 
 
 class SymbolFormatField(FormatField):
@@ -19,7 +19,7 @@ class SymbolFormatField(FormatField):
     """
 
     def __init__(self, client):
-        super().__init__('<', 'Q')
+        super().__init__("<", "Q")
         self._client = client
 
     def _parse(self, stream, context, path):
@@ -37,7 +37,7 @@ Note that several regular symbols may have the same address (with different name
 
 Anonymous symbols are not uniquely identified by a `HildaSymbolId`.
 """
-HildaSymbolId = Tuple[Optional[str], int]
+HildaSymbolId = tuple[Optional[str], int]
 
 
 class Symbol(int):
@@ -45,12 +45,17 @@ class Symbol(int):
     Hilda's class representing a symbol (not necessarily an LLDB symbol).
     """
 
-    PROXY_METHODS = ['peek', 'poke', 'peek_str', 'monitor', 'bp',
-                     'disass', 'po', 'objc_call']
+    PROXY_METHODS: ClassVar = ["peek", "poke", "peek_str", "monitor", "bp", "disass", "po", "objc_call"]
 
     @classmethod
-    def create(cls, value: int, client, lldb_symbol: Optional[lldb.SBSymbol] = None,
-               lldb_address: Optional[lldb.SBAddress] = None, lldb_type: Optional[int] = None) -> None:
+    def create(
+        cls,
+        value: int,
+        client,
+        lldb_symbol: Optional[lldb.SBSymbol] = None,
+        lldb_address: Optional[lldb.SBAddress] = None,
+        lldb_type: Optional[int] = None,
+    ) -> None:
         """
         Create a Symbol object.
         :param value: Symbol address.
@@ -86,8 +91,7 @@ class Symbol(int):
         symbol.lldb_symbol = lldb_symbol
 
         for method_name in Symbol.PROXY_METHODS:
-            getattr(symbol.__class__, method_name).__doc__ = \
-                getattr(client, method_name).__doc__
+            getattr(symbol.__class__, method_name).__doc__ = getattr(client, method_name).__doc__
 
         return symbol
 
@@ -117,7 +121,7 @@ class Symbol(int):
         Get the objc class of the respected symbol
         :return: Class
         """
-        return Class(self._client, self.objc_call('class'))
+        return Class(self._client, self.objc_call("class"))
 
     @property
     def objc_symbol(self):
@@ -137,8 +141,8 @@ class Symbol(int):
 
     @property
     def name(self) -> str:
-        symbol_info = int(self._client.po(f'[{self._client._object_identifier} symbolForAddress:{self}]', '__int128'))
-        arg1 = symbol_info & 0xffffffffffffffff
+        symbol_info = int(self._client.po(f"[{self._client._object_identifier} symbolForAddress:{self}]", "__int128"))
+        arg1 = symbol_info & 0xFFFFFFFFFFFFFFFF
         arg2 = symbol_info >> 64
         return self._client.symbols.CSSymbolGetName(arg1, arg2).peek_str()
 
@@ -192,32 +196,32 @@ class Symbol(int):
         return self._client.objc_call(self, selector, *params)
 
     def close(self) -> None:
-        """ Construct compliance. """
+        """Construct compliance."""
         pass
 
     def seek(self, offset: int, whence: int = os.SEEK_SET) -> None:
-        """ Construct compliance. """
+        """Construct compliance."""
         if whence == os.SEEK_CUR:
             self._offset += offset
         elif whence == os.SEEK_SET:
             self._offset = offset - self
         else:
-            raise OSError('Unsupported whence')
+            raise OSError("Unsupported whence")
 
     def read(self, count: int) -> bytes:
-        """ Construct compliance. """
+        """Construct compliance."""
         val = (self + self._offset).peek(count)
         self._offset += count
         return val
 
     def write(self, buf: bytes) -> int:
-        """ Construct compliance. """
+        """Construct compliance."""
         val = (self + self._offset).poke(buf)
         self._offset += len(buf)
         return val
 
     def tell(self) -> int:
-        """ Construct compliance. """
+        """Construct compliance."""
         return self + self._offset
 
     def __add__(self, other):
@@ -272,7 +276,8 @@ class Symbol(int):
         fmt = ADDRESS_SIZE_TO_STRUCT_FORMAT[self.item_size]
         addr = self + item * self.item_size
         return self._client.symbol(
-            struct.unpack(self._client.endianness + fmt, self._client.peek(addr, self.item_size))[0])
+            struct.unpack(self._client.endianness + fmt, self._client.peek(addr, self.item_size))[0]
+        )
 
     def __setitem__(self, item, value):
         fmt = ADDRESS_SIZE_TO_STRUCT_FORMAT[self.item_size]
@@ -283,9 +288,9 @@ class Symbol(int):
         address = int(self)
         name = self.lldb_name
         if name is not None:
-            return f'Symbol({name}, 0x{address:016X})'
+            return f"Symbol({name}, 0x{address:016X})"
         else:
-            return f'AnonymousSymbol(0x{address:016X})'
+            return f"AnonymousSymbol(0x{address:016X})"
 
     def __str__(self):
         return hex(self)

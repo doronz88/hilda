@@ -247,7 +247,10 @@ class SymbolList:
         return self.add(symbols[0])
 
     def add_multiple_file_symbols(
-        self, symbol_identifiers: list[SymbolIdentifier], symbol_type: Optional[str] = None
+        self,
+        symbol_identifiers: list[SymbolIdentifier],
+        symbol_type: Optional[str] = None,
+        module_name: Optional[str] = None,
     ) -> list[Symbol]:
         """
         Add multiple symbols by file address.
@@ -261,7 +264,7 @@ class SymbolList:
             symbol_name = identifier.symbol_name
             file_address = identifier.file_address
             symbol_size = identifier.symbol_size
-            file_symbol = self._hilda.file_symbol(file_address)
+            file_symbol = self._hilda.file_symbol(file_address, module_name)
             if file_symbol.lldb_name is not None:
                 # There is already an lldb symbol - skip
                 self._hilda.log_warning(
@@ -459,6 +462,8 @@ class SymbolList:
             first_address = symbol_identifiers[0][1]
             first_lldb_address = self._hilda.target.ResolveLoadAddress(first_address)
             lldb_module = first_lldb_address.module
+            if not lldb_module:
+                raise HildaException("Failed to find module. Please provide it manually")
 
             lldb_module_uuid = lldb_module.GetUUIDString()
             if lldb_module_uuid not in self._manual_lldb_symbols:
@@ -496,11 +501,11 @@ class SymbolList:
                 f"target symbols add {shlex.quote(symbols_file.name)}", capture_output=True
             )
             if result is None:
-                raise HildaException(f"Failed to add symbol {symbol_name} to {lldb_module.file}")
+                raise HildaException(f"Failed to add symbols to {lldb_module.file}")
             expected_result = f"symbol file '{symbols_file.name}' has been added to '{lldb_module.file}'\n"
             if expected_result != result:
                 raise HildaException(
-                    f"Failed to add symbol {symbol_name} to {lldb_module.file}"
+                    f"Failed to add symbols to {lldb_module.file}"
                     f" (expected: {json.dumps(expected_result)}, output: {json.dumps(result)})"
                 )
 

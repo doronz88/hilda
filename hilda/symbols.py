@@ -259,6 +259,9 @@ class SymbolList:
             support a `symbols.x0x11223344` syntax.
             support a `symbols.x11223344` syntax.
         """
+        # Avoid hijacking Python/introspection magic attributes.
+        if attribute_name.startswith('__') and attribute_name.endswith('__'):
+            raise AttributeError(attribute_name)
         match = re.fullmatch(r'x(?:0x)?([0-9a-fA-F]{6,16})', attribute_name)
         if match:
             address = int(match[1], base=0x10)

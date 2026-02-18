@@ -119,7 +119,7 @@ class RegistersView(View):
         values = []
 
         # Divide the registers into columns of 16
-        for i, k, v in enumerate(regs_mapping.items()):
+        for i, (k, v) in enumerate(regs_mapping.items()):
             if i % 16 == 0 and i != 0:
                 list_of_lists.append(names.copy())
                 list_of_lists.append(values.copy())

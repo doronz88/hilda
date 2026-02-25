@@ -12,11 +12,11 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
 
     strategy:
       matrix:
-        python-version: [ 3.9 ]
+        python-version: [ 3.14 ]
         os: [ macos-latest ]
 
     steps:
@@ -35,7 +35,6 @@ jobs:
       - name: Test install
         run: |
           xcrun python3 -m pip install --upgrade pip
-          xcrun python3 -m pip install -r requirements.txt
           xcrun python3 -m pip install -e ".[test]"
       - name: Run pytest
         run: |

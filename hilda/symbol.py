@@ -293,7 +293,7 @@ class Symbol(int):
             return f"AnonymousSymbol(0x{address:016X})"
 
     def __str__(self):
-        return hex(self)
+        return f"0x{int(self):016x}"
 
     def __call__(self, *args, **kwargs):
         return self._client.call(self, args)

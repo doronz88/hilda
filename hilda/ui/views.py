@@ -5,6 +5,8 @@ from click import style
 from lldb import SBAddress
 from tabulate import tabulate
 
+from hilda.exceptions import AccessingMemoryError
+
 WORD_SIZE = 8
 
 
@@ -84,11 +86,15 @@ class StackView(View):
 
     def _create_mapping(self) -> dict[int, str]:
         """Generate mapping of stack address:data"""
-        base_addr = self.hilda.frame.sp
+        base = self.hilda.symbol(self.hilda.frame.sp)
+        base.item_size = WORD_SIZE
         stack_mapping = {}
-        for i in range(0, self.depth * WORD_SIZE, WORD_SIZE):
-            current = base_addr + i
-            stack_mapping[current] = "0x" + self.hilda.symbol(current).peek(WORD_SIZE).hex()
+        for i in range(0, self.depth):
+            try:
+                current = base[i]
+            except AccessingMemoryError:
+                break
+            stack_mapping[int(base + i * WORD_SIZE)] = str(current)
         return stack_mapping
 
 

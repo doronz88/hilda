@@ -1,6 +1,6 @@
 [project]
 name = "hilda"
-description = "LLDB wrapped and empowered by iPython's features"
+description = "Hilda bridges LLDB and IPython to deliver an improved debugging workflow"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }

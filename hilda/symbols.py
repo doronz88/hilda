@@ -350,6 +350,11 @@ class SymbolList:
         """Resolve a symbol by name (and optionally address) from LLDB."""
         lldb_symbol_context_list = list(self._hilda.target.FindSymbols(name))
 
+        if not lldb_symbol_context_list:
+            for func in self._hilda.target.FindFunctions(name):
+                if func.symbol.name == name:
+                    lldb_symbol_context_list.append(func)
+
         if address is not None:
             for lldb_symbol_context in list(lldb_symbol_context_list):
                 lldb_symbol_context_address = lldb_symbol_context.symbol.GetStartAddress().GetLoadAddress(
@@ -672,18 +677,32 @@ class SymbolList:
                 retval.add(v)
         return retval
 
-    def filter_name_contains(self, exp: str, case_sensitive: bool = True) -> "SymbolList":
+    def filter_name_contains(
+        self, exp: str, case_sensitive: bool = True, use_bare_lldb_api: bool = False
+    ) -> "SymbolList":
         """
         Filter symbols containing a given expression
+
         :param exp: given expression
         :param case_sensitive: is case sensitive
+        :param use_bare_lldb_api: Use bare lldb api (Using `FindFunctions()`)
         :return: reduced symbol list
         """
         if not case_sensitive:
             exp = exp.lower()
 
+            if use_bare_lldb_api:
+                raise ValueError("Cannot use bare lldb api with case_sensitive=False")
+
         retval = SymbolList(self._hilda)
-        for v in self.values():
+        for v in (
+            self.values()
+            if not use_bare_lldb_api
+            else ([
+                self._hilda.symbol(f.symbol.GetStartAddress().GetLoadAddress(self._hilda.target))
+                for f in self._hilda.target.FindFunctions(exp)
+            ])
+        ):
             name = v.lldb_name
             if not case_sensitive:
                 name = name.lower()

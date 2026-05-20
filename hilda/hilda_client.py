@@ -962,7 +962,7 @@ class HildaClient:
                 arg = int(arg) & 0xFFFFFFFFFFFFFFFF
                 args_conv.append(f"0x{arg:x}")
             else:
-                raise NotImplementedError("cannot serialize argument")
+                raise NotImplementedError(f"cannot serialize argument of type: {type(arg)}")
         return args_conv
 
     def _generate_call_expression(self, address, params):

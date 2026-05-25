@@ -270,21 +270,24 @@ class Class:
         if class_name in self._client.captured_objects:
             del self._client.captured_objects[class_name]
 
-        def hook(hilda, frame, bp_loc, options):
-            hilda.log_info(f"self object has been captured from {options['name']}")
+        group_bp_list = []
+
+        def hook(hilda, frame, bp_loc, hilda_bp):
+            hilda.log_info(f"self object has been captured for {class_name}")
             hilda.log_info("removing breakpoints")
-            for bp_id, bp in list(hilda.breakpoints.items()):
-                if "group_uuid" in bp.options and bp.options.get("group_uuid", "") == options["group_uuid"]:
-                    hilda.breakpoints.remove(bp_id)
+            for bp in group_bp_list:
+                bp.remove()
+
             captured = hilda.evaluate_expression("$arg1")
             captured = captured.objc_symbol
-            hilda.captured_objects[options["name"].split(" ")[0].split("[")[1]] = captured
+            captured.retain()
+            hilda.captured_objects[class_name] = captured
             hilda.cont()
 
         for method in self.methods:
             if not method.is_class:
                 # only instance methods are relevant for capturing self
-                method.imp.bp(hook)
+                group_bp_list.append(method.imp.bp(hook))
 
         if sync:
             self._client.cont()

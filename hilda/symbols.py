@@ -265,8 +265,8 @@ class SymbolList:
             file_address = identifier.file_address
             symbol_size = identifier.symbol_size
             file_symbol = self._hilda.file_symbol(file_address, module_name)
-            if file_symbol.lldb_name is not None:
-                # There is already an lldb symbol - skip
+            if file_symbol.lldb_name is not None and 'lldb_unnamed_symbol' not in file_symbol.lldb_name:
+                # There is already an lldb symbol that is not one of the unnamed symbols - skip
                 self._hilda.log_warning(
                     f"Not adding {symbol_name}@0x{int(file_symbol):016X} (because it is already {file_symbol.lldb_name}"
                 )

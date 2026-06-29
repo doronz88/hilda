@@ -2,6 +2,8 @@
 
 Hilda bridges LLDB and IPython to deliver an improved debugging workflow.
 
+📖 **Full documentation: <https://doronz88.github.io/hilda/>**
+
 Both Hilda and [Frida](https://frida.re/) serve a similar purpose, but Hilda
 takes a "debugger" approach (the name actually comes from the TV show "Hilda",
 where Hilda is the best friend of Frida).

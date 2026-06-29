@@ -141,7 +141,7 @@ class MethodList(UserList):
         """
         Perform monitor for all symbols in the method list.
         See monitor command for more details.
-        :param args: given arguments for monitor command
+        :param kwargs: given arguments for monitor command
         """
         for method in self.data:
             method_kwargs = kwargs.copy()

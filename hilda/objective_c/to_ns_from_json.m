@@ -4,8 +4,8 @@ __block NSObject *(^convertHildaMagics)(NSObject *);
 
 convertHildaMagics = ^(NSObject *src) {
     if ([src isKindOfClass:[NSMutableDictionary class]]) {
-        [(NSMutableDictionary *)src enumerateKeysAndObjectsUsingBlock:^(id key, id  obj, BOOL * stop) {
-            [(NSMutableDictionary *)src setObject:convertHildaMagics((NSObject *)obj) forKey:key];
+        [(NSMutableDictionary *)src enumerateKeysAndObjectsUsingBlock:^(id _key, id  obj, BOOL * stop) {
+            [(NSMutableDictionary *)src setObject:convertHildaMagics((NSObject *)obj) forKey:_key];
         }];
         return src;
     }

@@ -12,8 +12,8 @@ NSArray *(^make_json_serializable_array)(NSArray *) = ^(NSArray *src) {
 
 NSDictionary *(^make_json_serializable_dictionary)(NSDictionary *) = ^(NSDictionary *src) {
     NSMutableDictionary *result = [NSMutableDictionary new];
-    [src enumerateKeysAndObjectsUsingBlock:^(id key, id  obj, BOOL * stop) {
-        result[(NSString *)make_json_serializable(key, YES)] = make_json_serializable(obj, NO);
+    [src enumerateKeysAndObjectsUsingBlock:^(id _key, id  obj, BOOL * stop) {
+        result[(NSString *)make_json_serializable(_key, YES)] = make_json_serializable(obj, NO);
     }];
     return result;
 };

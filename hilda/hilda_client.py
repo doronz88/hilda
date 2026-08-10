@@ -328,7 +328,16 @@ class HildaClient:
         :param address:
         :return:
         """
-        return address.po("char *")[1:-1]  # strip the ""
+        size = 0x100
+        while True:
+            err = lldb.SBError()
+            result = self.process.ReadCStringFromMemory(address, size, err)
+            if not err.Success():
+                raise AccessingMemoryError()
+            # a shorter result means the null terminator was found within the buffer
+            if len(result) < size - 1:
+                return result
+            size *= 2
 
     @stop_is_needed
     def peek_std_str(self, address: Symbol) -> str:

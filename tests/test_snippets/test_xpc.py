@@ -8,11 +8,11 @@ def test_from_xpc_object(hilda_client):
     xpc_object = hilda_client.evaluate_expression("""
         typedef void * xpc_object_t;
         typedef void * xpc_activity_t;
-        typedef void (^xpc_activity_handler_t)(xpc_activity_t activity);
-        extern xpc_object_t xpc_dictionary_create(const char * const *keys, const xpc_object_t *values, size_t);
-        extern void xpc_activity_register(const char *, xpc_object_t criteria, xpc_activity_handler_t handler);
-        extern void xpc_dictionary_set_int64(xpc_object_t xdict, const char *key, int64_t value);
-        extern void xpc_dictionary_set_string(xpc_object_t xdict, const char *key, const char *string);
+        typedef void (^xpc_activity_handler_t)(xpc_activity_t);
+        extern xpc_object_t xpc_dictionary_create(const char * const *, const xpc_object_t *, size_t);
+        extern void xpc_activity_register(const char *, xpc_object_t, xpc_activity_handler_t);
+        extern void xpc_dictionary_set_int64(xpc_object_t, const char *, int64_t);
+        extern void xpc_dictionary_set_string(xpc_object_t, const char *, const char *);
 
         xpc_object_t criteria = xpc_dictionary_create(NULL, NULL, 0);
         xpc_dictionary_set_int64(criteria, "Delay", 5);

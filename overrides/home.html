@@ -1,0 +1,50 @@
+{% extends "main.html" %}
+
+{#- Landing page: a hero built around a real Hilda session, then the page's Markdown below. -#}
+{% block htmltitle %}
+  <title>{{ config.site_name }}: LLDB in IPython for macOS and iOS</title>
+{% endblock %}
+
+{#- Hero already carries the page heading; render only the Markdown body. -#}
+{% block content %}
+  {{ page.content }}
+{% endblock %}
+
+{% block tabs %}
+  {{ super() }}
+  <section class="hl-hero">
+    <div class="hl-hero__inner md-grid">
+      <div class="hl-hero__copy">
+        <h1 class="hl-hero__title">Debug macOS and iOS processes from a Python&nbsp;shell</h1>
+        <p class="hl-hero__lede">
+          Hilda puts LLDB inside IPython. Attach to a process, then read memory, call functions,
+          hook Objective-C selectors and set breakpoints, all as plain Python objects.
+        </p>
+        <div class="hl-hero__install">
+          <code id="hl-install">xcrun python3 -m pip install --user -U hilda</code>
+        </div>
+        <div class="hl-hero__actions">
+          <a href="{{ 'installation/' | url }}" class="md-button md-button--primary">Get started</a>
+          <a href="{{ 'api/' | url }}" class="md-button">API reference</a>
+        </div>
+        <p class="hl-hero__aside">
+          Named after Frida's best friend: Hilda takes the debugger's approach.
+        </p>
+      </div>
+
+      <div class="hl-hero__stage">
+        <img class="hl-hero__mascot" src="{{ 'assets/logo.png' | url }}" alt="" width="225" height="225">
+        <figure class="hl-term" aria-label="Example Hilda session">
+          <div class="hl-term__bar"><span></span><span></span><span></span><em>hilda — sysmond</em></div>
+<pre class="hl-term__body"><code><span class="l"><span class="sh">$</span> hilda attach -n sysmond</span>
+<span class="l"><span class="in">In [<b>1</b>]:</span> p.symbols.malloc(10)</span>
+<span class="l"><span class="out">Out[<b>1</b>]:</span> <span class="addr">AnonymousSymbol(0x0000600002B3C030)</span></span>
+<span class="l"><span class="in">In [<b>2</b>]:</span> p.symbols.open.monitor(regs={<span class="str">'x0'</span>: <span class="str">'x'</span>}, bt=<span class="kw">True</span>)</span>
+<span class="l"><span class="in">In [<b>3</b>]:</span> NSDictionary.capture_self(<span class="kw">True</span>).show()</span>
+<span class="l"><span class="in">In [<b>4</b>]:</span> <span class="kw">from</span> hilda.snippets <span class="kw">import</span> xpc; xpc.sniff_all()</span>
+<span class="l"><span class="in">In [<b>5</b>]:</span> p.cont()<span class="cursor" aria-hidden="true"></span></span></code></pre>
+        </figure>
+      </div>
+    </div>
+  </section>
+{% endblock %}

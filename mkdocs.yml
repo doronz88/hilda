@@ -47,6 +47,11 @@ extra_css:
 
 plugins:
   - search
+  # One site per release series, published by .github/workflows/docs.yml: X.Y for each release,
+  # `latest` for the newest release (the default), `main` for the main branch.
+  - mike:
+      alias_type: copy
+      canonical_version: latest
   - mkdocstrings:
       handlers:
         python:
@@ -117,3 +122,9 @@ nav:
       - Symbols & Objective-C: api/symbols.md
       - Breakpoints & watchpoints: api/breakpoints.md
       - Exceptions: api/exceptions.md
+
+extra:
+  version:
+    provider: mike
+    default: latest
+    alias: true

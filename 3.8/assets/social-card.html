@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 640px; }
+  body {
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 0 96px;
+    background: radial-gradient(120% 140% at 80% 10%, #4527a0 0%, #2a1750 55%, #1d0f3d 100%);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+  }
+  .bg { position: absolute; right: -60px; bottom: -80px; width: 520px; opacity: 0.10; filter: grayscale(0.2); }
+  .row { display: flex; align-items: center; gap: 44px; z-index: 1; }
+  .logo { width: 210px; height: 210px; flex: none; }
+  .name { font-size: 120px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+  .tagline { margin-top: 38px; font-size: 40px; font-weight: 400; color: #d9cffa; max-width: 1010px; line-height: 1.3; z-index: 1; }
+  .pill { display:inline-block; margin-top: 34px; font-size: 25px; color:#b3a7e0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; z-index:1; }
+  .bar { position:absolute; left:0; bottom:0; height:12px; width:100%; background: linear-gradient(90deg,#673ab7 0%,#9575cd 50%,#b39ddb 100%); }
+</style>
+</head>
+<body>
+  <img class="bg" src="logo.png">
+  <div class="row">
+    <img class="logo" src="logo-badge.png">
+    <div class="name">Hilda</div>
+  </div>
+  <div class="tagline">Bridges <b>LLDB</b> and <b>IPython</b> for an improved debugging workflow.</div>
+  <div class="pill">$ xcrun python3 -m pip install --user -U hilda</div>
+  <div class="bar"></div>
+</body>
+</html>

@@ -1,0 +1,321 @@
+/* Hilda docs theme.
+ * Colors come from the mascot: teal hair, red boots, mustard scarf, deep-teal ink. */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap");
+
+:root {
+  --hl-ink: #16303a;
+  --hl-ink-deep: #0f2229;
+  --hl-hair: #2a7484;
+  --hl-hair-bright: #6cc0cf;
+  --hl-boots: #d4513f;
+  --hl-scarf: #f2b33d;
+  --hl-paper: #f7fbfb;
+  --hl-display: "Bricolage Grotesque", var(--md-text-font-family), sans-serif;
+}
+
+/* ---------- Material palette ---------- */
+[data-md-color-primary="custom"] {
+  --md-primary-fg-color: var(--hl-ink);
+  --md-primary-fg-color--light: #24505e;
+  --md-primary-fg-color--dark: var(--hl-ink-deep);
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: rgba(255, 255, 255, 0.72);
+}
+[data-md-color-accent="custom"] {
+  --md-accent-fg-color: var(--hl-boots);
+  --md-accent-fg-color--transparent: rgba(212, 81, 63, 0.1);
+}
+[data-md-color-scheme="default"] {
+  --md-default-bg-color: var(--hl-paper);
+  --md-typeset-a-color: var(--hl-hair);
+  --md-code-bg-color: #ecf3f4;
+  --md-typeset-mark-color: rgba(242, 179, 61, 0.35);
+}
+[data-md-color-scheme="slate"] {
+  --md-hue: 195;
+  --md-default-bg-color: hsla(195, 22%, 11%, 1);
+  --md-typeset-a-color: var(--hl-hair-bright);
+  --md-accent-fg-color: #ef7a69;
+  --md-code-bg-color: hsla(195, 22%, 15%, 1);
+}
+
+/* ---------- Header & tabs ---------- */
+.md-header,
+.md-tabs {
+  background-color: var(--hl-ink);
+}
+.md-tabs {
+  border-bottom: 3px solid var(--hl-scarf);
+}
+.md-header__topic:first-child {
+  font-family: var(--hl-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.md-header__button.md-logo img {
+  height: 1.9rem;
+}
+
+/* ---------- Footer ---------- */
+.md-footer,
+.md-footer-meta {
+  background-color: var(--hl-ink-deep);
+}
+
+/* ---------- Typography ---------- */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  font-family: var(--hl-display);
+  color: var(--md-default-fg-color);
+  letter-spacing: -0.015em;
+}
+.md-typeset h1 { font-weight: 800; }
+.md-typeset h2 { font-weight: 700; }
+.md-typeset h3 { font-weight: 700; }
+
+.md-typeset a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 0.18em;
+}
+.md-typeset a:hover {
+  text-decoration-color: var(--hl-scarf);
+}
+.md-typeset .md-button,
+.md-typeset .headerlink,
+.md-typeset a.md-content__button {
+  text-decoration: none;
+}
+
+.md-typeset .md-button {
+  border-radius: 0.4rem;
+  font-weight: 600;
+}
+.md-typeset .md-button--primary {
+  background-color: var(--hl-boots);
+  border-color: var(--hl-boots);
+  color: #fff;
+}
+.md-typeset .md-button--primary:hover,
+.md-typeset .md-button--primary:focus {
+  background-color: #b8402f;
+  border-color: #b8402f;
+}
+
+:focus-visible {
+  outline: 2px solid var(--hl-scarf);
+  outline-offset: 2px;
+}
+
+/* ---------- Home hero ---------- */
+.hl-hero {
+  background: var(--hl-ink);
+  color: #fff;
+  overflow: hidden;
+}
+.hl-hero__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 3rem;
+  align-items: center;
+  padding: 3.5rem 0.8rem 4rem;
+}
+.hl-hero__title {
+  font-family: var(--hl-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 3.6vw, 2.9rem);
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  margin: 0 0 1.1rem;
+  color: #fff;
+  text-wrap: balance;
+}
+.hl-hero__lede {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 34em;
+  margin: 0 0 1.5rem;
+}
+.hl-hero__install code {
+  display: inline-block;
+  font-family: var(--md-code-font-family);
+  font-size: 0.72rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.4rem;
+  background: var(--hl-ink-deep);
+  color: var(--hl-scarf);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: all;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.hl-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.4rem 0 0;
+}
+.hl-hero .md-button {
+  margin: 0;
+  border-radius: 0.4rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.55em 1.4em;
+}
+.hl-hero .md-button--primary {
+  background: var(--hl-boots);
+  border-color: var(--hl-boots);
+  color: #fff;
+}
+.hl-hero .md-button--primary:hover { background: #b8402f; border-color: #b8402f; }
+.hl-hero .md-button:not(.md-button--primary) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.hl-hero .md-button:not(.md-button--primary):hover {
+  border-color: var(--hl-hair-bright);
+  color: var(--hl-hair-bright);
+  background: transparent;
+}
+.hl-hero__aside {
+  margin: 1.6rem 0 0;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Terminal, with Hilda standing on its top edge */
+.hl-hero__stage {
+  position: relative;
+  padding-top: 7.6rem;
+}
+.hl-hero__mascot {
+  position: absolute;
+  right: 1.2rem;
+  top: 0;
+  width: 8.5rem;
+  height: auto;
+  z-index: 0;
+}
+.hl-term {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  border-radius: 0.6rem;
+  background: #0b1a1f;
+  border: 1px solid rgba(108, 192, 207, 0.22);
+  box-shadow: 0 1.5rem 3rem -1rem rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+.hl-term__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.8rem;
+  background: #11262d;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.hl-term__bar span {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+.hl-term__bar em {
+  margin-left: auto;
+  margin-right: auto;
+  padding-right: 1.5rem;
+  font-style: normal;
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: var(--md-code-font-family);
+}
+.hl-term__body {
+  margin: 0;
+  padding: 1rem 1.1rem 1.2rem;
+  overflow-x: auto;
+  font-family: var(--md-code-font-family);
+  font-size: 0.68rem;
+  line-height: 1.85;
+  color: #d9e6e8;
+}
+.hl-term__body code {
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.hl-term__body code { white-space: normal; }
+.hl-term .l { display: block; white-space: pre; }
+.hl-term .sh { color: var(--hl-scarf); }
+.hl-term .in { color: #5fcf80; }
+.hl-term .out { color: var(--hl-boots); }
+.hl-term .in b,
+.hl-term .out b { font-weight: 700; }
+.hl-term .addr { color: var(--hl-scarf); }
+.hl-term .str { color: var(--hl-hair-bright); }
+.hl-term .kw { color: #c6a0f6; }
+.hl-term .cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1.1em;
+  margin-left: 0.15em;
+  vertical-align: -0.2em;
+  background: #d9e6e8;
+}
+
+/* The one orchestrated moment: the session types itself out once on load. */
+@media (prefers-reduced-motion: no-preference) {
+  .hl-term .l {
+    opacity: 0;
+    animation: hl-line 0.01s linear forwards;
+  }
+  .hl-term .l:nth-child(1) { animation-delay: 0.15s; }
+  .hl-term .l:nth-child(2) { animation-delay: 0.55s; }
+  .hl-term .l:nth-child(3) { animation-delay: 0.85s; }
+  .hl-term .l:nth-child(4) { animation-delay: 1.25s; }
+  .hl-term .l:nth-child(5) { animation-delay: 1.65s; }
+  .hl-term .l:nth-child(6) { animation-delay: 2.05s; }
+  .hl-term .l:nth-child(7) { animation-delay: 2.45s; }
+  .hl-term .cursor { animation: hl-blink 1.1s steps(1) 2.6s infinite; }
+}
+@keyframes hl-line { to { opacity: 1; } }
+@keyframes hl-blink { 50% { opacity: 0; } }
+
+@media screen and (max-width: 59.9375em) {
+  .hl-hero__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    padding: 2.2rem 0.8rem 2.6rem;
+  }
+  .hl-hero__install code { white-space: normal; overflow-wrap: anywhere; }
+  .hl-hero__stage { padding-top: 4.2rem; }
+  .hl-hero__mascot { width: 5.8rem; }
+}
+
+/* ---------- Home feature rows ---------- */
+.md-typeset .hl-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 2rem;
+  align-items: start;
+  padding: 1.6rem 0;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+}
+.md-typeset .hl-feature:first-of-type { border-top: 0; }
+.md-typeset .hl-feature h3 {
+  margin-top: 0.2rem;
+  font-size: 1.15rem;
+}
+.md-typeset .hl-feature p { margin: 0.5rem 0 0; }
+.md-typeset .hl-feature .highlight,
+.md-typeset .hl-feature pre { margin: 0; }
+
+@media screen and (max-width: 59.9375em) {
+  .md-typeset .hl-feature {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.8rem;
+  }
+}

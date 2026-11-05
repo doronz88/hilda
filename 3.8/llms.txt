@@ -1,0 +1,29 @@
+# Hilda
+
+> Hilda bridges LLDB and IPython to deliver an improved debugging workflow.
+
+Hilda bridges LLDB and IPython for an improved debugging workflow — symbols, Objective-C support, breakpoints/watchpoints, and a scriptable client.
+
+## Getting started
+
+- [Home](https://doronz88.github.io/hilda/latest/index.md)
+- [Installation](https://doronz88.github.io/hilda/latest/installation/index.md)
+
+## Guides
+
+- [Modes of operation](https://doronz88.github.io/hilda/latest/hilda-modes-of-operation/index.md)
+- [Configuration](https://doronz88.github.io/hilda/latest/hilda-configuration/index.md)
+- [Symbols](https://doronz88.github.io/hilda/latest/hilda-symbols/index.md)
+- [Objective-C support](https://doronz88.github.io/hilda/latest/hilda-objective-c-support/index.md)
+- [Method set](https://doronz88.github.io/hilda/latest/hilda-method-set/index.md)
+- [Shortcuts](https://doronz88.github.io/hilda/latest/hilda-shortcuts/index.md)
+- [Snippets](https://doronz88.github.io/hilda/latest/hilda-snippets/index.md)
+
+## API reference
+
+- [Overview](https://doronz88.github.io/hilda/latest/api/index.md)
+- [HildaClient](https://doronz88.github.io/hilda/latest/api/client/index.md)
+- [Symbols & Objective-C](https://doronz88.github.io/hilda/latest/api/symbols/index.md)
+- [Breakpoints & watchpoints](https://doronz88.github.io/hilda/latest/api/breakpoints/index.md)
+- [Exceptions](https://doronz88.github.io/hilda/latest/api/exceptions/index.md)
+
